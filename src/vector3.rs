@@ -1,5 +1,7 @@
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use minifb::clamp;
+use rand::Rng;
 
 pub type Point3 = Vector3;
 pub type Color = Vector3;
@@ -40,8 +42,47 @@ impl Vector3 {
         return self.length_squared().sqrt();
     }
 
-    pub fn dot(u: Vector3, v: Vector3) -> f64 {
+    pub fn dot(u: &Vector3, v: &Vector3) -> f64 {
         return u.x * v.x + u.y * v.y + u.z * v.z;
+    }
+
+    pub fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+    }
+
+    pub fn random_min_max(min: f64, max: f64) -> Self {
+        let mut rng = rand::thread_rng();
+        let x_rand = rng.gen::<f64>();
+        let x = max * x_rand + min * (1.0 - x_rand);
+
+        let y_rand = rng.gen::<f64>();
+        let y = max * y_rand + min * (1.0 - y_rand);
+
+        let z_rand = rng.gen::<f64>();
+        let z = max * z_rand + min * (1.0 - z_rand);
+
+        Vector3{x: x, y: y, z: z }
+    }
+
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let candidate = Vector3::random_min_max(-1.0, 1.0);
+            if candidate.length_squared() < 1.0 { return candidate; }
+        }
+    }
+
+    pub fn random_unit_vector() -> Self {
+        Vector3::random_in_unit_sphere().normalized()
+    }
+
+    pub fn random_in_hemisphere(normal: &Vector3) -> Self {
+        let in_unit_sphere = Vector3::random_in_unit_sphere();
+        if Vector3::dot(&in_unit_sphere, normal) > 0.0 {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
     }
 
     pub fn cross(u: Vector3, v: Vector3) -> Vector3 {
@@ -57,10 +98,14 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn color_to_output(self, image_buffer: &mut Vec<f64>, offset: usize) -> () {
-        image_buffer[offset + 0] = (255.999 * self.x) as f64;
-        image_buffer[offset + 1] = (255.999 * self.y) as f64;
-        image_buffer[offset + 2] = (255.999 * self.z) as f64;
+    pub fn color_to_output(self, image_buffer: &mut Vec<f64>, offset: usize, scale: f64) -> () {
+        let r = (scale * self.x).sqrt();
+        let g = (scale * self.y).sqrt();
+        let b = (scale * self.z).sqrt();
+
+        image_buffer[offset + 0] = (255.999 * clamp(0.0, r, 0.999)) as f64;
+        image_buffer[offset + 1] = (255.999 * clamp(0.0, g, 0.999)) as f64;
+        image_buffer[offset + 2] = (255.999 * clamp(0.0, b, 0.999)) as f64;
     }
 }
 
