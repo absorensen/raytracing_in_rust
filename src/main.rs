@@ -7,13 +7,14 @@ mod ray;
 mod sphere;
 mod hittable;
 mod camera;
+mod material;
 
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
 use sphere::Sphere;
 use hittable::{Hittable, HitRecord, HittableList};
 use camera::Camera;
-
+use material::{Material, Lambertian, Metal};
 
 fn ray_color(ray: &Ray, world: & dyn Hittable, depth: i64) -> Color{
     if depth <= 0 {
@@ -23,8 +24,13 @@ fn ray_color(ray: &Ray, world: & dyn Hittable, depth: i64) -> Color{
     let record_option = world.hit(ray, 0.0000001, f64::INFINITY);
     if record_option.is_some() {
         let record = record_option.unwrap();
-        let target = record.position + record.normal + Vector3::random_in_hemisphere(&record.normal);
-        return 0.5 * ray_color(&Ray{origin: record.position, direction: target - record.position}, world, depth - 1);
+        
+        let material_hit_option = record.material.scatter(ray, &record);
+        if material_hit_option.is_some() {
+            let (attenuation, scattered) = material_hit_option.unwrap();
+            return attenuation * ray_color(&scattered, world, depth - 1);
+        } 
+        return Color{x: 0.0, y: 0.0, z: 0.0};
     }
 
     let unit_direction: Vector3 = ray.direction.normalized();
@@ -38,14 +44,21 @@ fn main() {
     let image_width = 400;
     let image_height = ((image_width as f64) / aspect_ratio) as usize;
     let image_color_mode = 3;
-    let samples_per_pixel = 100;
-    let max_depth = 50;
+    let samples_per_pixel = 50;
+    let max_depth = 30;
     let mut image_buffer: Vec<f64> = vec![0.0; (image_width * image_height * image_color_mode) as usize];
 
     // World
+    let material_ground = Lambertian{albedo: Color{x: 0.8, y: 0.8, z: 0.0}};
+    let material_center = Lambertian{albedo: Color{x: 0.7, y: 0.3, z: 0.3}};
+    let material_left = Metal{albedo: Color{x: 0.8, y: 0.8, z: 0.8}};
+    let material_right = Metal{albedo: Color{x: 0.8, y: 0.6, z: 0.2}};
+
     let mut world = HittableList::default();
-    world.push(Sphere::new(Point3{x: 0.0, y:0.0, z:-1.0}, 0.5));
-    world.push(Sphere::new(Point3{x: 0.0, y:-100.5, z:-1.0}, 100.0));
+    world.push(Sphere::new(Point3{x: 0.0, y:-100.5, z:-1.0}, 100.0, material_ground));
+    world.push(Sphere::new(Point3{x: 0.0, y:0.0, z:-1.0}, 0.5, material_center));
+    world.push(Sphere::new(Point3{x: -1.0, y:0.0, z:-1.0}, 0.5, material_left));
+    world.push(Sphere::new(Point3{x: 1.0, y:0.0, z:-1.0}, 0.5, material_right));
 
     // Camera
     let camera = Camera::new();

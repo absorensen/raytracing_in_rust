@@ -17,5 +17,9 @@ impl Ray {
         self.origin + t * self.direction
     }
 
+    pub fn reflect(v: &Vector3, normal: &Vector3) -> Vector3 {
+        *v - 2.0 * Vector3::dot(v, normal) * *normal
+    }
+
 
 }

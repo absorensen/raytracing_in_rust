@@ -107,6 +107,11 @@ impl Vector3 {
         image_buffer[offset + 1] = (255.999 * clamp(0.0, g, 0.999)) as f64;
         image_buffer[offset + 2] = (255.999 * clamp(0.0, b, 0.999)) as f64;
     }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
+    }
 }
 
 impl Add for Vector3 {

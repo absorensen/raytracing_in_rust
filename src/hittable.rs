@@ -1,14 +1,16 @@
 use crate::vector3::Vector3;
 use crate::ray::Ray;
+use crate::material::Material;
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub t: f64,
     pub position: Vector3,
     pub normal: Vector3,
     pub front_face: bool,
+    pub material: &'a dyn Material,
 }
 
-impl HitRecord{
+impl<'a> HitRecord<'a>{
     pub fn set_face_normal(&mut self, ray: &Ray, outward_normal:&Vector3) -> () {
         self.front_face = Vector3::dot(&ray.direction,outward_normal) < 0.0;
         self.normal = if self.front_face { *outward_normal } else { -*outward_normal };
