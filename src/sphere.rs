@@ -18,28 +18,25 @@ impl<M: Material> Sphere<M> {
 impl<M:Material> Hittable for Sphere<M>{
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
-        let a = ray.direction.length_squared();
-        let half_b = Vector3::dot(&oc, &ray.direction);
-        let c = oc.length_squared() - self.radius * self.radius;
-        let discriminant = half_b * half_b - a * c;
-    
-        if discriminant < 0.0 {
-            return None
-        }
-
-        let sqrt_discriminant = f64::sqrt(discriminant);
-        let root = (-half_b - sqrt_discriminant) / a;
-        if root < t_min || t_max < root {
-            let root = (-half_b + sqrt_discriminant) / a;
-            if root < t_min || t_max < root {
-                return None
+        let a = Vector3::dot(&ray.direction, &ray.direction);
+        let b = Vector3::dot(&oc,&ray.direction);
+        let c = Vector3::dot(&oc,&oc) - self.radius.powi(2);
+        let discriminant = b.powi(2) - a * c;
+        if discriminant > 0.0 {
+            let sqrt_discriminant = discriminant.sqrt();
+            let t = (-b - sqrt_discriminant) / a;
+            if t < t_max && t > t_min {
+                let p = ray.at(t);
+                let normal = (p - self.center) / self.radius;
+                return Some(HitRecord { t, position: p, normal, material: &self.material })
+            }
+            let t = (-b + sqrt_discriminant) / a;
+            if t < t_max && t > t_min {
+                let p = ray.at(t);
+                let normal = (p - self.center) / self.radius;
+                return Some(HitRecord { t, position: p, normal, material: &self.material })
             }
         }
-
-        let position = ray.at(root);
-        let mut record = HitRecord{t: root, position: position, normal: (position - self.center) / self.radius, front_face: true, material: &self.material};
-        let outward_normal = (record.position - self.center) / self.radius;
-        record.set_face_normal(ray, &outward_normal);
-        Some(record)
+        None
     }
 }

@@ -35,7 +35,7 @@ impl Vector3 {
     }
 
     pub fn length_squared(&self) -> f64 {
-        return self.x * self.x + self.y * self.y + self.z * self.z;
+        return self.x.mul_add(self.x, self.y.mul_add(self.y, self.z * self.z));
     }
 
     pub fn length(&self) -> f64 {
@@ -43,7 +43,7 @@ impl Vector3 {
     }
 
     pub fn dot(u: &Vector3, v: &Vector3) -> f64 {
-        return u.x * v.x + u.y * v.y + u.z * v.z;
+        return u.x.mul_add(v.x, u.y.mul_add(v.y, u.z * v.z));
     }
 
     pub fn random() -> Self {
@@ -54,22 +54,35 @@ impl Vector3 {
     pub fn random_min_max(min: f64, max: f64) -> Self {
         let mut rng = rand::thread_rng();
         let x_rand = rng.gen::<f64>();
-        let x = max * x_rand + min * (1.0 - x_rand);
+        let x = max.mul_add(x_rand, min * (1.0 - x_rand));
 
         let y_rand = rng.gen::<f64>();
-        let y = max * y_rand + min * (1.0 - y_rand);
+        let y = max.mul_add(y_rand, min * (1.0 - y_rand));
 
         let z_rand = rng.gen::<f64>();
-        let z = max * z_rand + min * (1.0 - z_rand);
+        let z = max.mul_add(z_rand, min * (1.0 - z_rand));
 
         Vector3{x: x, y: y, z: z }
     }
 
     pub fn random_in_unit_sphere() -> Self {
+        let unit = Vector3::new(1.0, 1.0, 1.0);
         loop {
-            let candidate = Vector3::random_min_max(-1.0, 1.0);
-            if candidate.length_squared() < 1.0 { return candidate; }
+            let candidate = 2.0 * Vector3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) - unit;
+            if candidate.length_squared() <= 1.0 {
+              return candidate;
+            }
         }
+    }
+
+    pub fn random_in_unit_disk() -> Self {
+        let unit = Vector3::new(1.0, 1.0, 0.0);
+        loop {
+            let candidate = 2.0 * Vector3::new(rand::random::<f64>(), rand::random::<f64>(), 0.0) - unit;
+            if Vector3::dot(&candidate, &candidate) < 1.0 {
+              return candidate;
+            }
+          }
     }
 
     pub fn random_unit_vector() -> Self {
@@ -85,11 +98,11 @@ impl Vector3 {
         }
     }
 
-    pub fn cross(u: Vector3, v: Vector3) -> Vector3 {
+    pub fn cross(u: &Vector3, v: &Vector3) -> Vector3 {
         return Vector3::new(
-            u.y * v.z - u.z * v.y,
-            u.z * v.x - u.x * v.z,
-            u.x * v.y - u.y * v.x,
+            u.y.mul_add(v.z, - u.z * v.y),
+            u.z.mul_add(v.x, - u.x * v.z),
+            u.x.mul_add(v.y, - u.y * v.x),
         );
     }
 
