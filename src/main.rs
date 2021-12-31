@@ -2,6 +2,7 @@ extern crate minifb;
 use minifb::{Key, ScaleMode, Window, WindowOptions};
 use rand::Rng;
 use std::f64;
+use std::time::{Duration, Instant};
 
 mod vector3;
 mod ray;
@@ -43,7 +44,7 @@ fn random_scene() -> HittableList {
     let mut world = HittableList::default();
 
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}}));
-    let number_of_balls = 2;
+    let number_of_balls = 11;
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
             let choose_mat = rand::random::<f64>();
@@ -71,11 +72,11 @@ fn random_scene() -> HittableList {
 fn main() {
     // Display Image
     let aspect_ratio = 3.0 / 2.0;
-    let image_width = 600;
+    let image_width = 200;
     let image_height = ((image_width as f64) / aspect_ratio) as usize;
     let image_color_mode = 3;
-    let samples_per_pixel = 20;
-    let max_depth = 50;
+    let samples_per_pixel = 50;
+    let max_depth = 10;
     let mut image_buffer: Vec<f64> = vec![0.0; (image_width * image_height * image_color_mode) as usize];
 
     let world = random_scene();
@@ -91,10 +92,13 @@ fn main() {
 
     let scale = 1.0 / (samples_per_pixel as f64);
     let mut rng = rand::thread_rng();
+
+
+    let now = Instant::now();
     for row_index in 0..image_height {
-        println!("Tracing line {} of {}", row_index, image_height);
+        // println!("Tracing line {} of {}", row_index, image_height);
         for column_index in 0..image_width {
-            let buffer_offset: usize = ((image_height - 1 - row_index) * image_width * image_color_mode + column_index * image_color_mode + 0) as usize;
+            // let buffer_offset: usize = ((image_height - 1 - row_index) * image_width * image_color_mode + column_index * image_color_mode + 0) as usize;
             let mut color_buffer = Color{x: 0.0, y: 0.0, z: 0.0};
 
             for _sample_index in 0..samples_per_pixel {
@@ -104,9 +108,10 @@ fn main() {
                 color_buffer += ray_color(&ray, &world, max_depth);
             }
 
-            color_buffer.color_to_output(&mut image_buffer, buffer_offset, scale);
+            // color_buffer.color_to_output(&mut image_buffer, buffer_offset, scale);
         }
     }
+    println!("{} seconds elapsed", now.elapsed().as_secs());
 
     let window_buffer: Vec<u32> = image_buffer
         .chunks(3)
