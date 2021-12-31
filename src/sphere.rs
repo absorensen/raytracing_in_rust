@@ -20,8 +20,8 @@ impl<M:Material> Hittable for Sphere<M>{
         let oc = ray.origin - self.center;
         let a = Vector3::dot(&ray.direction, &ray.direction);
         let b = Vector3::dot(&oc,&ray.direction);
-        let c = Vector3::dot(&oc,&oc) - self.radius.powi(2);
-        let discriminant = b.powi(2) - a * c;
+        let c = Vector3::dot(&oc,&oc) - self.radius * self.radius;
+        let discriminant = b * b - a * c;
         if discriminant > 0.0 {
             let sqrt_discriminant = discriminant.sqrt();
             let t = (-b - sqrt_discriminant) / a;

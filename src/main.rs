@@ -72,11 +72,11 @@ fn random_scene() -> HittableList {
 fn main() {
     // Display Image
     let aspect_ratio = 3.0 / 2.0;
-    let image_width = 200;
+    let image_width = 600;
     let image_height = ((image_width as f64) / aspect_ratio) as usize;
     let image_color_mode = 3;
-    let samples_per_pixel = 50;
-    let max_depth = 10;
+    let samples_per_pixel = 100;
+    let max_depth = 50;
     let mut image_buffer: Vec<f64> = vec![0.0; (image_width * image_height * image_color_mode) as usize];
 
     let world = random_scene();
@@ -96,7 +96,7 @@ fn main() {
 
     let now = Instant::now();
     for row_index in 0..image_height {
-        // println!("Tracing line {} of {}", row_index, image_height);
+        println!("Tracing line {} of {}", row_index, image_height);
         for column_index in 0..image_width {
             // let buffer_offset: usize = ((image_height - 1 - row_index) * image_width * image_color_mode + column_index * image_color_mode + 0) as usize;
             let mut color_buffer = Color{x: 0.0, y: 0.0, z: 0.0};

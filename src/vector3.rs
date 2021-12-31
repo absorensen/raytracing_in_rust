@@ -34,23 +34,28 @@ impl Vector3 {
         }
     }
 
+    #[inline]
     pub fn length_squared(&self) -> f64 {
         return self.x.mul_add(self.x, self.y.mul_add(self.y, self.z * self.z));
     }
 
+    #[inline]
     pub fn length(&self) -> f64 {
         return self.length_squared().sqrt();
     }
 
+    #[inline]
     pub fn dot(u: &Vector3, v: &Vector3) -> f64 {
         return u.x.mul_add(v.x, u.y.mul_add(v.y, u.z * v.z));
     }
 
+    #[inline]
     pub fn random() -> Self {
         let mut rng = rand::thread_rng();
         Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
     }
 
+    #[inline]
     pub fn random_min_max(min: f64, max: f64) -> Self {
         let mut rng = rand::thread_rng();
         let x_rand = rng.gen::<f64>();
@@ -65,6 +70,7 @@ impl Vector3 {
         Vector3{x: x, y: y, z: z }
     }
 
+    #[inline]
     pub fn random_in_unit_sphere() -> Self {
         let unit = Vector3::new(1.0, 1.0, 1.0);
         loop {
@@ -75,6 +81,7 @@ impl Vector3 {
         }
     }
 
+    #[inline]
     pub fn random_in_unit_disk() -> Self {
         let unit = Vector3::new(1.0, 1.0, 0.0);
         loop {
@@ -85,10 +92,12 @@ impl Vector3 {
           }
     }
 
+    #[inline]
     pub fn random_unit_vector() -> Self {
         Vector3::random_in_unit_sphere().normalized()
     }
 
+    #[inline]
     pub fn random_in_hemisphere(normal: &Vector3) -> Self {
         let in_unit_sphere = Vector3::random_in_unit_sphere();
         if Vector3::dot(&in_unit_sphere, normal) > 0.0 {
@@ -98,6 +107,7 @@ impl Vector3 {
         }
     }
 
+    #[inline]
     pub fn cross(u: &Vector3, v: &Vector3) -> Vector3 {
         return Vector3::new(
             u.y.mul_add(v.z, - u.z * v.y),
@@ -106,6 +116,7 @@ impl Vector3 {
         );
     }
 
+    #[inline]
     pub fn normalized(&self) -> Vector3 {
         return *self / self.length();
     }
@@ -121,6 +132,7 @@ impl Vector3 {
         image_buffer[offset + 2] = (255.999 * clamp(0.0, b, 0.999)) as f64;
     }
 
+    #[inline]
     pub fn near_zero(&self) -> bool {
         let s = 1e-8;
         (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
@@ -130,6 +142,7 @@ impl Vector3 {
 impl Add for Vector3 {
     type Output = Vector3;
 
+    #[inline]
     fn add(self, rhs: Vector3) -> Vector3 {
         Vector3 {
             x: self.x + rhs.x,
@@ -140,6 +153,7 @@ impl Add for Vector3 {
 }
 
 impl AddAssign for Vector3 {
+    #[inline]
     fn add_assign(&mut self, other: Self) {
         *self = Self {
             x: self.x + other.x,
@@ -152,6 +166,7 @@ impl AddAssign for Vector3 {
 impl Sub for Vector3 {
     type Output = Vector3;
 
+    #[inline]
     fn sub(self, rhs: Vector3) -> Vector3 {
         Vector3 {
             x: self.x - rhs.x,
@@ -162,6 +177,8 @@ impl Sub for Vector3 {
 }
 
 impl SubAssign for Vector3 {
+
+    #[inline]
     fn sub_assign(&mut self, other: Self) {
         *self = Self {
             x: self.x - other.x,
@@ -174,6 +191,7 @@ impl SubAssign for Vector3 {
 impl Mul for Vector3 {
     type Output = Vector3;
 
+    #[inline]
     fn mul(self, rhs: Vector3) -> Vector3 {
         Vector3 {
             x: self.x * rhs.x,
@@ -186,6 +204,7 @@ impl Mul for Vector3 {
 impl Mul<f64> for Vector3 {
     type Output = Vector3;
 
+    #[inline]
     fn mul(self, factor: f64) -> Vector3 {
         Vector3 {
             x: self.x * factor,
@@ -198,6 +217,7 @@ impl Mul<f64> for Vector3 {
 impl Mul<Vector3> for f64 {
     type Output = Vector3;
 
+    #[inline]
     fn mul(self, other: Vector3) -> Vector3 {
         Vector3 {
             x: self * other.x,
@@ -208,6 +228,8 @@ impl Mul<Vector3> for f64 {
 }
 
 impl MulAssign<f64> for Vector3 {
+
+    #[inline]
     fn mul_assign(&mut self, factor: f64) {
         *self = Self {
             x: self.x * factor,
@@ -220,6 +242,7 @@ impl MulAssign<f64> for Vector3 {
 impl Div<f64> for Vector3 {
     type Output = Vector3;
 
+    #[inline]
     fn div(self, factor: f64) -> Vector3 {
         Vector3 {
             x: self.x / factor,
@@ -230,6 +253,8 @@ impl Div<f64> for Vector3 {
 }
 
 impl DivAssign<f64> for Vector3 {
+
+    #[inline]
     fn div_assign(&mut self, factor: f64) {
         *self = Vector3 {
             x: self.x / factor,
@@ -242,6 +267,7 @@ impl DivAssign<f64> for Vector3 {
 impl Neg for Vector3 {
     type Output = Vector3;
 
+    #[inline]
     fn neg(self) -> Vector3 {
         Vector3 {
             x: -self.x,

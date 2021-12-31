@@ -35,6 +35,7 @@ impl Camera {
         Camera{origin: origin, horizontal: horizontal, vertical: vertical, lower_left_corner: lower_left_corner, u: u, v:v, w:w, lens_radius:lens_radius}
     }
 
+    #[inline]
     pub fn get_ray(&self, s: f64, t: f64) -> Ray {
         let rd = self.lens_radius * Vector3::random_in_unit_disk();
         let offset = self.u * rd.x + self.v * rd.y;
