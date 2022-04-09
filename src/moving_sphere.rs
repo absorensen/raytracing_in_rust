@@ -2,18 +2,19 @@ use crate::material::Material;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::hittable::{HitRecord, Hittable};
+use std::sync::Arc;
 
-pub struct MovingSphere<M: Material> {
+pub struct MovingSphere<M: Material + 'static> {
     pub radius: f64,
     pub center_0: Vector3,
     pub center_1: Vector3,
-    pub material: M,
+    pub material: Arc<M>,
     pub time_0: f64,
     pub time_1: f64,
 }
 
 impl<M: Material> MovingSphere<M> {
-    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3,  material: M, time_0: f64, time_1: f64) -> Self { 
+    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3,  material: Arc<M>, time_0: f64, time_1: f64) -> Self { 
         MovingSphere {
             radius, 
             center_0,
@@ -44,13 +45,13 @@ impl<M:Material> Hittable for MovingSphere<M>{
             if t < t_max && t > t_min {
                 let p = ray.at(t);
                 let normal = (p - self.center(ray.time)) / self.radius;
-                return Some(HitRecord { t, position: p, normal, material: &self.material })
+                return Some(HitRecord { t, position: p, normal, material: self.material.clone() })
             }
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let p = ray.at(t);
                 let normal = (p - self.center(ray.time)) / self.radius;
-                return Some(HitRecord { t, position: p, normal, material: &self.material })
+                return Some(HitRecord { t, position: p, normal, material: self.material.clone() })
             }
         }
         None

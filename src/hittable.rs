@@ -2,11 +2,13 @@ use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::material::Material;
 
-pub struct HitRecord<'a> {
+use std::sync::Arc;
+
+pub struct HitRecord {
     pub t: f64,
     pub position: Vector3,
     pub normal: Vector3,
-    pub material: &'a dyn Material,
+    pub material: Arc<dyn Material + 'static>,
 }
 
 pub trait Hittable: Sync {

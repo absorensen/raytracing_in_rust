@@ -3,6 +3,7 @@ use minifb::{Key, ScaleMode, Window, WindowOptions};
 use rand::{Rng, random};
 use std::f64;
 use std::time::{Instant};
+use std::sync::Arc;
 
 mod vector3;
 mod ray;
@@ -45,7 +46,7 @@ fn ray_color(ray: &Ray, world: & dyn Hittable, depth: i64) -> Color {
 fn random_spheres_scene() -> HittableList {
     let mut world = HittableList::default();
 
-    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}}));
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, Arc::<Lambertian>::new(Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}})));
     let number_of_balls = 1;
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
@@ -54,19 +55,19 @@ fn random_spheres_scene() -> HittableList {
 
             if (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() > 0.9 {
                 if choose_mat < 0.8 {
-                    world.push(Sphere::new(center, 0.2, Lambertian{albedo: Color::random() * Color::random()}));
+                    world.push(Sphere::new(center, 0.2, Arc::<Lambertian>::new(Lambertian{albedo: Color::random() * Color::random()})));
                 } else if choose_mat < 0.95 {
-                    world.push(Sphere::new(center, 0.2, Metal{albedo: Color::random(), fuzz: rand::random::<f64>()}));
+                    world.push(Sphere::new(center, 0.2, Arc::<Metal>::new(Metal{albedo: Color::random(), fuzz: rand::random::<f64>()})));
                 } else {
-                    world.push(Sphere::new(center, 0.2, Dielectric{ref_idx: 1.5}));
+                    world.push(Sphere::new(center, 0.2, Arc::<Dielectric>::new(Dielectric{ref_idx: 1.5})));
                 }
             }
         }
     }
 
-    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, Dielectric{ref_idx: 1.5}));
-    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, Lambertian{albedo: Color{x: 0.4, y: 0.2, z: 0.1}}));
-    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0}));
+    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, Arc::<Dielectric>::new(Dielectric{ref_idx: 1.5})));
+    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, Arc::<Lambertian>::new(Lambertian{albedo: Color{x: 0.4, y: 0.2, z: 0.1}})));
+    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, Arc::<Metal>::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0})));
 
     world
 }
@@ -74,8 +75,8 @@ fn random_spheres_scene() -> HittableList {
 fn random_moving_spheres_scene() -> HittableList {
     let mut world = HittableList::default();
 
-    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}}));
-    let number_of_balls = 11;
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, Arc::<Lambertian>::new(Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}})));
+    let number_of_balls = 3;
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
             let choose_mat = rand::random::<f64>();
@@ -85,19 +86,19 @@ fn random_moving_spheres_scene() -> HittableList {
                 if choose_mat < 0.8 {
                     let mut movement = Vector3::zero();
                     movement.y = rand::random::<f64>() * 0.5;
-                    world.push(MovingSphere::new(0.2, center, center + movement,  Lambertian{albedo: Color::random() * Color::random()}, 0.0, 1.0));
+                    world.push(MovingSphere::new(0.2, center, center + movement,  Arc::<Lambertian>::new(Lambertian{albedo: Color::random() * Color::random()}), 0.0, 1.0));
                 } else if choose_mat < 0.95 {
-                    world.push(Sphere::new(center, 0.2, Metal{albedo: Color::random(), fuzz: rand::random::<f64>()}));
+                    world.push(Sphere::new(center, 0.2, Arc::<Metal>::new(Metal{albedo: Color::random(), fuzz: rand::random::<f64>()})));
                 } else {
-                    world.push(Sphere::new(center, 0.2, Dielectric{ref_idx: 1.5}));
+                    world.push(Sphere::new(center, 0.2, Arc::<Dielectric>::new(Dielectric{ref_idx: 1.5})));
                 }
             }
         }
     }
 
-    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, Dielectric{ref_idx: 1.5}));
-    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, Lambertian{albedo: Color{x: 0.4, y: 0.2, z: 0.1}}));
-    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0}));
+    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, Arc::<Dielectric>::new(Dielectric{ref_idx: 1.5})));
+    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, Arc::<Lambertian>::new(Lambertian{albedo: Color{x: 0.4, y: 0.2, z: 0.1}})));
+    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, Arc::<Metal>::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0})));
 
     world
 }
@@ -105,7 +106,7 @@ fn random_moving_spheres_scene() -> HittableList {
 fn main() {
     // Display Image
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
+    let image_width = 800;
     let image_height = ((image_width as f64) / aspect_ratio) as usize;
     let image_color_mode = 3;
     let samples_per_pixel = 100;
