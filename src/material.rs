@@ -5,7 +5,7 @@ use crate::ray::Ray;
 use crate::hittable::{HitRecord};
 
 pub trait Material : Sync + Send {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Color, Ray)>;
+    fn scatter(&self, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool;
 }
 
 pub struct Lambertian {
@@ -13,14 +13,17 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray:&Ray, hit: &HitRecord) -> Option<(Color, Ray)>{
+    fn scatter(&self, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool{
         let mut scatter_direction = hit.position + Vector3::random_unit_vector();
 
         if scatter_direction.near_zero() {
             scatter_direction = hit.normal;
         }
-
-        Some((self.albedo, Ray{origin: hit.position, direction:scatter_direction}))
+        *attenuation_out = self.albedo;
+        ray_out.origin = hit.position;
+        ray_out.direction = scatter_direction;
+        ray_out.time = ray.time;
+        return true;
     }
 }
 
@@ -30,15 +33,20 @@ pub struct Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray:&Ray, hit: &HitRecord) -> Option<(Color, Ray)>{
+    fn scatter(&self, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool {
         let reflected = Ray::reflect(&ray.direction.normalized(), &hit.normal);
-        let scattered = Ray{origin: hit.position, direction: reflected + self.fuzz * Vector3::random_in_unit_sphere()};
-        let attenuation = self.albedo;
-        if 0.0 < Vector3::dot(&scattered.direction, &hit.normal){
-            Some((attenuation, scattered))
+        ray_out.origin = hit.position;
+        ray_out.direction = reflected + self.fuzz * Vector3::random_in_unit_sphere(); 
+        ray_out.time = ray.time;
+
+        if 0.0 < Vector3::dot(&ray_out.direction, &hit.normal){
+            *attenuation_out = self.albedo;
+
+            return true;
         } else {
-            None
+            return false;
         }
+        return false;
     }
 }
 
@@ -48,8 +56,11 @@ pub struct Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, ray:&Ray, hit: &HitRecord) -> Option<(Color, Ray)>{
-        let attenuation = Color{x: 1.0, y: 1.0, z: 1.0};
+    fn scatter(&self, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool {
+        attenuation_out.x = 1.0;
+        attenuation_out.y = 1.0;
+        attenuation_out.z = 1.0;
+
         let (outward_normal, ni_over_nt, cosine) = if Vector3::dot(&ray.direction,&hit.normal) > 0.0 {
             let cosine = self.ref_idx * Vector3::dot(&ray.direction,&hit.normal) / ray.direction.length();
             (-hit.normal, self.ref_idx, cosine)
@@ -57,19 +68,20 @@ impl Material for Dielectric {
             let cosine = Vector3::dot(&-ray.direction, &hit.normal) / ray.direction.length();
             (hit.normal, 1.0 / self.ref_idx, cosine)
         };
-        let refracted = Ray::refract(&ray.direction, &outward_normal, ni_over_nt);
-
-        if refracted.is_some(){
+        let mut refracted: Vector3 = Vector3::one();
+        if Ray::refract(&ray.direction, &outward_normal, ni_over_nt, &mut refracted) {
             let reflect_prob = Dielectric::reflectance(cosine, self.ref_idx);
             if rand::thread_rng().gen::<f64>() >= reflect_prob {
-                let scattered = Ray::new(hit.position, refracted.unwrap());
-                return Some((attenuation, scattered))
+                ray_out.origin = hit.position;
+                ray_out.direction = refracted;
+                return true
             }
         }
 
-        let reflected = Ray::reflect(&ray.direction, &hit.normal);
-        let scattered = Ray::new(hit.position, reflected);
-        Some((attenuation, scattered))
+        ray_out.origin = hit.position;
+        ray_out.direction = Ray::reflect(&ray.direction, &hit.normal);
+        ray_out.time = ray.time;
+        true
     }
 }
 

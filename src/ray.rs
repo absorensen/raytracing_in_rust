@@ -5,12 +5,13 @@ use crate::vector3::Vector3;
 pub struct Ray {
     pub origin : Vector3,
     pub direction: Vector3,
+    pub time: f64,
 }
 
 impl Ray {
 
-    pub fn new (origin: Vector3, direction: Vector3) -> Self {
-        Ray { origin, direction }
+    pub fn new (origin: Vector3, direction: Vector3, time: f64) -> Self {
+        Ray { origin, direction, time }
     }
 
     #[inline]
@@ -24,16 +25,18 @@ impl Ray {
     }
 
     #[inline]
-    pub fn refract(v: &Vector3, n: &Vector3, etai_over_etat: f64) -> Option<Vector3> {
+    pub fn refract(v: &Vector3, n: &Vector3, etai_over_etat: f64, refracted_out: &mut Vector3) -> bool {
         let uv = v.normalized();
         let dt = Vector3::dot(&uv,&n);
         let discriminant = 1.0 - etai_over_etat * etai_over_etat * (1.0 - dt * dt);
         if discriminant > 0.0 {
-            let refracted = etai_over_etat * (uv - *n * dt) - *n * discriminant.sqrt();
-            Some(refracted)
+            *refracted_out = etai_over_etat * (uv - *n * dt) - *n * discriminant.sqrt();
+            return true;
         } else {
-            None
+            return false;
         }
+
+        false
     }
 
 }

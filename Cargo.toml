@@ -5,7 +5,7 @@ edition = "2018"
 
 [profile.release]
 opt-level = 3
-lto = "fat"
+lto = true
 target-cpu = "native"
 codegen-units = 1
 

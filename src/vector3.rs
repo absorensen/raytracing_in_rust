@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use minifb::clamp;
 use rand::Rng;
