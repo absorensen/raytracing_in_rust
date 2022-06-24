@@ -15,6 +15,7 @@ mod material;
 mod aabb;
 mod bvh_node;
 
+use bvh_node::{BVHNode};
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
 use sphere::Sphere;
@@ -139,15 +140,16 @@ fn render_pixel(pixel_index: i64, image_width: i64, image_height: i64, samples_p
 fn main() {
     // Display Image
     let aspect_ratio = 16.0 / 9.0;
-    let image_width: i64 = 200;
+    let image_width: i64 = 800;
     let image_height = ((image_width as f64) / aspect_ratio) as i64;
+
+    // Render Settings
     let samples_per_pixel = 800;
     let max_depth = 30;
-    let run_parallel = false;
+    
+    // Compute Settings
+    let run_parallel = true;
     let run_samples_parallel = true;
-    let random_balls_count = 1;
-
-    let world = random_spheres_scene(random_balls_count);
 
     // Camera
     let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
@@ -155,10 +157,17 @@ fn main() {
     let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
     let dist_to_focus = 15.0;
     let aperture = 0.1;
-    let time0: f64 = 0.0;
-    let time1: f64 = 1.0;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time0, time1);
+    // Scene
+    let random_balls_count = 10;
+    let mut world = random_spheres_scene(random_balls_count);
+    let world = BVHNode::from_hittable_list(&mut world, time_0, time_1);
+
+
+
 
     let scale = 1.0 / (samples_per_pixel as f64);
 
