@@ -70,31 +70,10 @@ impl BVHNode {
         let box_a = a.bounding_box(0.0, 0.0).unwrap();
         let box_b = b.bounding_box(0.0, 0.0).unwrap();
 
-        match AXIS {
-            0 => {
-                if box_a.minimum.x < box_b.minimum.x {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            },
-            1 => {
-                if box_a.minimum.y < box_b.minimum.y {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            },
-            2 => {
-                if box_a.minimum.z < box_b.minimum.z {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            },
-            _ => {
-                panic!("Chose invalid axis in compare function!")
-            }
+        if box_a.minimum[AXIS] < box_b.minimum[AXIS] {
+            Ordering::Less
+        } else {
+            Ordering::Greater
         }
     }
 }

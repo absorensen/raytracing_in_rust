@@ -1,6 +1,6 @@
 use std::iter::Sum;
 use std::{fmt};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index};
 use minifb::clamp;
 use rand::Rng;
 
@@ -288,6 +288,19 @@ impl Sum for Vector3 {
             y: a.y + b.y,
             z: a.z + b.z,
         })
+    }
+}
+
+impl Index<usize> for Vector3 {
+    type Output = f64;
+
+    fn index(&self, i: usize) -> &f64 {
+        match i {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => unreachable!(),
+        }
     }
 }
 
