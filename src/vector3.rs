@@ -1,3 +1,4 @@
+use std::iter::Sum;
 use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use minifb::clamp;
@@ -6,7 +7,7 @@ use rand::Rng;
 pub type Point3 = Vector3;
 pub type Color = Vector3;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vector3 {
     pub x: f64,
     pub y: f64,
@@ -274,6 +275,19 @@ impl Neg for Vector3 {
             y: -self.y,
             z: -self.z,
         }
+    }
+}
+
+impl Sum for Vector3 {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(Self { x: 0.0, y: 0.0, z: 0.0}, |a, b| Self {
+            x: a.x + b.x,
+            y: a.y + b.y,
+            z: a.z + b.z,
+        })
     }
 }
 

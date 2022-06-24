@@ -2,16 +2,16 @@ use crate::material::Material;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::hittable::{HitRecord, Hittable};
-use std::sync::Arc;
+use crate::aabb::AABB;
 
-pub struct Sphere<M: Material + 'static> {
+pub struct Sphere<M: Material> {
     pub radius: f64,
     pub center: Vector3,
-    pub material: Arc<M>,
+    pub material: M,
 }
 
 impl<M: Material> Sphere<M> {
-    pub fn new(center: Vector3, radius: f64, material: Arc<M>) -> Self { 
+    pub fn new(center: Vector3, radius: f64, material: M) -> Self { 
         Sphere {center, radius, material} 
     }
 }
@@ -29,15 +29,20 @@ impl<M:Material> Hittable for Sphere<M>{
             if t < t_max && t > t_min {
                 let p = ray.at(t);
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord { t, position: p, normal, material: self.material.clone() })
+                return Some(HitRecord { t, position: p, normal, material: &self.material })
             }
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let p = ray.at(t);
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord { t, position: p, normal, material: self.material.clone() })
+                return Some(HitRecord { t, position: p, normal, material: &self.material })
             }
         }
         None
+    }
+
+    
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
+        Some(AABB{minimum:self.center - Vector3{x: self.radius, y: self.radius, z: self.radius}, maximum:self.center + Vector3{x: self.radius, y: self.radius, z: self.radius}})
     }
 }

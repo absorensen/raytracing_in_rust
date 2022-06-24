@@ -2,19 +2,19 @@ use crate::material::Material;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::hittable::{HitRecord, Hittable};
-use std::sync::Arc;
+use crate::aabb::AABB;
 
-pub struct MovingSphere<M: Material + 'static> {
+pub struct MovingSphere<M: Material> {
     pub radius: f64,
     pub center_0: Vector3,
     pub center_1: Vector3,
-    pub material: Arc<M>,
+    pub material: M,
     pub time_0: f64,
     pub time_1: f64,
 }
 
 impl<M: Material> MovingSphere<M> {
-    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3,  material: Arc<M>, time_0: f64, time_1: f64) -> Self { 
+    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3,  material: M, time_0: f64, time_1: f64) -> Self { 
         MovingSphere {
             radius, 
             center_0,
@@ -45,15 +45,25 @@ impl<M:Material> Hittable for MovingSphere<M>{
             if t < t_max && t > t_min {
                 let p = ray.at(t);
                 let normal = (p - self.center(ray.time)) / self.radius;
-                return Some(HitRecord { t, position: p, normal, material: self.material.clone() })
+                return Some(HitRecord { t, position: p, normal, material: &self.material })
             }
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let p = ray.at(t);
                 let normal = (p - self.center(ray.time)) / self.radius;
-                return Some(HitRecord { t, position: p, normal, material: self.material.clone() })
+                return Some(HitRecord { t, position: p, normal, material: &self.material })
             }
         }
         None
+    }
+
+
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
+        let mut output_box = AABB{minimum:self.center(time_0) - Vector3{x: self.radius, y: self.radius, z: self.radius}, maximum:self.center_0 + Vector3{x: self.radius, y: self.radius, z: self.radius}};
+        output_box.expand_by_point(&(self.center(time_1) - Vector3{x: self.radius, y: self.radius, z: self.radius}));
+        output_box.expand_by_point(&(self.center(time_1) + Vector3{x: self.radius, y: self.radius, z: self.radius}));
+
+        Some(output_box)
     }
 }

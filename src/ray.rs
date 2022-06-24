@@ -32,10 +32,8 @@ impl Ray {
         if discriminant > 0.0 {
             *refracted_out = etai_over_etat * (uv - *n * dt) - *n * discriminant.sqrt();
             return true;
-        } else {
-            return false;
         }
-
+        
         false
     }
 

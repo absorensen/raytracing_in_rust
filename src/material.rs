@@ -46,7 +46,6 @@ impl Material for Metal {
         } else {
             return false;
         }
-        return false;
     }
 }
 
