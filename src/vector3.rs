@@ -2,7 +2,7 @@ use std::iter::Sum;
 use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index};
 use minifb::clamp;
-use rand::Rng;
+use rand::{Rng, rngs::ThreadRng};
 
 pub type Point3 = Vector3;
 pub type Color = Vector3;
@@ -51,75 +51,82 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn random() -> Self {
-        let mut rng = rand::thread_rng();
-        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
-    }
-
-    #[inline]
-    pub fn random_min_max(min: f64, max: f64) -> Self {
-        let mut rng = rand::thread_rng();
-        let x_rand = rng.gen::<f64>();
-        let x = max.mul_add(x_rand, min * (1.0 - x_rand));
-
-        let y_rand = rng.gen::<f64>();
-        let y = max.mul_add(y_rand, min * (1.0 - y_rand));
-
-        let z_rand = rng.gen::<f64>();
-        let z = max.mul_add(z_rand, min * (1.0 - z_rand));
-
-        Vector3{x: x, y: y, z: z }
-    }
-
-    #[inline]
-    pub fn random_in_unit_sphere() -> Self {
-        let unit = Vector3::new(1.0, 1.0, 1.0);
-        loop {
-            let candidate = 2.0 * Vector3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) - unit;
-            if candidate.length_squared() <= 1.0 {
-              return candidate;
-            }
-        }
-    }
-
-    #[inline]
-    pub fn random_in_unit_disk() -> Self {
-        let unit = Vector3::new(1.0, 1.0, 0.0);
-        loop {
-            let candidate = 2.0 * Vector3::new(rand::random::<f64>(), rand::random::<f64>(), 0.0) - unit;
-            if Vector3::dot(&candidate, &candidate) < 1.0 {
-              return candidate;
-            }
-          }
-    }
-
-    #[inline]
-    pub fn random_unit_vector() -> Self {
-        Vector3::random_in_unit_sphere().normalized()
-    }
-
-    #[inline]
-    pub fn random_in_hemisphere(normal: &Vector3) -> Self {
-        let in_unit_sphere = Vector3::random_in_unit_sphere();
-        if Vector3::dot(&in_unit_sphere, normal) > 0.0 {
-            in_unit_sphere
-        } else {
-            -in_unit_sphere
-        }
-    }
-
-    #[inline]
     pub fn cross(u: &Vector3, v: &Vector3) -> Vector3 {
         return Vector3::new(
-            u.y.mul_add(v.z, - u.z * v.y),
-            u.z.mul_add(v.x, - u.x * v.z),
-            u.x.mul_add(v.y, - u.y * v.x),
+            u.y.mul_add(v.z, - (u.z * v.y)),
+            u.z.mul_add(v.x, - (u.x * v.z)),
+            u.x.mul_add(v.y, - (u.y * v.x)),
         );
     }
 
     #[inline]
     pub fn normalized(&self) -> Vector3 {
         return *self / self.length();
+    }
+
+    #[inline]
+    pub fn random(rng: &mut ThreadRng) -> Self {
+        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+    }
+
+    #[inline]
+    pub fn reflect(v: &Vector3, normal: &Vector3, reflected_out: &mut Vector3) -> bool {
+        *reflected_out = (*v) - (2.0 * Vector3::dot(v, normal) * (*normal));
+
+        true
+    }
+
+    #[inline]
+    pub fn refract(v: &Vector3, n: &Vector3, etai_over_etat: f64, refracted_out: &mut Vector3) -> bool {
+        let negative_uv = -*v;
+        let cos_theta = Vector3::dot(&negative_uv,&n).min(1.0);
+        let ray_out_perp = etai_over_etat * (*v + cos_theta * (*n));
+        let ray_out_parallel = (1.0 - ray_out_perp.length_squared()).abs().sqrt() * (-(*n));    
+        *refracted_out = ray_out_perp + ray_out_parallel;
+        
+        true
+    }
+
+    #[inline]
+    pub fn random_in_unit_sphere(rng: &mut ThreadRng) -> Self {
+        let mut candidate: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
+        loop {
+            candidate.x = rng.gen_range(-1.0, 1.0);
+            candidate.y = rng.gen_range(-1.0, 1.0);
+            candidate.z = rng.gen_range(-1.0, 1.0);
+
+            if candidate.length_squared() < 1.0 {
+                return candidate;
+            }
+        }
+    }
+
+    #[inline]
+    pub fn random_in_unit_disk(rng: &mut ThreadRng) -> Self {
+        let mut candidate: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
+        loop {
+            candidate.x = rng.gen_range(-1.0, 1.0);
+            candidate.y = rng.gen_range(-1.0, 1.0);
+
+            if candidate.length_squared() < 1.0 {
+                return candidate;
+            }
+        }
+    }
+
+    #[inline]
+    pub fn random_unit_vector(rng: &mut ThreadRng) -> Self {
+        Vector3::random_in_unit_sphere(rng).normalized()
+    }
+
+    #[inline]
+    pub fn random_in_hemisphere(rng: &mut ThreadRng, normal: &Vector3) -> Self {
+        let in_unit_sphere = Vector3::random_in_unit_sphere(rng);
+        if 0.0 < Vector3::dot(&in_unit_sphere, normal) {
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
     }
 
     #[inline]

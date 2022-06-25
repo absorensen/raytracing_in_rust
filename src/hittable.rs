@@ -5,11 +5,35 @@ use crate::aabb::AABB;
 
 use std::sync::Arc;
 
-pub struct HitRecord<'a> {
+pub struct HitRecord {
     pub t: f64,
     pub position: Vector3,
     pub normal: Vector3,
-    pub material: &'a dyn Material,
+    pub is_front_face: bool,
+    pub material: Arc<dyn Material>,
+}
+
+impl HitRecord{
+    pub fn new(
+        ray: &Ray,
+        t: f64,
+        position: &Vector3,
+        normal: &Vector3,
+        material: &Arc<dyn Material>
+    ) -> Self {
+        let mut result = HitRecord{ t, position: position.clone(), normal: normal.clone(), is_front_face: true, material: Arc::clone(material) };
+        result.set_face_normal(ray, normal);
+        result
+    }
+
+    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vector3) {
+        self.is_front_face = Vector3::dot(&ray.direction, outward_normal) < 0.0;
+        if self.is_front_face {
+            self.normal = outward_normal.clone();
+        } else {
+            self.normal = -outward_normal.clone();
+        }
+    }
 }
 
 pub trait Hittable: Sync + Send {
@@ -29,10 +53,6 @@ impl HittableList {
 
     pub fn as_slice_mut(&mut self) -> &mut [Arc<dyn Hittable>] {
         &mut self.objects
-    }
-
-    pub fn clear(&mut self) {
-        self.objects.clear()
     }
 
     pub fn len(&self) -> usize {
@@ -57,7 +77,11 @@ impl Hittable for HittableList {
         if self.objects.len() < 1 { return None };
 
         let mut temp_box_option: Option<AABB>;
-        let mut output_box: AABB = AABB { minimum: Vector3 { x: 0.0, y: 0.0, z: 0.0 }, maximum: Vector3 { x: 0.0, y: 0.0, z: 0.0 } };
+        let mut output_box: AABB = 
+            AABB { 
+                minimum: Vector3 { x: 0.0, y: 0.0, z: 0.0 }, 
+                maximum: Vector3 { x: 0.0, y: 0.0, z: 0.0 } 
+            };
         let mut first_box: bool = true;
 
         for object in &self.objects {

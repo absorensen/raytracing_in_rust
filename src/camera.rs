@@ -1,6 +1,7 @@
 use std::f64;
 
 use rand::Rng;
+use rand::rngs::ThreadRng;
 
 use crate::vector3::{Vector3, Point3};
 use crate::ray::Ray;
@@ -48,10 +49,9 @@ impl Camera {
     }
 
     #[inline]
-    pub fn get_ray(&self, s: f64, t: f64) -> Ray {
-        let rd = self.lens_radius * Vector3::random_in_unit_disk();
+    pub fn get_ray(&self, rng: &mut ThreadRng, s: f64, t: f64) -> Ray {
+        let rd = self.lens_radius * Vector3::random_in_unit_disk(rng);
         let offset = self.u * rd.x + self.v * rd.y;
-        let mut rng = rand::thread_rng();
 
         Ray{
             origin: self.origin + offset, 
