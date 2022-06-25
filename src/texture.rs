@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::vector3::{Vector3, Color};
+use rand::rngs::ThreadRng;
+
+use crate::{vector3::{Vector3, Color}, perlin::Perlin};
 
 pub trait Texture : Sync + Send {
     fn value(&self, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool;
@@ -60,5 +62,27 @@ impl Texture for CheckerTexture {
         } else {
             return self.even.value(u, v, p, color_out)
         }
+    }
+}
+
+pub struct NoiseTexture {
+    perlin: Perlin,
+    scale: f64,
+}
+
+impl NoiseTexture {
+    pub fn new(rng: &mut ThreadRng, point_count: u32, scale: f64) -> Self {
+        NoiseTexture{perlin: Perlin::new(rng, point_count), scale}
+    }
+}
+
+impl Texture for NoiseTexture {
+    fn value(&self, _u: f64, _v: f64, point: &Vector3, color_out: &mut Color) -> bool {
+        color_out.x = 1.0;
+        color_out.y = 1.0;
+        color_out.z = 1.0;
+
+        *color_out = *color_out * 0.5 * (1.0 + (self.scale * point.z + 10.0 * self.perlin.turbulence_default(point)).sin());
+        true
     }
 }

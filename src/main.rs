@@ -2,7 +2,7 @@ extern crate minifb;
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use rand::rngs::ThreadRng;
 use rand::{Rng};
-use texture::SolidColor;
+use texture::{SolidColor, NoiseTexture};
 use std::f64;
 use std::sync::Arc;
 use std::time::{Instant};
@@ -18,6 +18,7 @@ mod material;
 mod aabb;
 mod bvh_node;
 mod texture;
+mod perlin;
 
 use texture::{Texture, CheckerTexture};
 use bvh_node::{BVHNode};
@@ -28,6 +29,7 @@ use hittable::{Hittable, HittableList};
 use moving_sphere::MovingSphere;
 use camera::Camera;
 use material::{Lambertian, Metal, Dielectric, Material};
+
 
 fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera) {
     let mut world = HittableList::default();
@@ -163,6 +165,29 @@ fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     (world, camera)
 }
 
+fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_count: u32) -> (HittableList, Camera) {
+    let mut world = HittableList::default();
+
+    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, element_count, 4.0));
+    let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
+
+
+    // Camera
+    let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
+    let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+
+    (world, camera)
+}
+
 fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hittable, depth: i64) -> Color {
     if depth <= 0 {
         return Color{x: 0.0, y: 0.0, z: 0.0};
@@ -231,11 +256,13 @@ fn main() {
     // Scene
     let mut rng = rand::thread_rng();
     let random_balls_count = 6;
-    let scene_index = 2;
+    let noise_points_count = 256;
+    let scene_index = 3;
     let (mut world, camera) = match scene_index {
         0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         2 => two_spheres_scene(aspect_ratio),
+        3 => two_perlin_spheres_scene(&mut rng, aspect_ratio, noise_points_count),
         _ => panic!("Incorrect scene chosen!"),
     };
     let world = BVHNode::from_hittable_list(&mut world, camera.get_start_time(), camera.get_end_time());
