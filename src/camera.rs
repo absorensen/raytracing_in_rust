@@ -15,12 +15,12 @@ pub struct Camera {
     v: Vector3,
     w: Vector3,
     lens_radius: f64,
-    time0: f64,
-    time1: f64,
+    time_0: f64,
+    time_1: f64,
 }
 
 impl Camera {
-    pub fn new(look_from: Point3, look_at: Point3, v_up: Vector3, vfov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64, time0: f64, time1: f64) -> Self {
+    pub fn new(look_from: Point3, look_at: Point3, v_up: Vector3, vfov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64, time_0: f64, time_1: f64) -> Self {
         let theta = f64::consts::PI / 180.0 * vfov;
         let h = f64::tan(theta * 0.5);
         let viewport_height = 2.0 * h;
@@ -44,7 +44,7 @@ impl Camera {
             lower_left_corner: lower_left_corner, 
             u: u, v:v, w:w, 
             lens_radius:lens_radius, 
-            time0:time0, time1:time1
+            time_0, time_1
         }
     }
 
@@ -56,7 +56,17 @@ impl Camera {
         Ray{
             origin: self.origin + offset, 
             direction: self.lower_left_corner + s*self.horizontal + t*self.vertical - self.origin - offset, 
-            time:(self.time1 - self.time0) * rng.gen::<f64>() + self.time0
+            time:(self.time_1 - self.time_0) * rng.gen::<f64>() + self.time_0
         }
+    }
+
+    #[inline]
+    pub fn get_start_time(&self) -> f64{
+        self.time_0
+    }
+
+    #[inline]
+    pub fn get_end_time(&self) -> f64{
+        self.time_1
     }
 }

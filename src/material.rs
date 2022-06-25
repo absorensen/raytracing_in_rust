@@ -1,15 +1,18 @@
+use std::sync::Arc;
+
 use rand::{Rng, rngs::ThreadRng};
 
 use crate::vector3::{Color, Vector3};
 use crate::ray::Ray;
 use crate::hittable::{HitRecord};
+use crate::texture::{Texture};
 
 pub trait Material : Sync + Send {
     fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool;
 }
 
 pub struct Lambertian {
-    pub albedo: Color,
+    pub albedo: Arc<dyn Texture>
 }
 
 impl Material for Lambertian {
@@ -19,10 +22,13 @@ impl Material for Lambertian {
         if scatter_direction.near_zero() {
             scatter_direction = hit.normal;
         }
-        *attenuation_out = self.albedo;
+
         ray_out.origin = hit.position;
         ray_out.direction = scatter_direction;
         ray_out.time = ray.time;
+
+        self.albedo.value(hit.u, hit.v, &hit.position, attenuation_out);
+
         return true;
     }
 }

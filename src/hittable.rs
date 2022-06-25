@@ -7,6 +7,8 @@ use std::sync::Arc;
 
 pub struct HitRecord {
     pub t: f64,
+    pub u: f64,
+    pub v: f64,
     pub position: Vector3,
     pub normal: Vector3,
     pub is_front_face: bool,
@@ -17,15 +19,17 @@ impl HitRecord{
     pub fn new(
         ray: &Ray,
         t: f64,
+        u: f64,
+        v: f64,
         position: &Vector3,
         normal: &Vector3,
         material: &Arc<dyn Material>
     ) -> Self {
-        let mut result = HitRecord{ t, position: position.clone(), normal: normal.clone(), is_front_face: true, material: Arc::clone(material) };
+        let mut result = HitRecord{ t, u, v, position: position.clone(), normal: normal.clone(), is_front_face: true, material: Arc::clone(material) };
         result.set_face_normal(ray, normal);
         result
     }
-
+    
     pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vector3) {
         self.is_front_face = Vector3::dot(&ray.direction, outward_normal) < 0.0;
         if self.is_front_face {

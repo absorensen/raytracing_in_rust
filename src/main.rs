@@ -2,6 +2,7 @@ extern crate minifb;
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use rand::rngs::ThreadRng;
 use rand::{Rng};
+use texture::SolidColor;
 use std::f64;
 use std::sync::Arc;
 use std::time::{Instant};
@@ -16,7 +17,9 @@ mod camera;
 mod material;
 mod aabb;
 mod bvh_node;
+mod texture;
 
+use texture::{Texture, CheckerTexture};
 use bvh_node::{BVHNode};
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
@@ -26,10 +29,11 @@ use moving_sphere::MovingSphere;
 use camera::Camera;
 use material::{Lambertian, Metal, Dielectric, Material};
 
-fn random_spheres_scene(rng: &mut ThreadRng, number_of_balls: i32) -> HittableList {
+fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera) {
     let mut world = HittableList::default();
 
-    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}});
+    let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
+    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
@@ -39,7 +43,8 @@ fn random_spheres_scene(rng: &mut ThreadRng, number_of_balls: i32) -> HittableLi
             if (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() > 0.9 {
                 let chosen_material : Arc<dyn Material>;
                 if choose_mat < 0.8 {
-                    chosen_material = Arc::new(Lambertian{albedo: Color::random(rng) * Color::random(rng)});
+                    let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random(rng) * Color::random(rng))));
+                    chosen_material = Arc::new(Lambertian{albedo: chosen_texture});
                 } else if choose_mat < 0.95 {
                     chosen_material = Arc::new(Metal{albedo: Color::random(rng), fuzz: rng.gen::<f64>()});
                 } else {
@@ -56,19 +61,32 @@ fn random_spheres_scene(rng: &mut ThreadRng, number_of_balls: i32) -> HittableLi
     let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
     world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, &glass_material));
 
-    let lambertian_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: Color{x: 0.4, y: 0.2, z: 0.1}});
+    let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
+    let lambertian_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: lambertian_texture});
     world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, &lambertian_material));
 
     let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0});
     world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, &metal_material));
 
-    world
+
+    // Camera
+    let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
+    let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+    (world, camera)
 }
 
-fn random_moving_spheres_scene(rng: &mut ThreadRng, number_of_balls: i32) -> HittableList {
+fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera) {
     let mut world = HittableList::default();
 
-    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: Color{x: 0.5, y: 0.5, z: 0.5}});
+    let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
+    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
@@ -80,7 +98,8 @@ fn random_moving_spheres_scene(rng: &mut ThreadRng, number_of_balls: i32) -> Hit
                     let mut movement = Vector3::zero();
                     movement.y = rand::random::<f64>() * 0.5;
 
-                    let chosen_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: Color::random(rng) * Color::random(rng)});
+                    let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random(rng) * Color::random(rng))));
+                    let chosen_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: chosen_texture});
                     world.push(MovingSphere::new(0.2, center, center + movement,  &chosen_material, 0.0, 1.0));
                 } else if choose_mat < 0.95 {
 
@@ -100,13 +119,48 @@ fn random_moving_spheres_scene(rng: &mut ThreadRng, number_of_balls: i32) -> Hit
     let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
     world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, &glass_material));
 
-    let lambertian_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: Color{x: 0.4, y: 0.2, z: 0.1}});
+    let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
+    let lambertian_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: lambertian_texture});
     world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, &lambertian_material));
 
     let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0});
     world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, &metal_material));
 
-    world
+
+    // Camera
+    let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
+    let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+    (world, camera)
+}
+
+fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera) {
+    let mut world = HittableList::default();
+
+    let checker_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
+    let checker_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: checker_texture});
+    world.push(Sphere::new(Point3{x: 0.0, y: -10.0, z: 0.0}, 10.0, &checker_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 10.0, z: 0.0}, 10.0, &checker_material));
+
+
+    // Camera
+    let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
+    let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+
+    (world, camera)
 }
 
 fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hittable, depth: i64) -> Color {
@@ -165,28 +219,26 @@ fn main() {
     let image_height = ((image_width as f64) / aspect_ratio) as i64;
 
     // Render Settings
-    let samples_per_pixel = 10;
+    let samples_per_pixel = 20;
     let max_depth = 50;
     
     // Compute Settings
     let run_parallel = true;
     let run_samples_parallel = true;
 
-    // Camera
-    let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
-    let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
-    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
-    let dist_to_focus = 15.0;
-    let aperture = 0.1;
-    let time_0: f64 = 0.0;
-    let time_1: f64 = 1.0;
-    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
 
     // Scene
     let mut rng = rand::thread_rng();
-    let random_balls_count = 3;
-    let mut world = random_moving_spheres_scene(&mut rng, random_balls_count);
-    let world = BVHNode::from_hittable_list(&mut world, time_0, time_1);
+    let random_balls_count = 6;
+    let scene_index = 2;
+    let (mut world, camera) = match scene_index {
+        0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
+        1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
+        2 => two_spheres_scene(aspect_ratio),
+        _ => panic!("Incorrect scene chosen!"),
+    };
+    let world = BVHNode::from_hittable_list(&mut world, camera.get_start_time(), camera.get_end_time());
     let background = Color{x:0.5, y:0.7, z: 1.0};
 
 

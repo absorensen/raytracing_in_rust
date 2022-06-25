@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use std::sync::Arc;
 
 use crate::material::Material;
@@ -25,6 +26,13 @@ impl MovingSphere {
             time_0,
             time_1 
         } 
+    }
+
+    fn get_sphere_uv(p: &Vector3) -> (f64, f64) {
+        let theta = (-(*p).y).acos();
+        let phi = f64::atan2(-(*p).z,(*p).x) + PI;
+
+        ( phi / (2.0 * PI), theta / PI ) 
     }
 }
 
@@ -57,7 +65,8 @@ impl Hittable for MovingSphere{
 
         let position = ray.at(root);
         let normal = (position - center) / self.radius;
-        let hit_rec = HitRecord::new(ray, root, &position, &normal, &self.material);  
+        let (u, v) = MovingSphere::get_sphere_uv(&normal);
+        let hit_rec = HitRecord::new(ray, root, u, v, &position, &normal, &self.material);  
 
         Some(hit_rec)
     }
