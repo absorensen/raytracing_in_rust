@@ -20,7 +20,7 @@ mod bvh_node;
 mod texture;
 mod perlin;
 
-use texture::{Texture, CheckerTexture};
+use texture::{Texture, CheckerTexture, ImageTexture};
 use bvh_node::{BVHNode};
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
@@ -188,6 +188,26 @@ fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_coun
     (world, camera)
 }
 
+fn earth_scene(aspect_ratio: f64) -> (HittableList, Camera) {
+    let mut world = HittableList::default();
+    let texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("../earthmap.png"));
+    let material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: texture });
+    world.push(Sphere::new(Vector3::new(0.0, 0.0, 0.0), 2.0, &material));
+
+    // Camera
+    let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
+    let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+    (world, camera)
+}
+
+
 fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hittable, depth: i64) -> Color {
     if depth <= 0 {
         return Color{x: 0.0, y: 0.0, z: 0.0};
@@ -257,12 +277,13 @@ fn main() {
     let mut rng = rand::thread_rng();
     let random_balls_count = 6;
     let noise_points_count = 256;
-    let scene_index = 3;
+    let scene_index = 4;
     let (mut world, camera) = match scene_index {
         0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         2 => two_spheres_scene(aspect_ratio),
         3 => two_perlin_spheres_scene(&mut rng, aspect_ratio, noise_points_count),
+        4 => earth_scene(aspect_ratio),
         _ => panic!("Incorrect scene chosen!"),
     };
     let world = BVHNode::from_hittable_list(&mut world, camera.get_start_time(), camera.get_end_time());
