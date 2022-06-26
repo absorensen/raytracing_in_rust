@@ -1,6 +1,6 @@
 use std::iter::Sum;
 use std::{fmt};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index, IndexMut};
 use minifb::clamp;
 use rand::{Rng, rngs::ThreadRng};
 
@@ -306,6 +306,17 @@ impl Index<usize> for Vector3 {
             0 => &self.x,
             1 => &self.y,
             2 => &self.z,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl IndexMut<usize> for Vector3 {
+    fn index_mut(&mut self, i: usize) -> &mut f64 {
+        match i {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
             _ => unreachable!(),
         }
     }

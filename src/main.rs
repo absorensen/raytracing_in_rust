@@ -25,7 +25,7 @@ use bvh_node::{BVHNode};
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
 use sphere::Sphere;
-use hittable::{Hittable, HittableList, XYRect, XZRect, YZRect};
+use hittable::{Hittable, HittableList, XYRect, XZRect, YZRect, Box, RotateY, Translate};
 use moving_sphere::MovingSphere;
 use camera::Camera;
 use material::{Lambertian, Metal, Dielectric, Material, DiffuseLight};
@@ -273,11 +273,32 @@ fn empty_cornell_box_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
     let look_at = Point3{x: 278.0, y: 278.0, z: 0.0};
     let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
     let dist_to_focus = 15.0;
-    let aperture = 0.05;
+    let aperture = 0.0;
     let time_0: f64 = 0.0;
     let time_1: f64 = 1.0;
     let vfov = 40.0;
     let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+    (world, camera, background)
+}
+
+fn cornell_box_two_diffuse_boxes_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
+    let (mut world, camera, background) = empty_cornell_box_scene(aspect_ratio);
+    
+    let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
+    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+
+    let box_1 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, &white_material);
+    let box_1_arc : Arc<dyn Hittable> = Arc::new(box_1);
+    let box_1_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(15.0, &box_1_arc));
+    let box_1_translated = Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, &box_1_rotation);
+    world.push(box_1_translated);
+
+    let box_2 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, &white_material);
+    let box_2_arc : Arc<dyn Hittable> = Arc::new(box_2);
+    let box_2_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(-18.0, &box_2_arc));
+    let box_2_translated = Translate::new(Vector3 { x: 130.0, y: 0.0, z: 65.0 }, &box_2_rotation);
+    world.push(box_2_translated);
 
     (world, camera, background)
 }
@@ -352,7 +373,7 @@ fn main() {
     let mut rng = rand::thread_rng();
     let random_balls_count = 6;
     let noise_points_count = 256;
-    let scene_index = 6;
+    let scene_index = 7;
     let (mut world, camera, background) = match scene_index {
         0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
@@ -364,6 +385,11 @@ fn main() {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
             empty_cornell_box_scene(aspect_ratio)
+        },
+        7 => {
+            aspect_ratio = 1.0;
+            image_height = ((image_width as f64) / aspect_ratio) as i64;
+            cornell_box_two_diffuse_boxes_scene(aspect_ratio)
         },
         _ => panic!("Incorrect scene chosen!"),
     };

@@ -268,12 +268,185 @@ impl Hittable for YZRect {
             )
         )
 
-        
-
     }
 
     fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
         Some(AABB{ minimum: Vector3 { x: self.k-0.0001, y: self.y0, z: self.z0 }, maximum: Vector3{x: self.k+0.0001, y: self.y1, z: self.z1} })
+    }
+
+}
+
+pub struct Box {
+    sides: HittableList,
+    box_min: Vector3,
+    box_max: Vector3,
+}
+
+impl Box {
+    pub fn new(point_0: Vector3, point_1: Vector3, material: &Arc<dyn Material>) -> Box {
+        let mut sides : HittableList = HittableList::default();
+
+        sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material));
+        sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material));
+        
+        sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material));
+        sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material));
+        
+        sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_1.x, material));
+        sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material));
+
+        Box { box_min: point_0, box_max: point_1, sides: sides }
+    }
+
+}
+
+impl Hittable for Box {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        self.sides.hit(ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
+        Some(AABB{minimum: self.box_min, maximum: self.box_max})
+    }
+
+}
+
+pub struct Translate {
+    model: Arc<dyn Hittable>,
+    offset: Vector3,
+}
+
+impl Translate {
+    pub fn new(displacement: Vector3, model: &Arc<dyn Hittable>) -> Translate {
+        Translate{model: Arc::clone(model), offset: displacement}
+    }
+
+}
+
+impl Hittable for Translate {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let moved_ray = Ray{ origin: ray.origin - self.offset, direction: ray.direction, time: ray.time };
+        let hit_option = self.model.hit(&moved_ray, t_min, t_max);
+        if hit_option.is_none() {
+            return None;            
+        }
+
+        let mut hit = hit_option.expect("Tried to get result which wasn't there");
+        hit.position += self.offset;
+        // Cloning the normal here is poop, and should be refactored somehow.
+        // The issues is hit is borrowed mutably for set_face_normal, making 
+        // impossible the immutable borrow for outward_normal
+        hit.set_face_normal(&moved_ray, &hit.normal.clone());
+
+        Some(hit)
+    }
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
+        if let Some(mut bbox) = self.model.bounding_box(time_0, time_1) {
+            bbox.minimum += self.offset;
+            bbox.maximum += self.offset;
+
+            Some(bbox)
+        } else {
+            None
+        }
+    }
+
+}
+
+pub struct RotateY {
+    model: Arc<dyn Hittable>,
+    sin_theta: f64,
+    cos_theta: f64,
+    has_bbox: bool,
+    bbox: AABB,
+}
+
+impl RotateY {
+    pub fn new(angle: f64, model: &Arc<dyn Hittable>) -> RotateY {
+        let radians = angle.to_radians();
+
+        let sin_theta = radians.sin();
+        let cos_theta = radians.cos();
+
+        let bbox_option = model.bounding_box(0.0, 1.0);
+        let has_bbox = bbox_option.is_some();
+        let bbox = if has_bbox { bbox_option.expect("Tried to get a bbox which wasn't available")} else { AABB::default() };
+
+        let mut min = Vector3{x: f64::INFINITY, y: f64::INFINITY, z: f64::INFINITY };
+        let mut max = Vector3{x: f64::NEG_INFINITY, y: f64::NEG_INFINITY, z: f64::NEG_INFINITY };
+        
+        for i in 0..2 {
+            let i_f = i as f64;
+            for j in 0..2 {
+                let j_f = j as f64;
+                for k in 0..2 {
+                    let k_f = k as f64;
+
+                    let x = i_f  * bbox.maximum.x + (1.0 - i_f) * bbox.minimum.x;
+                    let y = j_f  * bbox.maximum.y + (1.0 - j_f) * bbox.minimum.y;
+                    let z = k_f  * bbox.maximum.z + (1.0 - k_f) * bbox.minimum.z;
+
+                    let new_x = cos_theta * x + sin_theta * z;
+                    let new_z = -sin_theta * x + cos_theta * z;
+
+                    let tester = Vector3{x: new_x, y, z: new_z};
+
+                    min[0] = min[0].min(tester[0]);
+                    min[1] = min[1].min(tester[1]);
+                    min[2] = min[2].min(tester[2]);
+                    max[0] = max[0].max(tester[0]);
+                    max[1] = max[1].max(tester[1]);
+                    max[2] = max[2].max(tester[2]);
+                }
+            }
+        }
+
+        let bbox = AABB{minimum: min, maximum: max};
+
+        RotateY { model: Arc::clone(model), sin_theta, cos_theta, has_bbox, bbox }
+    }
+}
+
+impl Hittable for RotateY {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let mut origin = ray.origin.clone();
+        let mut direction = ray.direction.clone();
+
+        origin[0] = self.cos_theta * ray.origin[0] - self.sin_theta * ray.origin[2];
+        origin[2] = self.sin_theta * ray.origin[0] + self.cos_theta * ray.origin[2];
+
+        direction[0] = self.cos_theta * ray.direction[0] - self.sin_theta * ray.direction[2];
+        direction[2] = self.sin_theta * ray.direction[0] + self.cos_theta * ray.direction[2];
+
+        let rotated_ray = Ray{ origin, direction, time: ray.time };
+
+        if let Some(mut hit) = self.model.hit(&rotated_ray, t_min, t_max) {
+            let mut position = hit.position.clone();
+            let mut normal = hit.normal.clone();
+
+            position[0] = self.cos_theta * hit.position[0] + self.sin_theta * hit.position[2];
+            position[2] = -self.sin_theta * hit.position[0] + self.cos_theta * hit.position[2];
+
+            normal[0] = self.cos_theta * hit.normal[0] + self.sin_theta * hit.normal[2];
+            normal[2] = -self.sin_theta * hit.normal[0] + self.cos_theta * hit.normal[2];
+
+            // Cloning the normal here is poop, and should be refactored somehow.
+            // The issues is hit is borrowed mutably for set_face_normal, making 
+            // impossible the immutable borrow for outward_normal
+            hit.set_face_normal(&rotated_ray, &normal);
+    
+            hit.position = position;
+            hit.normal = normal;
+
+            return Some(hit);
+        }
+
+        None
+    }
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
+        Some(self.bbox)
     }
 
 }
