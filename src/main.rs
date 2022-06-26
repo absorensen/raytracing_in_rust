@@ -519,11 +519,12 @@ fn main() {
     let mut aspect_ratio = 16.0 / 9.0;
     let mut image_width: i64 = 600;
     let mut image_height = ((image_width as f64) / aspect_ratio) as i64;
+    let output_path = "output.png";
 
     // Render Settings
-    let samples_per_pixel = 200;
-    let max_depth = 50;
-    
+    let samples_per_pixel = 100;
+    let max_depth = 150;
+
     // Compute Settings
     let run_parallel = true;
     let run_samples_parallel = true;
@@ -535,7 +536,7 @@ fn main() {
     let random_balls_count = 6;
     let noise_points_count = 256;
     let cube_sphere_count = 1000;
-    let scene_index = 9;
+    let scene_index = 6;
     let (mut world, camera, background) = match scene_index {
         0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
@@ -631,4 +632,38 @@ fn main() {
         )
         .unwrap();
     }
+
+    let mut horizontally_flipped_image: Vec<Vector3> = vec![zero; image.len()];
+    for row_index in 0..(image_height / 2) {
+        for column_index in 0..image_width {
+            let row_index_top = (row_index * image_width + column_index) as usize;
+            let row_index_bottom = ((image_height - row_index - 1) * image_width + column_index) as usize;
+            horizontally_flipped_image[row_index_top] = image[row_index_bottom];
+            horizontally_flipped_image[row_index_bottom] = image[row_index_top];
+        }
+    }
+
+    let ouput_buffer: Vec<u8> = 
+        horizontally_flipped_image.iter()
+            .flat_map(|vector| [vector.x as u8, vector.y as u8, vector.z as u8])
+            .collect();
+
+
+
+    let save_result = image::save_buffer_with_format(
+        output_path, 
+        &ouput_buffer, 
+        image_width.try_into().unwrap(), 
+        image_height.try_into().unwrap(), 
+        image::ColorType::Rgb8, 
+        image::ImageFormat::Png
+    );
+
+    if save_result.is_ok() {
+        println!("Saved output image to {}", output_path);
+    } else {
+        let error = save_result.unwrap_err();
+        panic!("{}", error.to_string());
+    }
+
 }
