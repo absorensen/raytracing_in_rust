@@ -361,6 +361,108 @@ fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f64) -> (HittableList, Camera
     (world, camera, background)
 }
 
+fn final_scene_book_2(rng: &mut ThreadRng, aspect_ratio: f64, perlin_element_count: u32, cube_sphere_count: u32) -> (HittableList, Camera, Color) {
+    // Camera
+    let look_from = Point3{x: 478.0, y: 278.0, z: -600.0 };
+    let look_at = Point3{x: 278.0, y: 278.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.0;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let vfov = 40.0;
+    let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+    
+    
+    let mut floor_cubes = HittableList::default();
+
+    let ground_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x:0.48, y:0.83, z:0.53}));
+    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
+
+    let boxes_per_side = 20;
+    for i in 0..boxes_per_side {
+        let i_f = i as f64;
+        for j in 0..boxes_per_side {
+            let j_f = j as f64;
+            let w : f64 = 100.0;
+            let x0: f64 = -1000.0 + i_f * w;
+            let z0: f64 = -1000.0 + j_f * w;
+            let y0: f64 = 0.0;
+            let x1: f64 = x0 + w;
+            let y1: f64 = rng.gen_range(1.0, 101.0);
+            let z1: f64 = z0 + w;
+
+            floor_cubes.push(
+                Box::new(
+                    Vector3{x: x0, y: y0, z: z0}, 
+                    Vector3{x: x1, y: y1, z: z1}, 
+                    &ground_material)
+                );
+        }
+    }
+    let mut objects = HittableList::default();
+    let floor_cubes_bvh = BVHNode::from_hittable_list(&mut floor_cubes, camera.get_start_time(), camera.get_end_time());
+    objects.push(floor_cubes_bvh);
+
+    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } ));
+    objects.push(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, &diffuse_light_material));
+
+    let center_0 = Vector3{x: 400.0, y: 400.0, z: 200.0};
+    let center_1 = center_0 + Vector3{x: 30.0, y: 0.0, z: 0.0};
+    let moving_sphere_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.7, y: 0.3, z: 0.1}));
+    let moving_sphere_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: moving_sphere_texture });
+    objects.push(MovingSphere{ radius: 50.0, center_0, center_1, material: moving_sphere_material, time_0: 0.0, time_1: 1.0 });
+
+    let index_of_refraction = 1.5;
+    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+    objects.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, &glass_material));
+
+    let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.8, y: 0.8, z: 0.9}, fuzz: 1.0});
+    objects.push(Sphere::new(Point3{x: 0.0, y: 150.0, z: 145.0}, 50.0, &metal_material));
+
+    // Volume sphere
+    let index_of_refraction = 1.5;
+    let volume_sphere_boundary_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+    let boundary = Sphere::new(Point3{x: 360.0, y: 150.0, z: 145.0}, 70.0, &volume_sphere_boundary_material);
+    let boundary_arc: Arc<dyn Hittable> = Arc::new(boundary);
+    objects.push_arc(&boundary_arc);
+
+    let light_phase_function: Arc<dyn Material> = Arc::new(Isotropic::from_color( &Color{x: 0.2, y: 0.4, z: 0.9} ));
+    let volume_sphere= ConstantMedium::new(&boundary_arc, &light_phase_function, 0.2);
+    objects.push(volume_sphere);
+
+    let global_volume_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+    let global_volume_sphere: Arc<dyn Hittable> = Arc::new(Sphere::new(Point3{x: 0.0, y: 0.0, z: 0.0}, 5000.0, &global_volume_material));
+    let global_volume = ConstantMedium::new(&global_volume_sphere, &light_phase_function, 0.0001);
+    objects.push(global_volume);
+
+    let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("earthmap.png"));
+    let earth_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: earth_texture });
+    objects.push(Sphere::new(Vector3::new(400.0, 200.0, 400.0), 100.0, &earth_material));
+
+    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, perlin_element_count, 0.1));
+    let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
+    objects.push(Sphere::new(Point3{x: 220.0, y: 280.0, z: 300.0}, 80.0, &perlin_material));
+
+
+    let mut cube_spheres = HittableList::default();
+    let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
+    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+
+    for _j in 0..cube_sphere_count {
+        cube_spheres.push(Sphere::new(Vector3::random_range(rng, 0.0, 165.0), 10.0, &white_material));
+    }
+    let cube_spheres_bvh = BVHNode::from_hittable_list(&mut cube_spheres, camera.get_start_time(), camera.get_end_time());
+    let cube_spheres_arc: Arc <dyn Hittable> = Arc::new(cube_spheres_bvh);
+    let cube_spheres_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(15.0, &cube_spheres_arc));
+    let cube_spheres_translated: Arc<dyn Hittable> = Arc::new(Translate::new(Vector3 { x: -100.0, y: 270.0, z: 395.0 }, &cube_spheres_rotation));
+    objects.push_arc(&cube_spheres_translated);
+
+    let background = Color{x:0.0, y:0.0, z: 0.0};
+
+
+    (objects, camera, background)
+}
 
 fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hittable, depth: i64) -> Color {
     if depth <= 0 {
@@ -432,7 +534,8 @@ fn main() {
     let mut rng = rand::thread_rng();
     let random_balls_count = 6;
     let noise_points_count = 256;
-    let scene_index = 8;
+    let cube_sphere_count = 1000;
+    let scene_index = 9;
     let (mut world, camera, background) = match scene_index {
         0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
@@ -454,6 +557,11 @@ fn main() {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
             cornell_box_two_smoke_boxes_scene(aspect_ratio)
+        },
+        9 => {
+            aspect_ratio = 1.0;
+            image_height = ((image_width as f64) / aspect_ratio) as i64;
+            final_scene_book_2(&mut rng, aspect_ratio, noise_points_count, cube_sphere_count)
         },
         _ => panic!("Incorrect scene chosen!"),
     };

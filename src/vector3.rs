@@ -36,6 +36,17 @@ impl Vector3 {
     }
 
     #[inline]
+    pub fn random(rng: &mut ThreadRng) -> Self {
+        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+    }
+
+    #[inline]
+    pub fn random_range(rng: &mut ThreadRng, minimum: f64, maximum: f64) -> Self {
+        Vector3{x: rng.gen_range(minimum, maximum), y: rng.gen_range(minimum, maximum), z: rng.gen_range(minimum, maximum) }
+    }
+
+
+    #[inline]
     pub fn length_squared(&self) -> f64 {
         return self.x.mul_add(self.x, self.y.mul_add(self.y, self.z * self.z));
     }
@@ -64,10 +75,6 @@ impl Vector3 {
         return *self / self.length();
     }
 
-    #[inline]
-    pub fn random(rng: &mut ThreadRng) -> Self {
-        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
-    }
 
     #[inline]
     pub fn reflect(v: &Vector3, normal: &Vector3, reflected_out: &mut Vector3) -> bool {

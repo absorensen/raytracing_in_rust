@@ -99,7 +99,7 @@ impl ImageTexture {
     pub fn new(path: &str) -> Self {
         let bytes_per_pixel: usize = 3;
 
-        let image = image::open(path).expect("image not found").to_rgb8();
+        let image = image::open(path).expect("image not found").flipv().to_rgb8();
         let (width, height) = image.dimensions();
         let data = image.into_raw();
 
@@ -127,7 +127,7 @@ impl Texture for ImageTexture {
         if self.height <= j { j = self.height - 1; } 
 
         let color_scale = 1.0 / 255.0;
-        let pixel_index = self.data.len() - j * self.bytes_per_scanline + i * self.bytes_per_pixel;
+        let pixel_index = j * self.bytes_per_scanline + i * self.bytes_per_pixel;
 
         color_out.x = color_scale * self.data[pixel_index    ] as f64;
         color_out.y = color_scale * self.data[pixel_index + 1] as f64;

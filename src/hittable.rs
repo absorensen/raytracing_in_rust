@@ -60,6 +60,14 @@ impl HittableList {
         self.objects.push(Arc::new(hittable))
     }
 
+    pub fn push_arc(&mut self, hittable: &Arc<dyn Hittable>) {
+        self.objects.push(Arc::clone(hittable))
+    }
+
+    // pub fn push_list(&mut self, hittable: impl Hittable + 'static) {
+
+    // }
+
     pub fn as_slice_mut(&mut self) -> &mut [Arc<dyn Hittable>] {
         &mut self.objects
     }
@@ -474,16 +482,12 @@ impl ConstantMedium {
 
 impl Hittable for ConstantMedium {
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let enable_debug = false;
-        let debugging = enable_debug && rng.gen::<f64>() < 0.00001;
-
         let hit1 = self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY);
         let mut hit1 = if hit1.is_some() { hit1.unwrap() } else { return None };
 
         let hit2 = self.boundary.hit(rng, ray, hit1.t+0.0001, f64::INFINITY);
         let mut hit2 = if hit2.is_some() { hit2.unwrap() } else { return None };
 
-        if debugging { print!("\nt_min={}, t_max={}\n", hit1.t, hit2.t); };
 
         if hit1.t < t_min { hit1.t = t_min; };
         if t_max < hit2.t { hit2.t = t_max; };
