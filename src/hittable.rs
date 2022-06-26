@@ -1,6 +1,10 @@
+use rand::Rng;
+use rand::rngs::ThreadRng;
+
+use crate::texture::Texture;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
-use crate::material::Material;
+use crate::material::{Material, Isotropic};
 use crate::aabb::AABB;
 
 use std::sync::Arc;
@@ -42,7 +46,7 @@ impl HitRecord{
 
 pub trait Hittable: Sync + Send {
     // Maybe convert these to take an output argument
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB>;
 }
 
@@ -66,11 +70,11 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut closest_so_far = t_max;
         let mut hit_anything: Option<HitRecord> = None;
         for hittable in self.objects.iter() {
-            if let Some(hit) = hittable.hit(ray, t_min, closest_so_far) {
+            if let Some(hit) = hittable.hit(rng, ray, t_min, closest_so_far) {
                 closest_so_far = hit.t;
                 hit_anything = Some(hit);
             }
@@ -128,7 +132,7 @@ impl XYRect {
 }
 
 impl Hittable for XYRect {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let t = (self.k - ray.origin.z) / ray.direction.z;
         if t < t_min || t_max < t {
             return None;
@@ -184,7 +188,7 @@ impl XZRect {
 }
 
 impl Hittable for XZRect {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let t = (self.k - ray.origin.y) / ray.direction.y;
         if t < t_min || t_max < t {
             return None;
@@ -238,7 +242,7 @@ impl YZRect {
 }
 
 impl Hittable for YZRect {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let t = (self.k - ray.origin.x) / ray.direction.x;
         if t < t_min || t_max < t {
             return None;
@@ -301,8 +305,8 @@ impl Box {
 }
 
 impl Hittable for Box {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        self.sides.hit(ray, t_min, t_max)
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        self.sides.hit(rng, ray, t_min, t_max)
     }
 
     fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
@@ -324,9 +328,9 @@ impl Translate {
 }
 
 impl Hittable for Translate {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let moved_ray = Ray{ origin: ray.origin - self.offset, direction: ray.direction, time: ray.time };
-        let hit_option = self.model.hit(&moved_ray, t_min, t_max);
+        let hit_option = self.model.hit(rng, &moved_ray, t_min, t_max);
         if hit_option.is_none() {
             return None;            
         }
@@ -409,7 +413,7 @@ impl RotateY {
 }
 
 impl Hittable for RotateY {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut origin = ray.origin.clone();
         let mut direction = ray.direction.clone();
 
@@ -421,7 +425,7 @@ impl Hittable for RotateY {
 
         let rotated_ray = Ray{ origin, direction, time: ray.time };
 
-        if let Some(mut hit) = self.model.hit(&rotated_ray, t_min, t_max) {
+        if let Some(mut hit) = self.model.hit(rng, &rotated_ray, t_min, t_max) {
             let mut position = hit.position.clone();
             let mut normal = hit.normal.clone();
 
@@ -447,6 +451,70 @@ impl Hittable for RotateY {
 
     fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
         Some(self.bbox)
+    }
+
+}
+
+
+pub struct ConstantMedium {
+    boundary: Arc<dyn Hittable>,
+    phase_function: Arc<dyn Material>,
+    negative_inverse_density: f64,
+}
+
+impl ConstantMedium {
+    pub fn new(model: &Arc<dyn Hittable>, phase_function: &Arc<dyn Material>, density: f64) -> ConstantMedium {
+        ConstantMedium { 
+            boundary: Arc::clone(model), 
+            phase_function: Arc::clone(phase_function), 
+            negative_inverse_density: -1.0 / density 
+        }
+    }
+}
+
+impl Hittable for ConstantMedium {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let enable_debug = false;
+        let debugging = enable_debug && rng.gen::<f64>() < 0.00001;
+
+        let hit1 = self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY);
+        let mut hit1 = if hit1.is_some() { hit1.unwrap() } else { return None };
+
+        let hit2 = self.boundary.hit(rng, ray, hit1.t+0.0001, f64::INFINITY);
+        let mut hit2 = if hit2.is_some() { hit2.unwrap() } else { return None };
+
+        if debugging { print!("\nt_min={}, t_max={}\n", hit1.t, hit2.t); };
+
+        if hit1.t < t_min { hit1.t = t_min; };
+        if t_max < hit2.t { hit2.t = t_max; };
+
+        if hit2.t <= hit1.t { return None; }
+
+        if hit1.t < 0.0 { hit1.t = 0.0; }
+
+        let ray_length = ray.direction.length();
+        let distance_inside_boundary = (hit2.t - hit1.t) * ray_length;
+        let hit_distance = self.negative_inverse_density * rng.gen::<f64>().ln();
+
+        if distance_inside_boundary < hit_distance { return None; }
+
+        let t = hit1.t + hit_distance / ray_length; 
+        let hit = 
+            HitRecord{ 
+                t: t, 
+                u: 0.0, 
+                v: 0.0, 
+                position: ray.at(t), 
+                normal: Vector3 { x: 1.0, y: 0.0, z: 0.0 }, 
+                is_front_face: true, 
+                material: Arc::clone(&self.phase_function) 
+            };
+
+            Some(hit)
+    }
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
+        self.boundary.bounding_box(time_0, time_1)
     }
 
 }

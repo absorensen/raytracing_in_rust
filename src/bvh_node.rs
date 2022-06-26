@@ -81,14 +81,14 @@ impl BVHNode {
 impl Hittable for BVHNode{
 
 
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         if !self.bbox.hit(ray, t_min, t_max){
             return None;
         }
         
-        return match self.left.hit(ray, t_min, t_max) {
-            None => self.right.hit(ray, t_min, t_max),
-            Some(hit_left) => match self.right.hit(ray, t_min, hit_left.t) {
+        return match self.left.hit(rng, ray, t_min, t_max) {
+            None => self.right.hit(rng, ray, t_min, t_max),
+            Some(hit_left) => match self.right.hit(rng, ray, t_min, hit_left.t) {
                 None => Some(hit_left),
                 hit_right => hit_right,
             },

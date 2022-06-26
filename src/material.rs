@@ -136,3 +136,29 @@ impl Material for DiffuseLight {
         color_out
     }
 }
+
+pub struct Isotropic {
+    pub albedo: Arc<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn from_texture(texture: &Arc<dyn Texture>) -> Isotropic {
+        Isotropic { albedo: Arc::clone(texture) }
+    }
+
+    pub fn from_color(color: &Color) -> Isotropic {
+        let texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(color));
+        Isotropic { albedo: texture }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool{
+        *ray_out = Ray{ origin: hit.position, direction: Vector3::random_in_unit_sphere(rng), time: ray.time };
+        self.albedo.value(hit.u, hit.v, &hit.position, attenuation_out)
+    }
+
+    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+        Color{x: 0.0, y: 0.0, z: 0.0}
+    }
+}

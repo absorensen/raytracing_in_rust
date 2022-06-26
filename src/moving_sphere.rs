@@ -1,6 +1,8 @@
 use std::f64::consts::PI;
 use std::sync::Arc;
 
+use rand::rngs::ThreadRng;
+
 use crate::material::Material;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
@@ -43,7 +45,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere{
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let center = self.center(ray.time);
 
         let oc = ray.origin - center;
