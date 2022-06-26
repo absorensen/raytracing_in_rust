@@ -5,10 +5,11 @@ use rand::{Rng, rngs::ThreadRng};
 use crate::vector3::{Color, Vector3};
 use crate::ray::Ray;
 use crate::hittable::{HitRecord};
-use crate::texture::{Texture};
+use crate::texture::{Texture, SolidColor};
 
 pub trait Material : Sync + Send {
     fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool;
+    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color;
 }
 
 pub struct Lambertian {
@@ -31,6 +32,10 @@ impl Material for Lambertian {
 
         return true;
     }
+
+    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+        Color{x: 0.0, y: 0.0, z: 0.0}
+    }
 }
 
 pub struct Metal {
@@ -52,6 +57,10 @@ impl Material for Metal {
         } else {
             return false;
         }
+    }
+
+    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+        Color{x: 0.0, y: 0.0, z: 0.0}
     }
 }
 
@@ -85,6 +94,10 @@ impl Material for Dielectric {
 
         true
     }
+
+    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+        Color{x: 0.0, y: 0.0, z: 0.0}
+    }
 }
 
 impl Dielectric {
@@ -94,5 +107,32 @@ impl Dielectric {
         let inverse_cosine = 1.0 - cosine;
         let inverse_cosine_squared = inverse_cosine * inverse_cosine;
         r0_squared + (1.0 - r0_squared) * inverse_cosine_squared * inverse_cosine_squared * inverse_cosine
+    }
+}
+
+pub struct DiffuseLight {
+    pub emission: Arc<dyn Texture>,
+}
+
+impl DiffuseLight {
+    pub fn from_texture(texture: &Arc<dyn Texture>) -> DiffuseLight {
+        DiffuseLight { emission: Arc::clone(texture) }
+    }
+
+    pub fn from_color(color: &Color) -> DiffuseLight {
+        let texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(color));
+        DiffuseLight { emission: texture }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _rng: &mut ThreadRng, _ray:&Ray, _hit: &HitRecord, _attenuation_out: &mut Color, _ray_out: &mut Ray) -> bool{
+        false
+    }
+
+    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+        let mut color_out = Color::zero();
+        self.emission.value(u, v, point, &mut color_out);
+        color_out
     }
 }

@@ -25,13 +25,13 @@ use bvh_node::{BVHNode};
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
 use sphere::Sphere;
-use hittable::{Hittable, HittableList};
+use hittable::{Hittable, HittableList, XYRect, XZRect, YZRect};
 use moving_sphere::MovingSphere;
 use camera::Camera;
-use material::{Lambertian, Metal, Dielectric, Material};
+use material::{Lambertian, Metal, Dielectric, Material, DiffuseLight};
 
 
-fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera) {
+fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
@@ -70,6 +70,9 @@ fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls:
     let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0});
     world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, &metal_material));
 
+    let background = Color{x:0.7, y:0.8, z: 1.0};
+
+
 
     // Camera
     let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
@@ -81,10 +84,12 @@ fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls:
     let time_1: f64 = 1.0;
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    (world, camera)
+
+
+    (world, camera, background)
 }
 
-fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera) {
+fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
@@ -128,6 +133,7 @@ fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of
     let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0});
     world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, &metal_material));
 
+    let background = Color{x:0.7, y:0.8, z: 1.0};
 
     // Camera
     let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
@@ -139,10 +145,10 @@ fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of
     let time_1: f64 = 1.0;
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    (world, camera)
+    (world, camera, background)
 }
 
-fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera) {
+fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
 
     let checker_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
@@ -150,6 +156,7 @@ fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     world.push(Sphere::new(Point3{x: 0.0, y: -10.0, z: 0.0}, 10.0, &checker_material));
     world.push(Sphere::new(Point3{x: 0.0, y: 10.0, z: 0.0}, 10.0, &checker_material));
 
+    let background = Color{x:0.7, y:0.8, z: 1.0};
 
     // Camera
     let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
@@ -162,10 +169,10 @@ fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, camera)
+    (world, camera, background)
 }
 
-fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_count: u32) -> (HittableList, Camera) {
+fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_count: u32) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
 
     let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, element_count, 4.0));
@@ -173,6 +180,7 @@ fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_coun
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
     world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
 
+    let background = Color{x:0.7, y:0.8, z: 1.0};
 
     // Camera
     let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
@@ -185,15 +193,17 @@ fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_coun
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, camera)
+    (world, camera, background)
 }
 
-fn earth_scene(aspect_ratio: f64) -> (HittableList, Camera) {
+fn earth_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
-    let texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("../earthmap.png"));
+    let texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("earthmap.png"));
     let material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: texture });
     world.push(Sphere::new(Vector3::new(0.0, 0.0, 0.0), 2.0, &material));
 
+    let background = Color{x:0.7, y:0.8, z: 1.0};
+
     // Camera
     let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
     let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
@@ -204,9 +214,73 @@ fn earth_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     let time_1: f64 = 1.0;
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    (world, camera)
+    (world, camera, background)
 }
 
+fn simple_light_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_count: u32) -> (HittableList, Camera, Color) {
+    let mut world = HittableList::default();
+
+    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, element_count, 4.0));
+    let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
+
+    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 4.0, y: 4.0, z: 4.0 } ));
+    world.push(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, &diffuse_light_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 7.0, z: 0.0}, 2.0, &diffuse_light_material));
+
+    let background = Color{x:0.0, y:0.0, z: 0.0};
+
+    // Camera
+    let look_from = Point3{x: 26.0, y: 3.0, z: 6.0 };
+    let look_at = Point3{x: 0.0, y: 2.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+
+    (world, camera, background)
+}
+
+fn empty_cornell_box_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
+    let mut world = HittableList::default();
+
+    let red_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.64, y: 0.05, z: 0.05}));
+    let red_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: red_texture });
+
+    let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
+    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+
+    let green_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.12, y: 0.45, z: 0.15}));
+    let green_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: green_texture });
+
+    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 15.0, y: 15.0, z: 15.0 } ));
+
+    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &green_material));
+    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, &red_material));
+    world.push(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, &diffuse_light_material));
+    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, &white_material));
+    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &white_material));
+    world.push(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &white_material));
+
+    let background = Color{x:0.0, y:0.0, z: 0.0};
+
+    // Camera
+    let look_from = Point3{x: 278.0, y: 278.0, z: -800.0 };
+    let look_at = Point3{x: 278.0, y: 278.0, z: 0.0};
+    let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
+    let dist_to_focus = 15.0;
+    let aperture = 0.05;
+    let time_0: f64 = 0.0;
+    let time_1: f64 = 1.0;
+    let vfov = 40.0;
+    let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+
+    (world, camera, background)
+}
 
 fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hittable, depth: i64) -> Color {
     if depth <= 0 {
@@ -216,15 +290,16 @@ fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hi
     if let Some(hit) = world.hit(ray, 0.001, f64::MAX) {
         let mut attenuation: Color = Color::zero();
         let mut scattered: Ray = Ray::new(Vector3::zero(), Vector3::zero(), ray.time);
+        let emitted: Color = hit.material.emitted(hit.u, hit.v, &hit.position);
+
         if hit.material.scatter(rng, ray, &hit, &mut attenuation, &mut scattered) {
-            return attenuation * ray_color(rng, background, &scattered, world, depth - 1);
-        } 
-        return Color{x: 0.0, y: 0.0, z: 0.0};
+            return emitted + attenuation * ray_color(rng, background, &scattered, world, depth - 1);
+        } else {
+            return emitted;
+        }
     } 
 
-    let unit_direction = ray.direction.normalized();
-    let t = 0.5 * (unit_direction.y + 1.0);
-    ((1.0 - t) * Color::new(1.0, 1.0, 1.0)) + (t * Color::new(0.5, 0.7, 1.0))
+    *background
 }
 
 fn render_pixel(rng: &mut ThreadRng, background: &Color, pixel_index: i64, image_width: i64, image_height: i64, samples_per_pixel: i64, camera: &Camera, world: &dyn Hittable, max_depth: i64, scale: f64, use_parallel: bool) -> Vector3{
@@ -259,12 +334,12 @@ fn render_pixel(rng: &mut ThreadRng, background: &Color, pixel_index: i64, image
 
 fn main() {
     // Display Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width: i64 = 800;
-    let image_height = ((image_width as f64) / aspect_ratio) as i64;
+    let mut aspect_ratio = 16.0 / 9.0;
+    let mut image_width: i64 = 600;
+    let mut image_height = ((image_width as f64) / aspect_ratio) as i64;
 
     // Render Settings
-    let samples_per_pixel = 20;
+    let samples_per_pixel = 200;
     let max_depth = 50;
     
     // Compute Settings
@@ -277,17 +352,24 @@ fn main() {
     let mut rng = rand::thread_rng();
     let random_balls_count = 6;
     let noise_points_count = 256;
-    let scene_index = 4;
-    let (mut world, camera) = match scene_index {
+    let scene_index = 6;
+    let (mut world, camera, background) = match scene_index {
         0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
         2 => two_spheres_scene(aspect_ratio),
         3 => two_perlin_spheres_scene(&mut rng, aspect_ratio, noise_points_count),
         4 => earth_scene(aspect_ratio),
+        5 => simple_light_scene(&mut rng, aspect_ratio, noise_points_count),
+        6 => {
+            aspect_ratio = 1.0;
+            image_height = ((image_width as f64) / aspect_ratio) as i64;
+            empty_cornell_box_scene(aspect_ratio)
+        },
         _ => panic!("Incorrect scene chosen!"),
     };
     let world = BVHNode::from_hittable_list(&mut world, camera.get_start_time(), camera.get_end_time());
-    let background = Color{x:0.5, y:0.7, z: 1.0};
+
+
 
 
 
