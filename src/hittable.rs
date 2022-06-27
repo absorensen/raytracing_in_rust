@@ -120,8 +120,13 @@ impl Hittable for HittableList {
     }
 
     fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
-        let random_object_index = rng.gen_range(0, self.objects.len());
-        self.objects[random_object_index].pdf_value(rng, origin, v) / self.objects.len() as f64
+        let mut sum = 0.0;
+        let inverse_length = 1.0 / self.objects.len() as f64;
+        for object_index in 0..self.objects.len(){
+            sum += self.objects[object_index].pdf_value(rng, origin, v) * inverse_length;
+        }
+
+        sum
     }
 
     fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
