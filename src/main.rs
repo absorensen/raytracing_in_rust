@@ -1,8 +1,9 @@
 extern crate minifb;
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 // Look into performance optimization of the RNG
-use rand::rngs::ThreadRng;
-use rand::{Rng};
+use rand::rngs::{ThreadRng};
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaChaRng;
 use texture::{SolidColor, NoiseTexture};
 use std::f64;
 use std::sync::Arc;
@@ -32,24 +33,26 @@ use camera::Camera;
 use material::{Lambertian, Metal, Dielectric, Material, DiffuseLight, Isotropic};
 
 
-fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera, Color) {
-    let mut world = HittableList::default();
+fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera, Color) {
+    let seed = 919;
+    let mut rng = rand_chacha::ChaChaRng::seed_from_u64(seed);
 
+    let mut world = HittableList::default();
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
     let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
-            let choose_mat = rand::random::<f64>();
-            let center = Point3{x: a as f64 + 0.9 * rand::random::<f64>(), y: 0.2, z: b as f64 + 0.9 * rand::random::<f64>()};
+            let choose_mat = rng.gen::<f64>();
+            let center = Point3{x: a as f64 + 0.9 * rng.gen::<f64>(), y: 0.2, z: b as f64 + 0.9 * rng.gen::<f64>()};
 
             if (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() > 0.9 {
                 let chosen_material : Arc<dyn Material>;
                 if choose_mat < 0.8 {
-                    let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random(rng) * Color::random(rng))));
+                    let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
                     chosen_material = Arc::new(Lambertian{albedo: chosen_texture});
                 } else if choose_mat < 0.95 {
-                    chosen_material = Arc::new(Metal{albedo: Color::random(rng), fuzz: rng.gen::<f64>()});
+                    chosen_material = Arc::new(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()});
                 } else {
                     let index_of_refraction = 1.5;
                     chosen_material = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
@@ -90,7 +93,10 @@ fn random_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls:
     (world, camera, background)
 }
 
-fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera, Color) {
+fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, Camera, Color) {
+    let seed = 919;
+    let mut rng = rand_chacha::ChaChaRng::seed_from_u64(seed);
+
     let mut world = HittableList::default();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
@@ -98,20 +104,20 @@ fn random_moving_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, number_of
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
-            let choose_mat = rand::random::<f64>();
-            let center = Point3{x: a as f64 + 0.9 * rand::random::<f64>(), y: 0.2, z: b as f64 + 0.9 * rand::random::<f64>()};
+            let choose_mat = rng.gen::<f64>();
+            let center = Point3{x: a as f64 + 0.9 * rng.gen::<f64>(), y: 0.2, z: b as f64 + 0.9 * rng.gen::<f64>()};
 
             if (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() > 0.9 {
                 if choose_mat < 0.8 {
                     let mut movement = Vector3::zero();
-                    movement.y = rand::random::<f64>() * 0.5;
+                    movement.y = rng.gen::<f64>() * 0.5;
 
-                    let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random(rng) * Color::random(rng))));
+                    let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
                     let chosen_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: chosen_texture});
                     world.push(MovingSphere::new(0.2, center, center + movement,  &chosen_material, 0.0, 1.0));
                 } else if choose_mat < 0.95 {
 
-                    let chosen_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color::random(rng), fuzz: rand::random::<f64>()});
+                    let chosen_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()});
                     world.push(Sphere::new(center, 0.2, &chosen_material));
                 } else {
 
@@ -173,10 +179,13 @@ fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
     (world, camera, background)
 }
 
-fn two_perlin_spheres_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_count: u32) -> (HittableList, Camera, Color) {
+fn two_perlin_spheres_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
 
-    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, element_count, 4.0));
+    // The Noise Texture runs pretty deep
+    // I just need some determinism, not all the way
+    let mut thread_rng = rand::thread_rng();
+    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, element_count, 4.0));
     let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
     world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
@@ -218,10 +227,13 @@ fn earth_scene(aspect_ratio: f64) -> (HittableList, Camera, Color) {
     (world, camera, background)
 }
 
-fn simple_light_scene(rng: &mut ThreadRng, aspect_ratio: f64, element_count: u32) -> (HittableList, Camera, Color) {
+fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, Camera, Color) {
     let mut world = HittableList::default();
 
-    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, element_count, 4.0));
+    // The Noise Texture runs pretty deep
+    // I just need some determinism, not all the way
+    let mut thread_rng = rand::thread_rng();
+    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, element_count, 4.0));
     let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
     world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
@@ -361,7 +373,10 @@ fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f64) -> (HittableList, Camera
     (world, camera, background)
 }
 
-fn final_scene_book_2(rng: &mut ThreadRng, aspect_ratio: f64, perlin_element_count: u32, cube_sphere_count: u32) -> (HittableList, Camera, Color) {
+fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_count: u32) -> (HittableList, Camera, Color) {
+    let seed = 919;
+    let mut rng = rand_chacha::ChaChaRng::seed_from_u64(seed);
+    
     // Camera
     let look_from = Point3{x: 478.0, y: 278.0, z: -600.0 };
     let look_at = Point3{x: 278.0, y: 278.0, z: 0.0};
@@ -440,7 +455,11 @@ fn final_scene_book_2(rng: &mut ThreadRng, aspect_ratio: f64, perlin_element_cou
     let earth_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: earth_texture });
     objects.push(Sphere::new(Vector3::new(400.0, 200.0, 400.0), 100.0, &earth_material));
 
-    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(rng, perlin_element_count, 0.1));
+    
+    // The Noise Texture runs pretty deep
+    // I just need some determinism, not all the way
+    let mut thread_rng = rand::thread_rng();
+    let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, perlin_element_count, 0.1));
     let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
     objects.push(Sphere::new(Point3{x: 220.0, y: 280.0, z: 300.0}, 80.0, &perlin_material));
 
@@ -450,7 +469,7 @@ fn final_scene_book_2(rng: &mut ThreadRng, aspect_ratio: f64, perlin_element_cou
     let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
 
     for _j in 0..cube_sphere_count {
-        cube_spheres.push(Sphere::new(Vector3::random_range(rng, 0.0, 165.0), 10.0, &white_material));
+        cube_spheres.push(Sphere::new(Vector3::random_range_chacha(&mut rng, 0.0, 165.0), 10.0, &white_material));
     }
     let cube_spheres_bvh = BVHNode::from_hittable_list(&mut cube_spheres, camera.get_start_time(), camera.get_end_time());
     let cube_spheres_arc: Arc <dyn Hittable> = Arc::new(cube_spheres_bvh);
@@ -522,7 +541,7 @@ fn main() {
     let output_path = "output.png";
 
     // Render Settings
-    let samples_per_pixel = 100;
+    let samples_per_pixel = 20;
     let max_depth = 150;
 
     // Compute Settings
@@ -532,18 +551,17 @@ fn main() {
 
 
     // Scene
-    let mut rng = rand::thread_rng();
     let random_balls_count = 6;
     let noise_points_count = 256;
     let cube_sphere_count = 1000;
-    let scene_index = 6;
+    let scene_index = 9;
     let (mut world, camera, background) = match scene_index {
-        0 => random_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
-        1 => random_moving_spheres_scene(&mut rng, aspect_ratio, random_balls_count),
+        0 => random_spheres_scene(aspect_ratio, random_balls_count),
+        1 => random_moving_spheres_scene(aspect_ratio, random_balls_count),
         2 => two_spheres_scene(aspect_ratio),
-        3 => two_perlin_spheres_scene(&mut rng, aspect_ratio, noise_points_count),
+        3 => two_perlin_spheres_scene(aspect_ratio, noise_points_count),
         4 => earth_scene(aspect_ratio),
-        5 => simple_light_scene(&mut rng, aspect_ratio, noise_points_count),
+        5 => simple_light_scene(aspect_ratio, noise_points_count),
         6 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
@@ -562,7 +580,7 @@ fn main() {
         9 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
-            final_scene_book_2(&mut rng, aspect_ratio, noise_points_count, cube_sphere_count)
+            final_scene_book_2(aspect_ratio, noise_points_count, cube_sphere_count)
         },
         _ => panic!("Incorrect scene chosen!"),
     };
@@ -584,6 +602,7 @@ fn main() {
             render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, max_depth, scale, run_samples_parallel)
         }).collect()
     } else {
+        let mut rng = rand::thread_rng();
         (0..total_pixels).into_iter().map(|pixel_index:i64| {
             render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, max_depth, scale, run_samples_parallel)
         }).collect()

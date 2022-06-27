@@ -14,5 +14,6 @@ codegen-units = 1
 [dependencies]
 minifb = "0.20"
 rand = "0.6.5"
+rand_chacha ={  }
 rayon = "1.5.3"
 image = "0.24.2"

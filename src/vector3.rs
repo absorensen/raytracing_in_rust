@@ -3,6 +3,7 @@ use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index, IndexMut};
 use minifb::clamp;
 use rand::{Rng, rngs::ThreadRng};
+use rand_chacha::ChaChaRng;
 
 pub type Point3 = Vector3;
 pub type Color = Vector3;
@@ -41,10 +42,19 @@ impl Vector3 {
     }
 
     #[inline]
+    pub fn random_chacha(rng: &mut ChaChaRng) -> Self {
+        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+    }
+
+    #[inline]
     pub fn random_range(rng: &mut ThreadRng, minimum: f64, maximum: f64) -> Self {
         Vector3{x: rng.gen_range(minimum, maximum), y: rng.gen_range(minimum, maximum), z: rng.gen_range(minimum, maximum) }
     }
 
+    #[inline]
+    pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f64, maximum: f64) -> Self {
+        Vector3{x: rng.gen_range(minimum, maximum), y: rng.gen_range(minimum, maximum), z: rng.gen_range(minimum, maximum) }
+    }
 
     #[inline]
     pub fn length_squared(&self) -> f64 {
