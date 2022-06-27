@@ -1,39 +1,52 @@
+use std::f64::consts::PI;
 use std::sync::Arc;
 
 use rand::{Rng, rngs::ThreadRng};
 
+use crate::ortho_normal_base::OrthoNormalBase;
 use crate::vector3::{Color, Vector3};
 use crate::ray::Ray;
 use crate::hittable::{HitRecord};
 use crate::texture::{Texture, SolidColor};
 
 pub trait Material : Sync + Send {
-    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool;
-    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color;
+    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, albedo_out: &mut Color, ray_out: &mut Ray, pdf_out: &mut f64) -> bool;
+    fn scattering_pdf(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, scattered:&Ray) -> f64;
+    fn emitted(&self, ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color;
 }
 
 pub struct Lambertian {
     pub albedo: Arc<dyn Texture>
 }
 
-impl Material for Lambertian {
-    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool{
-        let mut scatter_direction = hit.normal + Vector3::random_unit_vector(rng);
+static INV_PI: f64 = 1.0 / PI;
+static HALF_OVER_PI: f64 = 0.5 / PI;
 
-        if scatter_direction.near_zero() {
-            scatter_direction = hit.normal;
-        }
+impl Material for Lambertian {
+    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, albedo_out: &mut Color, ray_out: &mut Ray, pdf_out: &mut f64) -> bool{
+        let uvw = OrthoNormalBase::build_from_w(&hit.normal);
+        let mut direction = uvw.local_vector(&Vector3::random_cosine_direction(rng));
+
+        if direction.near_zero() { direction = hit.normal; }
 
         ray_out.origin = hit.position;
-        ray_out.direction = scatter_direction;
+        ray_out.direction = direction.normalized();
         ray_out.time = ray.time;
 
-        self.albedo.value(hit.u, hit.v, &hit.position, attenuation_out);
+        self.albedo.value(hit.u, hit.v, &hit.position, albedo_out);
+
+        *pdf_out = Vector3::dot(&uvw.w, &ray_out.direction) / PI;
 
         return true;
     }
 
-    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+    fn scattering_pdf(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, scattered:&Ray) -> f64 {
+        let cosine = Vector3::dot(&hit.normal, &(scattered.direction.normalized()));
+
+        if cosine < 0.0 { 0.0 } else { cosine / PI }
+    }
+
+    fn emitted(&self, ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
         Color{x: 0.0, y: 0.0, z: 0.0}
     }
 }
@@ -44,7 +57,7 @@ pub struct Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool {
+    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray, pdf_out: &mut f64) -> bool {
         let mut reflected = Vector3::zero();
         Vector3::reflect(&ray.direction.normalized(), &hit.normal, &mut reflected);
         ray_out.origin = hit.position;
@@ -59,7 +72,11 @@ impl Material for Metal {
         }
     }
 
-    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+    fn scattering_pdf(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, scattered:&Ray) -> f64 {
+        0.0
+    }
+
+    fn emitted(&self, ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
         Color{x: 0.0, y: 0.0, z: 0.0}
     }
 }
@@ -71,7 +88,7 @@ pub struct Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool {
+    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray, pdf_out: &mut f64) -> bool {
         attenuation_out.x = 1.0;
         attenuation_out.y = 1.0;
         attenuation_out.z = 1.0;
@@ -95,7 +112,11 @@ impl Material for Dielectric {
         true
     }
 
-    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+    fn scattering_pdf(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, scattered:&Ray) -> f64 {
+        0.0
+    }
+
+    fn emitted(&self, ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
         Color{x: 0.0, y: 0.0, z: 0.0}
     }
 }
@@ -126,14 +147,21 @@ impl DiffuseLight {
 }
 
 impl Material for DiffuseLight {
-    fn scatter(&self, _rng: &mut ThreadRng, _ray:&Ray, _hit: &HitRecord, _attenuation_out: &mut Color, _ray_out: &mut Ray) -> bool{
+    fn scatter(&self, _rng: &mut ThreadRng, _ray:&Ray, _hit: &HitRecord, _attenuation_out: &mut Color, _ray_out: &mut Ray, pdf_out: &mut f64) -> bool{
         false
     }
 
-    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
-        let mut color_out = Color::zero();
-        self.emission.value(u, v, point, &mut color_out);
-        color_out
+    fn scattering_pdf(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, scattered:&Ray) -> f64 {
+        0.0
+    }
+
+    fn emitted(&self, ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
+        if hit.is_front_face {
+            let mut color_out = Color::zero();
+            self.emission.value(u, v, point, &mut color_out);
+            return color_out;
+        }
+        Color{x: 0.0, y: 0.0, z: 0.0}
     }
 }
 
@@ -153,12 +181,16 @@ impl Isotropic {
 }
 
 impl Material for Isotropic {
-    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray) -> bool{
+    fn scatter(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, attenuation_out: &mut Color, ray_out: &mut Ray, pdf_out: &mut f64) -> bool{
         *ray_out = Ray{ origin: hit.position, direction: Vector3::random_in_unit_sphere(rng), time: ray.time };
         self.albedo.value(hit.u, hit.v, &hit.position, attenuation_out)
     }
 
-    fn emitted(&self, u: f64, v: f64, point: &Vector3) -> Color {
+    fn scattering_pdf(&self, rng: &mut ThreadRng, ray:&Ray, hit: &HitRecord, scattered:&Ray) -> f64 {
+        0.0
+    }
+
+    fn emitted(&self, ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
         Color{x: 0.0, y: 0.0, z: 0.0}
     }
 }

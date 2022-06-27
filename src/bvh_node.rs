@@ -1,7 +1,7 @@
 use core::panic;
 use std::{sync::Arc, cmp::Ordering};
 use rand::{Rng, rngs::ThreadRng};
-use crate::{hittable::{Hittable, HitRecord, HittableList}, aabb::AABB, ray::Ray};
+use crate::{hittable::{Hittable, HitRecord, HittableList}, aabb::AABB, ray::Ray, vector3::Vector3};
 
 
 pub struct BVHNode {
@@ -97,5 +97,13 @@ impl Hittable for BVHNode{
 
     fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
         Some(self.bbox.clone())
+    }
+
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+        Vector3::new(1.0, 0.0, 0.0)
     }
 }

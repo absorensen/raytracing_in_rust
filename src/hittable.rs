@@ -48,6 +48,8 @@ pub trait Hittable: Sync + Send {
     // Maybe convert these to take an output argument
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB>;
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 { 0.0 }
+    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 }
 
 #[derive(Default)]
@@ -63,10 +65,6 @@ impl HittableList {
     pub fn push_arc(&mut self, hittable: &Arc<dyn Hittable>) {
         self.objects.push(Arc::clone(hittable))
     }
-
-    // pub fn push_list(&mut self, hittable: impl Hittable + 'static) {
-
-    // }
 
     pub fn as_slice_mut(&mut self) -> &mut [Arc<dyn Hittable>] {
         &mut self.objects
@@ -119,6 +117,16 @@ impl Hittable for HittableList {
 
 
         Some(output_box)
+    }
+
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+        let random_object_index = rng.gen_range(0, self.objects.len());
+        self.objects[random_object_index].pdf_value(rng, origin, v) / self.objects.len() as f64
+    }
+
+    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+        let random_object_index = rng.gen_range(0, self.objects.len());
+        self.objects[random_object_index].random(rng, origin) / self.objects.len() as f64
     }
 
 }
@@ -229,6 +237,26 @@ impl Hittable for XZRect {
 
     fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
         Some(AABB{ minimum: Vector3 { x: self.x0, y: self.k-0.0001, z: self.z0 }, maximum: Vector3{x: self.x1, y: self.k+0.0001, z: self.z1} })
+    }
+
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+        let ray = Ray::new(origin.clone(), v.clone(), 0.0);
+        if let Some(hit) = self.hit(rng, &ray, 0.001, f64::INFINITY) {
+
+            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
+            let distance_squared = hit.t * hit.t * v.length_squared();
+            let cosine = (Vector3::dot(v, &hit.normal) / v.length()).abs();
+
+            return distance_squared / (cosine * area);
+        }
+
+        0.0
+    }
+
+    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+        let random_point = Vector3::new(rng.gen_range(self.x0, self.x1), self.k, rng.gen_range(self.z0, self.z1));
+
+        random_point - *origin
     }
 
 }
@@ -521,4 +549,33 @@ impl Hittable for ConstantMedium {
         self.boundary.bounding_box(time_0, time_1)
     }
 
+}
+
+pub struct FlipFace {
+    model: Arc<dyn Hittable>,
+}
+
+impl FlipFace {
+    pub fn new(model: &Arc<dyn Hittable>) -> FlipFace {
+        FlipFace{model: Arc::clone(model)}
+    }
+
+}
+
+impl Hittable for FlipFace {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let hit_option = self.model.hit(rng, &ray, t_min, t_max);
+        if hit_option.is_none() {
+            return None;            
+        }
+
+        let mut hit = hit_option.expect("Unsuccesfully retrieved a hit record option in FlipFace");
+        hit.is_front_face = !hit.is_front_face;
+
+        Some(hit)
+    }
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
+        self.model.bounding_box(time_0, time_1)
+    }
 }

@@ -82,4 +82,12 @@ impl Hittable for MovingSphere{
 
         Some(output_box)
     }
+
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+        Vector3::new(1.0, 0.0, 0.0)
+    }
 }
