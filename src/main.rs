@@ -36,39 +36,43 @@ use material::{Lambertian, Metal, Dielectric, Material, DiffuseLight, Isotropic,
 
 
 fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, HittableList, Camera, Color) {
-    let seed = 919;
+    let seed = 13371337;
     let mut rng = rand_chacha::ChaChaRng::seed_from_u64(seed);
 
     let mut world = HittableList::default();
-    let mut lights = HittableList::default();
+    let mut _lights = HittableList::default();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
     let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
+
+    let index_of_refraction = 1.5;
+    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
             let choose_mat = rng.gen::<f64>();
             let center = Point3{x: a as f64 + 0.9 * rng.gen::<f64>(), y: 0.2, z: b as f64 + 0.9 * rng.gen::<f64>()};
 
-            if (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() > 0.9 {
+            if 0.9 < (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() {
                 let chosen_material : Arc<dyn Material>;
                 if choose_mat < 0.8 {
                     let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
                     chosen_material = Arc::new(Lambertian{albedo: chosen_texture});
+                    world.push(Sphere::new(center, 0.2, &chosen_material));
                 } else if choose_mat < 0.95 {
                     chosen_material = Arc::new(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()});
+                    world.push(Sphere::new(center, 0.2, &chosen_material));
                 } else {
-                    let index_of_refraction = 1.5;
-                    chosen_material = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+                    world.push(Sphere::new(center, 0.2, &glass_material));
                 }
 
-                world.push(Sphere::new(center, 0.2, &chosen_material));
+
             }
         }
     }
 
-    let index_of_refraction = 1.5;
-    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+
     world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, &glass_material));
 
     let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
@@ -90,15 +94,15 @@ fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableLis
     let aperture = 0.05;
     let time_0: f64 = 0.0;
     let time_1: f64 = 1.0;
-    let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
+    let vfov = 20.0;
+    let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-
-    (world, lights, camera, background)
+    (world, _lights, camera, background)
 }
 
 fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, HittableList, Camera, Color) {
-    let seed = 919;
+    let seed = 13371337;
     let mut rng = rand_chacha::ChaChaRng::seed_from_u64(seed);
 
     let mut world = HittableList::default();
@@ -107,6 +111,10 @@ fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (Hitt
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
     let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
     world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
+
+    let index_of_refraction = 1.5;
+    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
             let choose_mat = rng.gen::<f64>();
@@ -126,16 +134,13 @@ fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (Hitt
                     world.push(Sphere::new(center, 0.2, &chosen_material));
                 } else {
 
-                    let index_of_refraction = 1.5;
-                    let chosen_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
-                    world.push(Sphere::new(center, 0.2, &chosen_material));
+
+                    world.push(Sphere::new(center, 0.2, &glass_material));
                 }
             }
         }
     }
 
-    let index_of_refraction = 1.5;
-    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
     world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, &glass_material));
 
     let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
@@ -152,7 +157,7 @@ fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (Hitt
     let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
     let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
     let dist_to_focus = 15.0;
-    let aperture = 0.05;
+    let aperture = 0.1;
     let time_0: f64 = 0.0;
     let time_1: f64 = 1.0;
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
@@ -238,7 +243,7 @@ fn earth_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color)
 
 fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, HittableList, Camera, Color) {
     let mut world = HittableList::default();
-    let mut lights = HittableList::default();
+    let mut _lights = HittableList::default();
 
     // The Noise Texture runs pretty deep
     // I just need some determinism, not all the way
@@ -249,8 +254,8 @@ fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, H
     world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
 
     let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 4.0, y: 4.0, z: 4.0 } ));
-    lights.push(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, &diffuse_light_material));
-    lights.push(Sphere::new(Point3{x: 0.0, y: 7.0, z: 0.0}, 2.0, &diffuse_light_material));
+    world.push(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, &diffuse_light_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 7.0, z: 0.0}, 2.0, &diffuse_light_material));
 
     let background = Color{x:0.0, y:0.0, z: 0.0};
 
@@ -265,7 +270,7 @@ fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, H
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, lights, camera, background)
+    (world, _lights, camera, background)
 }
 
 fn empty_cornell_box_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
@@ -476,6 +481,7 @@ fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_
     let index_of_refraction = 1.5;
     let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
     objects.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, &glass_material));
+    lights.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, &diffuse_light_material));
 
     let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.8, y: 0.8, z: 0.9}, fuzz: 1.0});
     objects.push(Sphere::new(Point3{x: 0.0, y: 150.0, z: 145.0}, 50.0, &metal_material));
@@ -549,7 +555,15 @@ fn final_scene_book_3(aspect_ratio: f64) -> (HittableList, HittableList, Camera,
     (world, lights, camera, background)
 }
 
-fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hittable, lights: &Arc<dyn Hittable>, depth: i64) -> Color {
+// Try splitting this into a mixture and non-mixture pdfs function, as some scenes don't have lights (though they should)
+fn ray_color(
+    rng: &mut ThreadRng, 
+    background: &Color, 
+    ray: &Ray, 
+    world: & dyn Hittable, 
+    lights: &Arc<dyn Hittable>,
+    lights_count: usize, 
+    depth: i64) -> Color {
     if depth <= 0 {
         return Color::new(0.0, 0.0, 0.0);
     }
@@ -562,33 +576,62 @@ fn ray_color(rng: &mut ThreadRng, background: &Color, ray: &Ray, world: & dyn Hi
         }
 
         if scatter_record.is_specular {
-            return scatter_record.attenuation * ray_color(rng, background, &scatter_record.specular_ray, world, lights, depth - 1);
+            return scatter_record.attenuation * ray_color(rng, background, &scatter_record.specular_ray, world, lights, lights_count, depth - 1);
         }
 
-        let light_pdf: Arc<dyn PDF> = Arc::new(HittablePDF::new(lights, &hit.position));
-        let other_pdf: Arc<dyn PDF> = 
-            if scatter_record.pdf.is_some() { 
-                scatter_record.pdf.expect("Failed to unwrap pdf")
-            } else {
-                light_pdf.clone()
-            };
-        let mixture_pdf: MixturePDF = MixturePDF::new( &light_pdf, &other_pdf ); 
+        if 0 < lights_count { 
+            let light_pdf: Arc<dyn PDF> = Arc::new(HittablePDF::new(lights, &hit.position));
+            let other_pdf: Arc<dyn PDF> = 
+                if scatter_record.pdf.is_some() { 
+                    scatter_record.pdf.expect("Failed to unwrap pdf")
+                } else {
+                    light_pdf.clone()
+                };
+            let mixture_pdf: MixturePDF = MixturePDF::new( &light_pdf, &other_pdf ); 
+    
+            let scattered = Ray::new(hit.position, mixture_pdf.generate(rng), ray.time);
+            let pdf_val = mixture_pdf.value(rng, &scattered.direction);
 
-        let scattered = Ray::new(hit.position, mixture_pdf.generate(rng), ray.time);
-        let pdf_val = mixture_pdf.value(rng, &scattered.direction);
-
-        return 
+            return 
             emitted + 
             scatter_record.attenuation * 
             hit.material.scattering_pdf(rng, &hit, &scattered) * 
-            ray_color(rng, background, &scattered, world, lights, depth - 1) /
+            ray_color(rng, background, &scattered, world, lights, lights_count, depth - 1) /
             pdf_val;
+        } else {
+            let pdf: Arc<dyn PDF> =
+                scatter_record.pdf.expect("Failed to unwrap pdf");
+
+            let scattered = Ray::new(hit.position, pdf.generate(rng), ray.time);
+            let pdf_val = pdf.value(rng, &scattered.direction);
+
+            return 
+            emitted + 
+            scatter_record.attenuation * 
+            hit.material.scattering_pdf(rng, &hit, &scattered) * 
+            ray_color(rng, background, &scattered, world, lights, lights_count, depth - 1) /
+            pdf_val;
+        }
     } 
 
     *background
 }
 
-fn render_pixel(rng: &mut ThreadRng, background: &Color, pixel_index: i64, image_width: i64, image_height: i64, samples_per_pixel: i64, camera: &Camera, world: &dyn Hittable, lights: &Arc<dyn Hittable>, max_depth: i64, scale: f64, use_parallel: bool) -> Vector3{
+fn render_pixel(
+    rng: &mut ThreadRng, 
+    background: &Color, 
+    pixel_index: i64, 
+    image_width: i64, 
+    image_height: i64, 
+    samples_per_pixel: i64, 
+    camera: &Camera, 
+    world: &dyn Hittable, 
+    lights: &Arc<dyn Hittable>, 
+    lights_count: usize,
+    max_depth: i64, 
+    scale: f64, 
+    use_parallel: bool) 
+    -> Vector3 {
     let column_index = pixel_index % image_width;
     let row_index = pixel_index / image_width;
 
@@ -600,14 +643,14 @@ fn render_pixel(rng: &mut ThreadRng, background: &Color, pixel_index: i64, image
             let u = (column_index as f64 + seed0 ) / ((image_width - 1) as f64);
             let v = (row_index as f64 + seed1 ) / ((image_height - 1) as f64);
             let ray = camera.get_ray(&mut rng, u, v);
-            ray_color(&mut rng, background, &ray, world, lights, max_depth)
+            ray_color(&mut rng, background, &ray, world, lights, lights_count, max_depth)
         }).sum();
     } else {
         for _sample_index in 0..samples_per_pixel {
             let u = (column_index as f64 + rng.gen::<f64>() ) / ((image_width - 1) as f64);
             let v = (row_index as f64 + rng.gen::<f64>() ) / ((image_height - 1) as f64);
             let ray = camera.get_ray(rng, u, v);
-            color_buffer += ray_color(rng, background, &ray, world, lights, max_depth);
+            color_buffer += ray_color(rng, background, &ray, world, lights, lights_count, max_depth);
         }
     }
 
@@ -622,11 +665,22 @@ fn render_pixel(rng: &mut ThreadRng, background: &Color, pixel_index: i64, image
     color_buffer
 }
 
+// TODO:
+// Injest config files
+// Project restructuring
+// Unit testing
+// Performance optimization
+// Reduce the amount of ARC
+// Try to convert from dynamic dispatch to static dispatch
+// Try to convert to SIMD
+// Refactor
+// Enforce fused multiply-adds
 fn main() {
     // Display Image
     let mut aspect_ratio = 16.0 / 9.0;
     let mut image_width: i64 = 500;
     let mut image_height = ((image_width as f64) / aspect_ratio) as i64;
+    image_height = image_height + image_height % 2;
     let output_path = "output.png";
 
     // Render Settings
@@ -640,10 +694,10 @@ fn main() {
 
 
     // Scene
-    let random_balls_count = 6;
+    let random_balls_count = 11;
     let noise_points_count = 256;
     let cube_sphere_count = 1000;
-    let scene_index = 8;
+    let scene_index = 1;
     let (mut world, lights, camera, background) = match scene_index {
         0 => random_spheres_scene(aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(aspect_ratio, random_balls_count),
@@ -654,37 +708,44 @@ fn main() {
         6 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = image_height + image_height % 2;
             empty_cornell_box_scene(aspect_ratio)
         },
         7 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = image_height + image_height % 2;
             cornell_box_two_diffuse_boxes_scene(aspect_ratio)
         },
         8 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = image_height + image_height % 2;
             cornell_box_two_smoke_boxes_scene(aspect_ratio)
         },
         9 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = image_height + image_height % 2;
             final_scene_book_2(aspect_ratio, noise_points_count, cube_sphere_count)
         },
         10 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = image_height + image_height % 2;
             cornell_box_diffuse_metal_boxes_scene(aspect_ratio)
         },
         11 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = image_height + image_height % 2;
             final_scene_book_3(aspect_ratio)
         },
         _ => panic!("Incorrect scene chosen!"),
     };
     let world = BVHNode::from_hittable_list(&mut world, camera.get_start_time(), camera.get_end_time());
-    let lights : Arc<dyn Hittable> = Arc::new( lights );
+    let lights_count = lights.len();
+    let lights_arc : Arc<dyn Hittable> = Arc::new( lights );
 
 
     let scale = 1.0 / (samples_per_pixel as f64);
@@ -695,12 +756,12 @@ fn main() {
     if run_parallel {
         (0..total_pixels).into_par_iter().map(|pixel_index:i64| {
             let mut rng = rand::thread_rng();
-            render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, &lights, max_depth, scale, run_samples_parallel)
+            render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, &lights_arc, lights_count, max_depth, scale, run_samples_parallel)
         }).collect()
     } else {
         let mut rng = rand::thread_rng();
         (0..total_pixels).into_iter().map(|pixel_index:i64| {
-            render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, &lights, max_depth, scale, run_samples_parallel)
+            render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, &lights_arc, lights_count, max_depth, scale, run_samples_parallel)
         }).collect()
     };
     println!("{} seconds elapsed", now.elapsed().as_millis() as f64 * 0.001);
