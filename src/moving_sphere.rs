@@ -45,7 +45,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere{
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let center = self.center(ray.time);
 
         let oc = ray.origin - center;
@@ -54,36 +54,53 @@ impl Hittable for MovingSphere{
         let c = oc.length_squared() - (self.radius * self.radius);
         let discriminant = (half_b * half_b) - (a * c);
         if discriminant < 0.0 {
-            return None;
+            return false;
         }
+
         let sqrt_d = discriminant.sqrt();
         let mut root = (-half_b - sqrt_d) / a;
         if root < t_min || root > t_max {
             root = (-half_b + sqrt_d) / a;
             if root < t_min || root > t_max {
-                return None;
+                return false;
             }
         }
 
         let position = ray.at(root);
         let normal = (position - center) / self.radius;
         let (u, v) = MovingSphere::get_sphere_uv(&normal);
-        let hit_rec = HitRecord::new(ray, root, u, v, &position, &normal, &self.material);  
 
-        Some(hit_rec)
+        hit_out.t = root;
+        hit_out.u = u;
+        hit_out.v = v;
+        hit_out.position = position;
+        hit_out.set_face_normal(ray, &normal);
+        hit_out.material = Arc::clone(&self.material);
+
+        true
     }
 
 
 
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
-        let mut output_box = AABB{minimum:self.center(time_0) - Vector3{x: self.radius, y: self.radius, z: self.radius}, maximum:self.center_0 + Vector3{x: self.radius, y: self.radius, z: self.radius}};
-        output_box.expand_by_point(&(self.center(time_1) - Vector3{x: self.radius, y: self.radius, z: self.radius}));
-        output_box.expand_by_point(&(self.center(time_1) + Vector3{x: self.radius, y: self.radius, z: self.radius}));
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        let center_0 = self.center(time_0);
+        let center_1 = self.center(time_1);
 
-        Some(output_box)
+        box_out.minimum.x = self.center_0.x - self.radius;
+        box_out.minimum.y = self.center_0.y - self.radius;
+        box_out.minimum.z = self.center_0.z - self.radius;
+
+        box_out.maximum.x = self.center_0.x + self.radius;
+        box_out.maximum.y = self.center_0.y + self.radius;
+        box_out.maximum.z = self.center_0.z + self.radius;
+
+        box_out.expand_by_point(&(center_1 - Vector3{x: self.radius, y: self.radius, z: self.radius}));
+        box_out.expand_by_point(&(center_1 + Vector3{x: self.radius, y: self.radius, z: self.radius}));
+
+        true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
         0.0
     }
 

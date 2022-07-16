@@ -31,21 +31,23 @@ impl Sphere {
 }
 
 impl Hittable for Sphere{
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let oc = ray.origin - self.center;
         let a = ray.direction.length_squared();
         let half_b = Vector3::dot(&ray.direction, &oc);
         let c = oc.length_squared() - (self.radius * self.radius);
+        
         let discriminant = (half_b * half_b) - (a * c);
         if discriminant < 0.0 {
-            return None;
+            return false;
         }
+        
         let sqrt_d = discriminant.sqrt();
         let mut root = (-half_b - sqrt_d) / a;
         if root < t_min || root > t_max {
             root = (-half_b + sqrt_d) / a;
             if root < t_min || root > t_max {
-                return None;
+                return false;
             }
         }
 
@@ -54,16 +56,31 @@ impl Hittable for Sphere{
         let (u, v) = Sphere::get_sphere_uv(&normal);
         let hit_rec = HitRecord::new(ray, root, u, v, &position, &normal, &self.material);  
 
-        Some(hit_rec)
+        hit_out.t = root;
+        hit_out.u = u;
+        hit_out.v = v;
+        hit_out.position = position;
+        hit_out.set_face_normal(ray, &normal);
+        hit_out.material = Arc::clone(&self.material);
+
+        true
     }
 
     
-    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
-        Some(AABB{minimum:self.center - Vector3{x: self.radius, y: self.radius, z: self.radius}, maximum:self.center + Vector3{x: self.radius, y: self.radius, z: self.radius}})
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.center.x - self.radius;
+        box_out.minimum.y = self.center.y - self.radius;
+        box_out.minimum.z = self.center.z - self.radius;
+
+        box_out.maximum.x = self.center.x + self.radius;
+        box_out.maximum.y = self.center.y + self.radius;
+        box_out.maximum.z = self.center.z + self.radius;
+
+        true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
-        if self.hit(rng, &Ray::new(*origin, *v, 0.5), 0.001, f64::INFINITY).is_some() {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
+        if self.hit(rng, &Ray::new(*origin, *v, 0.5), 0.001, f64::INFINITY, hit_out) {
             let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
 

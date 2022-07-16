@@ -42,6 +42,12 @@ pub trait Material : Sync + Send {
     }
 }
 
+pub struct DefaultMaterial {
+
+}
+
+impl Material for DefaultMaterial {}
+
 pub struct Lambertian {
     pub albedo: Arc<dyn Texture>
 }

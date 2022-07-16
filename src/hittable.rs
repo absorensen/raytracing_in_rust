@@ -1,14 +1,14 @@
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::texture::Texture;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
-use crate::material::{Material, Isotropic};
+use crate::material::{Material, DefaultMaterial};
 use crate::aabb::AABB;
 
 use std::sync::Arc;
 
+// Turn the material into an index and derive default
 pub struct HitRecord {
     pub t: f64,
     pub u: f64,
@@ -46,9 +46,9 @@ impl HitRecord{
 
 pub trait Hittable: Sync + Send {
     // Maybe convert these to take an output argument
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB>;
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 { 0.0 }
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool;
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool;
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 { 0.0 }
     fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 }
 
@@ -76,61 +76,54 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let mut closest_so_far = t_max;
-        let mut hit_anything: Option<HitRecord> = None;
         for hittable in self.objects.iter() {
-            if let Some(hit) = hittable.hit(rng, ray, t_min, closest_so_far) {
-                closest_so_far = hit.t;
-                hit_anything = Some(hit);
-            }
+            hittable.hit(rng, ray, t_min, closest_so_far, hit_out);
         }
-        hit_anything
+        hit_out.t < t_max
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
-        if self.objects.len() < 1 { return None };
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        if self.objects.len() < 1 { return false };
 
-        let mut temp_box_option: Option<AABB>;
-        let mut output_box: AABB = 
-            AABB { 
-                minimum: Vector3 { x: 0.0, y: 0.0, z: 0.0 }, 
-                maximum: Vector3 { x: 0.0, y: 0.0, z: 0.0 } 
-            };
+        let mut temp_box_option: AABB = AABB::default();
         let mut first_box: bool = true;
 
         for object in &self.objects {
-            temp_box_option = object.bounding_box(time_0, time_1);
+            if object.bounding_box(time_0, time_1, &mut temp_box_option) {
+                if first_box { 
+                    first_box = false;
 
-            match temp_box_option {
-                Some(temp_box) => {
-                    if first_box { 
-                        first_box = false;
-                        output_box.clone_from(&temp_box); 
-                    } else { 
-                        output_box.expand_by_box(&temp_box);
-                    }
-                },
-                None => return None,
+                    box_out.minimum.x = temp_box_option.minimum.x;
+                    box_out.minimum.y = temp_box_option.minimum.y;
+                    box_out.minimum.z = temp_box_option.minimum.z;
+
+                    box_out.maximum.x = temp_box_option.maximum.x;
+                    box_out.maximum.y = temp_box_option.maximum.y;
+                    box_out.maximum.z = temp_box_option.maximum.z;
+                } else { 
+                    box_out.expand_by_box(&temp_box_option);
+                }
             }
         }
 
 
-        Some(output_box)
+        !first_box
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
         let mut sum = 0.0;
         let inverse_length = 1.0 / self.objects.len() as f64;
         for object_index in 0..self.objects.len(){
-            sum += self.objects[object_index].pdf_value(rng, origin, v) * inverse_length;
+            sum += self.objects[object_index].pdf_value(rng, origin, v, hit_out) * inverse_length;
         }
 
         sum
     }
 
     fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
-        let random_object_index = rng.gen_range(0, self.objects.len());
+        let random_object_index = rng.gen_range(0..self.objects.len());
         self.objects[random_object_index].random(rng, origin) / self.objects.len() as f64
     }
 
@@ -153,41 +146,43 @@ impl XYRect {
 }
 
 impl Hittable for XYRect {
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let t = (self.k - ray.origin.z) / ray.direction.z;
         if t < t_min || t_max < t {
-            return None;
+            return false;
         }
 
         let x = ray.origin.x + t * ray.direction.x;
         let y = ray.origin.y + t * ray.direction.y;
 
         if x < self.x0 || self.x1 < x || y < self.y0 || self.y1 < y {
-            return None;
+            return false;
         }
 
         let u = (x - self.x0) / (self.x1 - self.x0);
         let v = (y - self.y0) / (self.y1 - self.y0);
         let outward_normal = Vector3{x: 0.0, y: 0.0, z: 1.0};
-        
-        Some(
-            HitRecord::new(
-                ray, 
-                t, 
-                u, 
-                v,
-                &ray.at(t), 
-                &outward_normal, 
-                &self.material
-            )
-        )
 
-        
+        hit_out.t = t;
+        hit_out.u = u;
+        hit_out.v = v;
+        hit_out.position = ray.at(t);
+        hit_out.set_face_normal(ray, &outward_normal);
+        hit_out.material = Arc::clone(&self.material);
 
+        true
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
-        Some(AABB{ minimum: Vector3 { x: self.x0, y: self.y0, z: self.k-0.0001 }, maximum: Vector3{x: self.x1, y: self.y1, z: self.k+0.0001} })
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.x0;
+        box_out.minimum.y = self.y0;
+        box_out.minimum.z = self.k - 0.0001;
+
+        box_out.maximum.x = self.x1;
+        box_out.maximum.y = self.y1;
+        box_out.maximum.z = self.k+0.0001;
+
+        true
     }
 
 }
@@ -209,48 +204,52 @@ impl XZRect {
 }
 
 impl Hittable for XZRect {
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let t = (self.k - ray.origin.y) / ray.direction.y;
         if t < t_min || t_max < t {
-            return None;
+            return false;
         }
 
         let x = ray.origin.x + t * ray.direction.x;
         let z = ray.origin.z + t * ray.direction.z;
 
         if x < self.x0 || self.x1 < x || z < self.z0 || self.z1 < z {
-            return None;
+            return false;
         }
 
         let u = (x - self.x0) / (self.x1 - self.x0);
         let v = (z - self.z0) / (self.z1 - self.z0);
         let outward_normal = Vector3{x: 0.0, y: 1.0, z: 0.0};
         
-        Some(
-            HitRecord::new(
-                ray, 
-                t, 
-                u, 
-                v,
-                &ray.at(t), 
-                &outward_normal, 
-                &self.material
-            )
-        )
+        hit_out.t = t;
+        hit_out.u = u;
+        hit_out.v = v;
+        hit_out.position = ray.at(t);
+        hit_out.set_face_normal(ray, &outward_normal);
+        hit_out.material = Arc::clone(&self.material);
 
+        true
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
-        Some(AABB{ minimum: Vector3 { x: self.x0, y: self.k-0.0001, z: self.z0 }, maximum: Vector3{x: self.x1, y: self.k+0.0001, z: self.z1} })
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.x0;
+        box_out.minimum.y = self.k - 0.0001;
+        box_out.minimum.z = self.z0;
+
+        box_out.maximum.x = self.x1;
+        box_out.maximum.y = self.k + 0.0001;
+        box_out.maximum.z = self.z1;
+
+        true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
         let ray = Ray::new(origin.clone(), v.clone(), 0.0);
-        if let Some(hit) = self.hit(rng, &ray, 0.001, f64::INFINITY) {
+        if self.hit(rng, &ray, 0.001, f64::INFINITY, hit_out) {
 
             let area = (self.x1 - self.x0) * (self.z1 - self.z0);
-            let distance_squared = hit.t * hit.t * v.length_squared();
-            let cosine = (Vector3::dot(v, &hit.normal) / v.length()).abs();
+            let distance_squared = hit_out.t * hit_out.t * v.length_squared();
+            let cosine = (Vector3::dot(v, &hit_out.normal) / v.length()).abs();
 
             return distance_squared / (cosine * area);
         }
@@ -259,7 +258,7 @@ impl Hittable for XZRect {
     }
 
     fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
-        let random_point = Vector3::new(rng.gen_range(self.x0, self.x1), self.k, rng.gen_range(self.z0, self.z1));
+        let random_point = Vector3::new(rng.gen_range(self.x0..self.x1), self.k, rng.gen_range(self.z0..self.z1));
 
         random_point - *origin
     }
@@ -283,10 +282,10 @@ impl YZRect {
 }
 
 impl Hittable for YZRect {
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let t = (self.k - ray.origin.x) / ray.direction.x;
         if t < t_min || t_max < t {
-            return None;
+            return false;
         }
 
         let y = ray.origin.y + t * ray.direction.y;
@@ -294,29 +293,33 @@ impl Hittable for YZRect {
 
 
         if y < self.y0 || self.y1 < y || z < self.z0 || self.z1 < z {
-            return None;
+            return false;
         }
 
         let u = (y - self.y0) / (self.y1 - self.y0);
         let v = (z - self.z0) / (self.z1 - self.z0);
         let outward_normal = Vector3{x: 1.0, y: 0.0, z: 0.0};
         
-        Some(
-            HitRecord::new(
-                ray, 
-                t, 
-                u, 
-                v,
-                &ray.at(t), 
-                &outward_normal, 
-                &self.material
-            )
-        )
+        hit_out.t = t;
+        hit_out.u = u;
+        hit_out.v = v;
+        hit_out.position = ray.at(t);
+        hit_out.set_face_normal(ray, &outward_normal);
+        hit_out.material = Arc::clone(&self.material);
 
+        true
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
-        Some(AABB{ minimum: Vector3 { x: self.k-0.0001, y: self.y0, z: self.z0 }, maximum: Vector3{x: self.k+0.0001, y: self.y1, z: self.z1} })
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.k - 0.0001;
+        box_out.minimum.y = self.y0;
+        box_out.minimum.z = self.z0;
+
+        box_out.maximum.x = self.k + 0.0001;
+        box_out.maximum.y = self.y1;
+        box_out.maximum.z = self.z1;
+
+        true
     }
 
 }
@@ -346,12 +349,20 @@ impl Box {
 }
 
 impl Hittable for Box {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        self.sides.hit(rng, ray, t_min, t_max)
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+        self.sides.hit(rng, ray, t_min, t_max, hit_out)
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
-        Some(AABB{minimum: self.box_min, maximum: self.box_max})
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.box_min.x;
+        box_out.minimum.y = self.box_min.y;
+        box_out.minimum.z = self.box_min.z;
+
+        box_out.maximum.x = self.box_max.x;
+        box_out.maximum.y = self.box_max.y;
+        box_out.maximum.z = self.box_max.z;
+
+        true
     }
 
 }
@@ -369,32 +380,30 @@ impl Translate {
 }
 
 impl Hittable for Translate {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let moved_ray = Ray{ origin: ray.origin - self.offset, direction: ray.direction, time: ray.time };
-        let hit_option = self.model.hit(rng, &moved_ray, t_min, t_max);
-        if hit_option.is_none() {
-            return None;            
+        if !self.model.hit(rng, &moved_ray, t_min, t_max, hit_out) {
+            return false;
         }
 
-        let mut hit = hit_option.expect("Tried to get result which wasn't there");
-        hit.position += self.offset;
+        hit_out.position += self.offset;
         // Cloning the normal here is poop, and should be refactored somehow.
         // The issues is hit is borrowed mutably for set_face_normal, making 
         // impossible the immutable borrow for outward_normal
-        hit.set_face_normal(&moved_ray, &hit.normal.clone());
+        hit_out.set_face_normal(&moved_ray, &hit_out.normal.clone());
 
-        Some(hit)
+        true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
-        if let Some(mut bbox) = self.model.bounding_box(time_0, time_1) {
-            bbox.minimum += self.offset;
-            bbox.maximum += self.offset;
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        if !self.model.bounding_box(time_0, time_1, box_out) {
+            return false;
+        } 
 
-            Some(bbox)
-        } else {
-            None
-        }
+        box_out.minimum += self.offset;
+        box_out.maximum += self.offset;
+
+        return true;
     }
 
 }
@@ -414,9 +423,8 @@ impl RotateY {
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
 
-        let bbox_option = model.bounding_box(0.0, 1.0);
-        let has_bbox = bbox_option.is_some();
-        let bbox = if has_bbox { bbox_option.expect("Tried to get a bbox which wasn't available")} else { AABB::default() };
+        let mut bbox = AABB::default();
+        let has_bbox = model.bounding_box(0.0, 1.0, &mut bbox);
 
         let mut min = Vector3{x: f64::INFINITY, y: f64::INFINITY, z: f64::INFINITY };
         let mut max = Vector3{x: f64::NEG_INFINITY, y: f64::NEG_INFINITY, z: f64::NEG_INFINITY };
@@ -454,7 +462,7 @@ impl RotateY {
 }
 
 impl Hittable for RotateY {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let mut origin = ray.origin.clone();
         let mut direction = ray.direction.clone();
 
@@ -466,32 +474,41 @@ impl Hittable for RotateY {
 
         let rotated_ray = Ray{ origin, direction, time: ray.time };
 
-        if let Some(mut hit) = self.model.hit(rng, &rotated_ray, t_min, t_max) {
-            let mut position = hit.position.clone();
-            let mut normal = hit.normal.clone();
-
-            position[0] = self.cos_theta * hit.position[0] + self.sin_theta * hit.position[2];
-            position[2] = -self.sin_theta * hit.position[0] + self.cos_theta * hit.position[2];
-
-            normal[0] = self.cos_theta * hit.normal[0] + self.sin_theta * hit.normal[2];
-            normal[2] = -self.sin_theta * hit.normal[0] + self.cos_theta * hit.normal[2];
-
-            // Cloning the normal here is poop, and should be refactored somehow.
-            // The issues is hit is borrowed mutably for set_face_normal, making 
-            // impossible the immutable borrow for outward_normal
-            hit.set_face_normal(&rotated_ray, &normal);
-    
-            hit.position = position;
-            hit.normal = normal;
-
-            return Some(hit);
+        if !self.model.hit(rng, &rotated_ray, t_min, t_max, hit_out) {
+            return false;
         }
 
-        None
+        let mut position = hit_out.position.clone();
+        let mut normal = hit_out.normal.clone();
+
+        position[0] = self.cos_theta * hit_out.position[0] + self.sin_theta * hit_out.position[2];
+        position[2] = -self.sin_theta * hit_out.position[0] + self.cos_theta * hit_out.position[2];
+
+        normal[0] = self.cos_theta * hit_out.normal[0] + self.sin_theta * hit_out.normal[2];
+        normal[2] = -self.sin_theta * hit_out.normal[0] + self.cos_theta * hit_out.normal[2];
+
+        // Cloning the normal here is poop, and should be refactored somehow.
+        // The issues is hit is borrowed mutably for set_face_normal, making 
+        // impossible the immutable borrow for outward_normal
+        hit_out.set_face_normal(&rotated_ray, &normal);
+
+        hit_out.position = position;
+        hit_out.normal = normal;
+
+
+        true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
-        Some(self.bbox)
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.bbox.minimum.x;
+        box_out.minimum.y = self.bbox.minimum.y;
+        box_out.minimum.z = self.bbox.minimum.z;
+
+        box_out.maximum.x = self.bbox.maximum.x;
+        box_out.maximum.y = self.bbox.maximum.y;
+        box_out.maximum.z = self.bbox.maximum.z;
+
+        true
     }
 
 }
@@ -514,45 +531,49 @@ impl ConstantMedium {
 }
 
 impl Hittable for ConstantMedium {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let hit1 = self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY);
-        let mut hit1 = if hit1.is_some() { hit1.unwrap() } else { return None };
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
 
-        let hit2 = self.boundary.hit(rng, ray, hit1.t+0.0001, f64::INFINITY);
-        let mut hit2 = if hit2.is_some() { hit2.unwrap() } else { return None };
+        // TODO: Try using hit_out in both hits
+        let default_material: Arc<dyn Material> = Arc::new(DefaultMaterial{});
+        let mut hit_1 = HitRecord::new(ray, 0.0, 0.0, 0.0, &Vector3::zero(), &Vector3::zero(), &default_material);
+        let hit_1_hit = self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY, &mut hit_1);
+
+        let mut hit_2 = HitRecord::new(ray, 0.0, 0.0, 0.0, &Vector3::zero(), &Vector3::zero(), &default_material);
+        let hit_2_hit = self.boundary.hit(rng, ray, hit_1.t+0.0001, f64::INFINITY, &mut hit_2);
 
 
-        if hit1.t < t_min { hit1.t = t_min; };
-        if t_max < hit2.t { hit2.t = t_max; };
+        if hit_1.t < t_min { hit_1.t = t_min; };
+        if t_max < hit_2.t { hit_2.t = t_max; };
 
-        if hit2.t <= hit1.t { return None; }
+        if hit_2.t <= hit_1.t { return false; }
 
-        if hit1.t < 0.0 { hit1.t = 0.0; }
+        if hit_1.t < 0.0 { hit_1.t = 0.0; }
 
         let ray_length = ray.direction.length();
-        let distance_inside_boundary = (hit2.t - hit1.t) * ray_length;
+        let distance_inside_boundary = (hit_2.t - hit_1.t) * ray_length;
         let hit_distance = self.negative_inverse_density * rng.gen::<f64>().ln();
 
-        if distance_inside_boundary < hit_distance { return None; }
+        if distance_inside_boundary < hit_distance { return false; }
 
-        let t = hit1.t + hit_distance / ray_length; 
-        let hit = 
-            HitRecord{ 
-                t: t, 
-                u: 0.0, 
-                v: 0.0, 
-                position: ray.at(t), 
-                normal: Vector3 { x: 1.0, y: 0.0, z: 0.0 }, 
-                is_front_face: true, 
-                material: Arc::clone(&self.phase_function) 
-            };
+        let t = hit_1.t + hit_distance / ray_length; 
 
-            Some(hit)
+        hit_out.t = t;
+        hit_out.u = 0.0;
+        hit_out.v = 0.0;
+        hit_out.position = ray.at(t);
+        hit_out.set_face_normal(ray, &Vector3 { x: 1.0, y: 0.0, z: 0.0 });
+        hit_out.material = Arc::clone(&self.phase_function);
+
+        true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
-        self.boundary.bounding_box(time_0, time_1)
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        self.boundary.bounding_box(time_0, time_1, box_out)
     }
+
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 { 0.0 }
+
+    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 
 }
 
@@ -568,19 +589,18 @@ impl FlipFace {
 }
 
 impl Hittable for FlipFace {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let hit_option = self.model.hit(rng, &ray, t_min, t_max);
-        if hit_option.is_none() {
-            return None;            
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+        if !self.model.hit(rng, &ray, t_min, t_max, hit_out) {
+            return false;            
         }
 
-        let mut hit = hit_option.expect("Unsuccesfully retrieved a hit record option in FlipFace");
-        hit.is_front_face = !hit.is_front_face;
+        // TODO: Shouldn't this also flip the normal?
+        hit_out.is_front_face = !hit_out.is_front_face;
 
-        Some(hit)
+        true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AABB> {
-        self.model.bounding_box(time_0, time_1)
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        self.model.bounding_box(time_0, time_1, box_out)
     }
 }

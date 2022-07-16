@@ -19,7 +19,7 @@ impl BVHNode {
 
     // This doesn't need to be the fastest in the world right now as it only runs once before the render loop
     pub fn new(rng: &mut ThreadRng, source_objects: &mut [Arc<dyn Hittable>], start: usize, end: usize, time_0: f64, time_1: f64) -> Self {
-        let axis: u8 = rng.gen_range(0, 3);
+        let axis: u8 = rng.gen_range(0..3);
         let comparator = match axis {
             0 => Self::compare::<0>,
             1 => Self::compare::<1>,
@@ -51,24 +51,29 @@ impl BVHNode {
             result_right = Arc::new(Self::new(rng, source_objects, mid, end, time_0, time_1));
         }
 
-        let bbox_left = result_left.bounding_box(time_0, time_1);
-        let bbox_right = result_right.bounding_box(time_0, time_1);
+        let mut bbox_left = AABB::default();
+        let bbox_left_found = result_left.bounding_box(time_0, time_1, &mut bbox_left);
 
-        if bbox_left.is_none() || bbox_right.is_none() {
+        let mut bbox_right = AABB::default();
+        let bbox_right_found = result_right.bounding_box(time_0, time_1, &mut bbox_right);
+
+        if !bbox_left_found || !bbox_right_found {
             panic!("Is missing a bounding box when constructing BVH");
         }
 
-        let mut bbox_result = bbox_left.unwrap();
-        bbox_result.expand_by_box(&bbox_right.unwrap());
+        bbox_left.expand_by_box(&bbox_right);
 
-        BVHNode{ left: result_left, right: result_right, bbox: bbox_result}
+        BVHNode{ left: result_left, right: result_right, bbox: bbox_left}
     }
 
     // Inspired by https://github.com/fyrchik/rayst/blob/main/src/bvh.rs
     // but I don't have my Vector3 as an array, so I had to come up with a fix
     fn compare<const AXIS: usize>(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
-        let box_a = a.bounding_box(0.0, 0.0).unwrap();
-        let box_b = b.bounding_box(0.0, 0.0).unwrap();
+
+        let mut box_a = AABB::default();
+        a.bounding_box(0.0, 0.0, &mut box_a);
+        let mut box_b = AABB::default();
+        b.bounding_box(0.0, 0.0, &mut box_b);
 
         if box_a.minimum[AXIS] < box_b.minimum[AXIS] {
             Ordering::Less
@@ -81,25 +86,30 @@ impl BVHNode {
 impl Hittable for BVHNode{
 
 
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         if !self.bbox.hit(ray, t_min, t_max){
-            return None;
+            return false;
         }
-        
-        return match self.left.hit(rng, ray, t_min, t_max) {
-            None => self.right.hit(rng, ray, t_min, t_max),
-            Some(hit_left) => match self.right.hit(rng, ray, t_min, hit_left.t) {
-                None => Some(hit_left),
-                hit_right => hit_right,
-            },
-        }
+
+        let hit_left = self.left.hit(rng, ray, t_min, t_max, hit_out);
+        let hit_right = self.right.hit(rng, ray, t_min, if hit_left { hit_out.t } else { t_max }, hit_out);
+
+        hit_left || hit_right
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AABB> {
-        Some(self.bbox.clone())
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        box_out.minimum.x = self.bbox.minimum.x;
+        box_out.minimum.y = self.bbox.minimum.y;
+        box_out.minimum.z = self.bbox.minimum.z;
+
+        box_out.maximum.x = self.bbox.maximum.x;
+        box_out.maximum.y = self.bbox.maximum.y;
+        box_out.maximum.z = self.bbox.maximum.z;
+
+        true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
         0.0
     }
 

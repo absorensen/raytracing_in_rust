@@ -3,6 +3,7 @@ use std::iter::Sum;
 use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index, IndexMut};
 use minifb::clamp;
+use rand::rngs::mock::StepRng;
 use rand::{Rng, rngs::ThreadRng};
 use rand_chacha::ChaChaRng;
 
@@ -37,9 +38,15 @@ impl Vector3 {
         }
     }
 
+
     #[inline]
     pub fn random(rng: &mut ThreadRng) -> Self {
         Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+    }
+
+    #[inline]
+    pub fn random_range(rng: &mut ThreadRng, minimum: f64, maximum: f64) -> Self {
+        Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
     }
 
     #[inline]
@@ -48,14 +55,25 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn random_range(rng: &mut ThreadRng, minimum: f64, maximum: f64) -> Self {
-        Vector3{x: rng.gen_range(minimum, maximum), y: rng.gen_range(minimum, maximum), z: rng.gen_range(minimum, maximum) }
+    pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f64, maximum: f64) -> Self {
+        Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
     }
 
     #[inline]
-    pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f64, maximum: f64) -> Self {
-        Vector3{x: rng.gen_range(minimum, maximum), y: rng.gen_range(minimum, maximum), z: rng.gen_range(minimum, maximum) }
+    pub fn random_step(rng: &mut StepRng) -> Self {
+        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
     }
+
+    #[inline]
+    pub fn random_range_step(rng: &mut StepRng, minimum: f64, maximum: f64) -> Self {
+        Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
+    }
+
+
+
+
+
+
 
     #[inline]
     pub fn length_squared(&self) -> f64 {
@@ -109,9 +127,9 @@ impl Vector3 {
     pub fn random_in_unit_sphere(rng: &mut ThreadRng) -> Self {
         let mut candidate: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
         loop {
-            candidate.x = rng.gen_range(-1.0, 1.0);
-            candidate.y = rng.gen_range(-1.0, 1.0);
-            candidate.z = rng.gen_range(-1.0, 1.0);
+            candidate.x = rng.gen_range(-1.0..1.0);
+            candidate.y = rng.gen_range(-1.0..1.0);
+            candidate.z = rng.gen_range(-1.0..1.0);
 
             if candidate.length_squared() < 1.0 {
                 return candidate;
@@ -123,8 +141,8 @@ impl Vector3 {
     pub fn random_in_unit_disk(rng: &mut ThreadRng) -> Self {
         let mut candidate: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
         loop {
-            candidate.x = rng.gen_range(-1.0, 1.0);
-            candidate.y = rng.gen_range(-1.0, 1.0);
+            candidate.x = rng.gen_range(-1.0..1.0);
+            candidate.y = rng.gen_range(-1.0..1.0);
 
             if candidate.length_squared() < 1.0 {
                 return candidate;

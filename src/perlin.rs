@@ -135,9 +135,9 @@ impl Perlin {
     fn populate_random_vectors(rng: &mut ThreadRng, vector: &mut Vec<Vector3>, desired_element_count: u32) {
         *vector = (0..desired_element_count).into_iter()
             .map(|_| Vector3 {
-                    x: rng.gen_range(-1.0, 1.0), 
-                    y: rng.gen_range(-1.0, 1.0),
-                    z: rng.gen_range(-1.0, 1.0),
+                    x: rng.gen_range(-1.0..1.0), 
+                    y: rng.gen_range(-1.0..1.0),
+                    z: rng.gen_range(-1.0..1.0),
                 }
             )
             .collect();
@@ -147,7 +147,7 @@ impl Perlin {
         *vector = (0..(desired_element_count as i32)).into_iter().map(|x| x).collect();
 
         for index in (0..desired_element_count).rev().into_iter() {
-            let target = if 0 < index { rng.gen_range(0, index) } else { 0 };
+            let target = if 0 < index { rng.gen_range(0..index) } else { 0 };
             let temp = vector[index as usize];
             vector[index as usize] = vector[target as usize];
             vector[target as usize] = temp;
