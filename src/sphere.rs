@@ -1,10 +1,8 @@
 use std::f64::consts::PI;
-use std::sync::Arc;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::material::Material;
 use crate::ortho_normal_base::OrthoNormalBase;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
@@ -14,12 +12,12 @@ use crate::aabb::AABB;
 pub struct Sphere {
     pub radius: f64,
     pub center: Vector3,
-    pub material: Arc<dyn Material>,
+    pub material: usize,
 }
 
 impl Sphere {
-    pub fn new(center: Vector3, radius: f64, material: &Arc<dyn Material>) -> Self { 
-        Sphere {center, radius, material: Arc::clone(material) } 
+    pub fn new(center: Vector3, radius: f64, material: usize) -> Self { 
+        Sphere {center, radius, material } 
     }
 
     fn get_sphere_uv(p: &Vector3) -> (f64, f64) {
@@ -54,14 +52,13 @@ impl Hittable for Sphere{
         let position = ray.at(root);
         let normal = (position - self.center) / self.radius;
         let (u, v) = Sphere::get_sphere_uv(&normal);
-        let hit_rec = HitRecord::new(ray, root, u, v, &position, &normal, &self.material);  
 
         hit_out.t = root;
         hit_out.u = u;
         hit_out.v = v;
         hit_out.position = position;
         hit_out.set_face_normal(ray, &normal);
-        hit_out.material = Arc::clone(&self.material);
+        hit_out.material = self.material;
 
         true
     }
@@ -79,7 +76,8 @@ impl Hittable for Sphere{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+        let hit_out = &mut HitRecord::default();
         if self.hit(rng, &Ray::new(*origin, *v, 0.5), 0.001, f64::INFINITY, hit_out) {
             let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);

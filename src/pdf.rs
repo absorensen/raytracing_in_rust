@@ -2,11 +2,11 @@ use std::{f64::consts::PI, sync::Arc};
 
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{vector3::Vector3, ortho_normal_base::OrthoNormalBase, hittable::{Hittable, HitRecord}};
+use crate::{vector3::Vector3, ortho_normal_base::OrthoNormalBase, hittable::{Hittable}};
 
 pub trait PDF: Sync + Send {
     // Maybe convert these to take an output argument
-    fn value(&self, rng: &mut ThreadRng, direction: &Vector3, hit_out: &mut HitRecord) -> f64;
+    fn value(&self, rng: &mut ThreadRng, direction: &Vector3) -> f64;
     fn generate(&self, rng: &mut ThreadRng) -> Vector3;
 }
 
@@ -21,7 +21,7 @@ impl CosinePDF {
 }
 
 impl PDF for CosinePDF {
-    fn value(&self, rng: &mut ThreadRng, direction: &Vector3, hit_out: &mut HitRecord) -> f64 {
+    fn value(&self, _rng: &mut ThreadRng, direction: &Vector3) -> f64 {
         let cosine = Vector3::dot(&direction.normalized(), &self.uvw.w);
 
         if cosine <= 0.0 { 0.0 } else { cosine / PI }    
@@ -44,8 +44,8 @@ impl HittablePDF {
 }
 
 impl PDF for HittablePDF {
-    fn value(&self, rng: &mut ThreadRng, direction: &Vector3, hit_out: &mut HitRecord) -> f64 {
-        self.hittable.pdf_value(rng, &self.origin, direction, hit_out)
+    fn value(&self, rng: &mut ThreadRng, direction: &Vector3) -> f64 {
+        self.hittable.pdf_value(rng, &self.origin, direction)
     }
 
     fn generate(&self, rng: &mut ThreadRng) -> Vector3 {
@@ -54,18 +54,18 @@ impl PDF for HittablePDF {
 }
 
 pub struct MixturePDF {
-    pub pdfs: [Arc<dyn PDF>; 2],
+    pub pdfs: [Box<dyn PDF>; 2],
 }
 
 impl MixturePDF {
-    pub fn new(p0: &Arc<dyn PDF>, p1: &Arc<dyn PDF>) -> MixturePDF {
-        MixturePDF{ pdfs: [Arc::clone(p0), Arc::clone(p1)] }
+    pub fn new(p0: Box<dyn PDF>, p1: Box<dyn PDF>) -> MixturePDF {
+        MixturePDF{ pdfs: [p0, p1] }
     }
 }
 
 impl PDF for MixturePDF {
-    fn value(&self, rng: &mut ThreadRng, direction: &Vector3, hit_out: &mut HitRecord) -> f64 {
-        0.5 * self.pdfs[0].value(rng, direction, hit_out) + 0.5 * self.pdfs[1].value(rng, direction, hit_out)
+    fn value(&self, rng: &mut ThreadRng, direction: &Vector3) -> f64 {
+        0.5 * self.pdfs[0].value(rng, direction) + 0.5 * self.pdfs[1].value(rng, direction)
     }
 
     fn generate(&self, rng: &mut ThreadRng) -> Vector3 {

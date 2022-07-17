@@ -84,8 +84,6 @@ impl BVHNode {
 }
 
 impl Hittable for BVHNode{
-
-
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         if !self.bbox.hit(ray, t_min, t_max){
             return false;
@@ -109,11 +107,4 @@ impl Hittable for BVHNode{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
-        0.0
-    }
-
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
-        Vector3::new(1.0, 0.0, 0.0)
-    }
 }

@@ -29,25 +29,26 @@ use bvh_node::{BVHNode};
 use vector3::{Vector3, Point3, Color};
 use ray::Ray;
 use sphere::Sphere;
-use hittable::{Hittable, HittableList, XYRect, XZRect, YZRect, Box, RotateY, Translate, ConstantMedium, FlipFace, HitRecord};
+use hittable::{Hittable, HittableList, XYRect, XZRect, YZRect, BoxHittable, RotateY, Translate, ConstantMedium, FlipFace, HitRecord};
 use moving_sphere::MovingSphere;
 use camera::Camera;
-use material::{Lambertian, Metal, Dielectric, Material, DiffuseLight, Isotropic, ScatterRecord, DefaultMaterial};
+use material::{Lambertian, Metal, Dielectric, Material, DiffuseLight, Isotropic, ScatterRecord, DefaultMaterial, MaterialService, MaterialEnum};
 
 
-fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, HittableList, Camera, Color) {
+fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let seed: u64 = 13371337;
     let mut rng = ChaCha20Rng::seed_from_u64(seed);
 
     let mut world = HittableList::default();
     let mut _lights = HittableList::default();
+    let mut materials = MaterialService::new();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
-    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
-    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
+    let ground_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: ground_texture}));
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, ground_material_index));
 
     let index_of_refraction = 1.5;
-    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+    let glass_material_index = materials.add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
 
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
@@ -58,28 +59,26 @@ fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableLis
                 let chosen_material : Arc<dyn Material>;
                 if choose_mat < 0.8 {
                     let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
-                    chosen_material = Arc::new(Lambertian{albedo: chosen_texture});
-                    world.push(Sphere::new(center, 0.2, &chosen_material));
+                    let chosen_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: chosen_texture}));
+                    world.push(Sphere::new(center, 0.2, chosen_material_index));
                 } else if choose_mat < 0.95 {
-                    chosen_material = Arc::new(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()});
-                    world.push(Sphere::new(center, 0.2, &chosen_material));
+                    let chosen_material_index = materials.add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()}));
+                    world.push(Sphere::new(center, 0.2, chosen_material_index));
                 } else {
-                    world.push(Sphere::new(center, 0.2, &glass_material));
+                    world.push(Sphere::new(center, 0.2, glass_material_index));
                 }
-
-
             }
         }
     }
     
-    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, &glass_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, glass_material_index));
 
     let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
-    let lambertian_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: lambertian_texture});
-    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, &lambertian_material));
+    let lambertian_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: lambertian_texture}));
+    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, lambertian_material_index));
 
-    let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0});
-    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, &metal_material));
+    let metal_material_index = materials.add_material(MaterialEnum::Metal(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0}));
+    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, metal_material_index));
 
     let background = Color{x:0.7, y:0.8, z: 1.0};
 
@@ -97,22 +96,23 @@ fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableLis
     let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, _lights, camera, background)
+    (world, materials, _lights, camera, background)
 }
 
-fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, HittableList, Camera, Color) {
+fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let seed: u64 = 13371337;
     let mut rng = ChaCha20Rng::seed_from_u64(seed);
 
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let lights = HittableList::default();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
-    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
-    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &ground_material));
+    let ground_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: ground_texture}));
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, ground_material_index));
 
     let index_of_refraction = 1.5;
-    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
+    let glass_material_index = materials.add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
     
     for a in -number_of_balls..number_of_balls {
         for b in -number_of_balls..number_of_balls {
@@ -125,29 +125,28 @@ fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (Hitt
                     movement.y = rng.gen::<f64>() * 0.5;
 
                     let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
-                    let chosen_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: chosen_texture});
-                    world.push(MovingSphere::new(0.2, center, center + movement,  &chosen_material, 0.0, 1.0));
+                    let chosen_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: chosen_texture}));
+                    world.push(MovingSphere::new(0.2, center, center + movement,  chosen_material_index, 0.0, 1.0));
                 } else if choose_mat < 0.95 {
 
-                    let chosen_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()});
-                    world.push(Sphere::new(center, 0.2, &chosen_material));
+                    let chosen_material_index = materials.add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()}));
+                    world.push(Sphere::new(center, 0.2, chosen_material_index));
                 } else {
 
-
-                    world.push(Sphere::new(center, 0.2, &glass_material));
+                    world.push(Sphere::new(center, 0.2, glass_material_index));
                 }
             }
         }
     }
 
-    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, &glass_material));
+    world.push(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, glass_material_index));
 
     let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
-    let lambertian_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: lambertian_texture});
-    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, &lambertian_material));
+    let lambertian_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: lambertian_texture}));
+    world.push(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, lambertian_material_index));
 
-    let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0});
-    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, &metal_material));
+    let metal_material_index = materials.add_material(MaterialEnum::Metal(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0}));
+    world.push(Sphere::new(Point3{x: 4.0, y: 1.0, z: 0.0}, 1.0, metal_material_index));
 
     let background = Color{x:0.7, y:0.8, z: 1.0};
 
@@ -161,17 +160,18 @@ fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> (Hitt
     let time_1: f64 = 1.0;
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
+fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let lights = HittableList::default();
 
     let checker_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
-    let checker_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: checker_texture});
-    world.push(Sphere::new(Point3{x: 0.0, y: -10.0, z: 0.0}, 10.0, &checker_material));
-    world.push(Sphere::new(Point3{x: 0.0, y: 10.0, z: 0.0}, 10.0, &checker_material));
+    let checker_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: checker_texture}));
+    world.push(Sphere::new(Point3{x: 0.0, y: -10.0, z: 0.0}, 10.0, checker_material_index));
+    world.push(Sphere::new(Point3{x: 0.0, y: 10.0, z: 0.0}, 10.0, checker_material_index));
 
     let background = Color{x:0.7, y:0.8, z: 1.0};
 
@@ -186,20 +186,21 @@ fn two_spheres_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, 
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn two_perlin_spheres_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, HittableList, Camera, Color) {
+fn two_perlin_spheres_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let lights = HittableList::default();
 
     // The Noise Texture runs pretty deep
     // I just need some determinism, not all the way
     let mut thread_rng = rand::thread_rng();
     let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, element_count, 4.0));
-    let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
-    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
-    world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
+    let perlin_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: perlin_texture}));
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, perlin_material_index));
+    world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, perlin_material_index));
 
     let background = Color{x:0.7, y:0.8, z: 1.0};
 
@@ -214,16 +215,17 @@ fn two_perlin_spheres_scene(aspect_ratio: f64, element_count: u32) -> (HittableL
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn earth_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
+fn earth_scene(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let mut _lights = HittableList::default();
 
     let texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("earthmap.png"));
-    let material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: texture });
-    world.push(Sphere::new(Vector3::new(0.0, 0.0, 0.0), 2.0, &material));
+    let material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: texture}));
+    world.push(Sphere::new(Vector3::new(0.0, 0.0, 0.0), 2.0, material_index));
 
     let background = Color{x:0.7, y:0.8, z: 1.0};
 
@@ -237,24 +239,25 @@ fn earth_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color)
     let time_1: f64 = 1.0;
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    (world, _lights, camera, background)
+    (world, materials, _lights, camera, background)
 }
 
-fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, HittableList, Camera, Color) {
+fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let mut _lights = HittableList::default();
 
     // The Noise Texture runs pretty deep
     // I just need some determinism, not all the way
     let mut thread_rng = rand::thread_rng();
     let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, element_count, 4.0));
-    let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
-    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, &perlin_material));
-    world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, &perlin_material));
+    let perlin_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: perlin_texture}));
+    world.push(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, perlin_material_index));
+    world.push(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, perlin_material_index));
 
-    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 4.0, y: 4.0, z: 4.0 } ));
-    world.push(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, &diffuse_light_material));
-    world.push(Sphere::new(Point3{x: 0.0, y: 7.0, z: 0.0}, 2.0, &diffuse_light_material));
+    let diffuse_light_material_index = materials.add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color(&Color{x: 4.0, y: 4.0, z: 4.0 })));
+    world.push(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, diffuse_light_material_index));
+    world.push(Sphere::new(Point3{x: 0.0, y: 7.0, z: 0.0}, 2.0, diffuse_light_material_index));
 
     let background = Color{x:0.0, y:0.0, z: 0.0};
 
@@ -269,33 +272,43 @@ fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> (HittableList, H
     let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
 
-    (world, _lights, camera, background)
+    (world, materials, _lights, camera, background)
 }
 
-fn empty_cornell_box_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
+fn empty_cornell_box_scene(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let mut lights = HittableList::default();
 
     let red_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.65, y: 0.05, z: 0.05}));
-    let red_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: red_texture });
+    let red_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: red_texture }));
 
     let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+    let white_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
 
     let green_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.12, y: 0.45, z: 0.15}));
-    let green_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: green_texture });
+    let green_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: green_texture }));
 
-    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 15.0, y: 15.0, z: 15.0 } ));
+    let diffuse_light_material_index = materials.add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 15.0, y: 15.0, z: 15.0 } )));
 
-    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &green_material));
-    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, &red_material));
-    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, &white_material));
-    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &white_material));
-    world.push(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &white_material));
 
-    let unflipped_light: Arc<dyn Hittable> = Arc::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, &diffuse_light_material));
+    let green_wall: Arc<dyn Hittable> = Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green_material_index));
+    world.push(FlipFace::new(&green_wall));
+
+    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red_material_index));
+
+    let white_wall_1: Arc<dyn Hittable> = Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white_material_index));
+    world.push(FlipFace::new(&white_wall_1));
+
+    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white_material_index));
+
+    let white_wall_3: Arc<dyn Hittable> = Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white_material_index));
+    world.push(FlipFace::new(&white_wall_3));
+
+
+    let unflipped_light: Arc<dyn Hittable> = Arc::new(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, diffuse_light_material_index));
     world.push(FlipFace::new(&unflipped_light));
-    lights.push(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, &diffuse_light_material));
+    lights.push(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, diffuse_light_material_index));
 
     let background = Color{x:0.0, y:0.0, z: 0.0};
 
@@ -310,96 +323,104 @@ fn empty_cornell_box_scene(aspect_ratio: f64) -> (HittableList, HittableList, Ca
     let vfov = 40.0;
     let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn cornell_box_two_diffuse_boxes_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
-    let (mut world, lights, camera, background) = empty_cornell_box_scene(aspect_ratio);
+fn cornell_box_two_diffuse_boxes_scene(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
+    let (mut world, mut materials, lights, camera, background) = empty_cornell_box_scene(aspect_ratio);
     
     let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+    let white_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
 
-    let box_1 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, &white_material);
+    let box_1 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, white_material_index);
     let box_1_arc : Arc<dyn Hittable> = Arc::new(box_1);
     let box_1_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(15.0, &box_1_arc));
     let box_1_translated = Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, &box_1_rotation);
     world.push(box_1_translated);
 
-    let box_2 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, &white_material);
+    let box_2 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, white_material_index);
     let box_2_arc : Arc<dyn Hittable> = Arc::new(box_2);
     let box_2_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(-18.0, &box_2_arc));
     let box_2_translated = Translate::new(Vector3 { x: 130.0, y: 0.0, z: 65.0 }, &box_2_rotation);
     world.push(box_2_translated);
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn cornell_box_diffuse_metal_boxes_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
-    let (mut world, lights, camera, background) = empty_cornell_box_scene(aspect_ratio);
+fn cornell_box_diffuse_metal_boxes_scene(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
+    let (mut world, mut materials, lights, camera, background) = empty_cornell_box_scene(aspect_ratio);
     
-    let metal_material: Arc<dyn Material> = Arc::new(Metal::new(Color{x: 0.8, y: 0.85, z: 0.88}, 0.0));
+    let metal_material_index = materials.add_material(MaterialEnum::Metal(Metal::new(Color{x: 0.8, y: 0.85, z: 0.88}, 0.0)));
 
     let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+    let white_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
 
-    let box_1 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, &metal_material);
+    let box_1 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, metal_material_index);
     let box_1_arc : Arc<dyn Hittable> = Arc::new(box_1);
     let box_1_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(15.0, &box_1_arc));
     let box_1_translated = Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, &box_1_rotation);
     world.push(box_1_translated);
 
-    let box_2 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, &white_material);
+    let box_2 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, white_material_index);
     let box_2_arc : Arc<dyn Hittable> = Arc::new(box_2);
     let box_2_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(-18.0, &box_2_arc));
     let box_2_translated = Translate::new(Vector3 { x: 130.0, y: 0.0, z: 65.0 }, &box_2_rotation);
     world.push(box_2_translated);
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
+fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let mut world = HittableList::default();
+    let mut materials = MaterialService::new();
     let mut lights = HittableList::default();
 
-    
     let red_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.65, y: 0.05, z: 0.05}));
-    let red_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: red_texture });
+    let red_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: red_texture }));
 
     let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+    let white_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
 
     let green_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.12, y: 0.45, z: 0.15}));
-    let green_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: green_texture });
+    let green_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: green_texture }));
 
-    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } ));
+    let diffuse_light_material_index = materials.add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } )));
 
-    let dark_phase_function: Arc<dyn Material> = Arc::new(Isotropic::from_color( &Color{x: 0.0, y: 0.0, z: 0.0} ));
-    let light_phase_function: Arc<dyn Material> = Arc::new(Isotropic::from_color( &Color{x: 1.0, y: 1.0, z: 1.0} ));
+    let dark_phase_function_index = materials.add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 0.0, y: 0.0, z: 0.0} )));
+    let light_phase_function_index = materials.add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 1.0, y: 1.0, z: 1.0} )));
 
-    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &green_material));
-    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, &red_material));
-    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, &white_material));
-    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &white_material));
-    world.push(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, &white_material));
+    let green_wall: Arc<dyn Hittable> = Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green_material_index));
+    world.push(FlipFace::new(&green_wall));
 
-    let unflipped_light: Arc<dyn Hittable> = Arc::new(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, &diffuse_light_material));
+    world.push(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red_material_index));
+
+    let white_wall_1: Arc<dyn Hittable> = Arc::new(XZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white_material_index));
+    world.push(FlipFace::new(&white_wall_1));
+
+    world.push(XZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white_material_index));
+
+    let white_wall_3: Arc<dyn Hittable> = Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white_material_index));
+    world.push(FlipFace::new(&white_wall_3));
+
+
+    let unflipped_light: Arc<dyn Hittable> = Arc::new(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index));
     world.push(FlipFace::new(&unflipped_light));
-    lights.push(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, &diffuse_light_material));
+    lights.push(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, diffuse_light_material_index));
 
-    let box_1 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, &white_material);
+
+    let box_1 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, white_material_index);
     let box_1_arc : Arc<dyn Hittable> = Arc::new(box_1);
     let box_1_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(15.0, &box_1_arc));
-    let box_1_translated: Arc<dyn Hittable> = Arc::new(Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, &box_1_rotation));
-    let box_1_smoke = ConstantMedium::new(&box_1_translated, &dark_phase_function, 0.01);
+    let box_1_translated: Arc <dyn Hittable> = Arc::new(Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, &box_1_rotation));
+    let box_1_smoke = ConstantMedium::new(&box_1_translated, dark_phase_function_index, 0.01);
     world.push(box_1_smoke);
 
-    let box_2 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, &white_material);
+    let box_2 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 165.0, z: 165.0}, white_material_index);
     let box_2_arc : Arc<dyn Hittable> = Arc::new(box_2);
     let box_2_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(-18.0, &box_2_arc));
     let box_2_translated: Arc<dyn Hittable> = Arc::new(Translate::new(Vector3 { x: 130.0, y: 0.0, z: 65.0 }, &box_2_rotation));
-    let box_2_smoke = ConstantMedium::new(&box_2_translated, &light_phase_function, 0.01);
+    let box_2_smoke = ConstantMedium::new(&box_2_translated, light_phase_function_index, 0.01);
     world.push(box_2_smoke);
-
 
     let background = Color{x:0.0, y:0.0, z: 0.0};
 
@@ -416,10 +437,10 @@ fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f64) -> (HittableList, Hittab
 
 
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
 
-fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_count: u32) -> (HittableList, HittableList, Camera, Color) {
+fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_count: u32) -> (HittableList, MaterialService, HittableList, Camera, Color) {
     let seed: u64 = 919;
     let mut rng = ChaCha20Rng::seed_from_u64(seed);
     
@@ -435,11 +456,12 @@ fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_
     let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
     
     let mut objects = HittableList::default();
-    let mut lights = HittableList::default();    
+    let mut lights = HittableList::default();
+    let mut materials = MaterialService::new();
     let mut floor_cubes = HittableList::default();
 
     let ground_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x:0.48, y:0.83, z:0.53}));
-    let ground_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: ground_texture});
+    let ground_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: ground_texture}));
 
     let boxes_per_side = 20;
     for i in 0..boxes_per_side {
@@ -455,10 +477,11 @@ fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_
             let z1: f64 = z0 + w;
 
             floor_cubes.push(
-                Box::new(
+                BoxHittable::new(
                     Vector3{x: x0, y: y0, z: z0}, 
                     Vector3{x: x1, y: y1, z: z1}, 
-                    &ground_material)
+                    ground_material_index
+                    )
                 );
         }
     }
@@ -466,60 +489,62 @@ fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_
     let floor_cubes_bvh = BVHNode::from_hittable_list(&mut floor_cubes, camera.get_start_time(), camera.get_end_time());
     objects.push(floor_cubes_bvh);
 
-    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } ));
-    let unflipped_light: Arc<dyn Hittable> = Arc::new(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, &diffuse_light_material));
+
+
+
+
+    let diffuse_light_material_index = materials.add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } )));
+    let unflipped_light: Arc<dyn Hittable> = Arc::new(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index));
     objects.push(FlipFace::new(&unflipped_light));
-    lights.push(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, &diffuse_light_material));
+    lights.push(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index));
 
     let center_0 = Vector3{x: 400.0, y: 400.0, z: 200.0};
     let center_1 = center_0 + Vector3{x: 30.0, y: 0.0, z: 0.0};
     let moving_sphere_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.7, y: 0.3, z: 0.1}));
-    let moving_sphere_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: moving_sphere_texture });
-    objects.push(MovingSphere{ radius: 50.0, center_0, center_1, material: moving_sphere_material, time_0: 0.0, time_1: 1.0 });
+    let moving_sphere_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: moving_sphere_texture }));
+    objects.push(MovingSphere{ radius: 50.0, center_0, center_1, material: moving_sphere_material_index, time_0: 0.0, time_1: 1.0 });
+
 
     let index_of_refraction = 1.5;
-    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
-    objects.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, &glass_material));
-    lights.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, &diffuse_light_material));
+    let glass_material_index = materials.add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
+    objects.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, glass_material_index));
+    lights.push(Sphere::new(Point3{x: 260.0, y: 150.0, z: 45.0}, 50.0, diffuse_light_material_index));
 
-    let metal_material: Arc<dyn Material> = Arc::new(Metal{albedo: Color{x: 0.8, y: 0.8, z: 0.9}, fuzz: 1.0});
-    objects.push(Sphere::new(Point3{x: 0.0, y: 150.0, z: 145.0}, 50.0, &metal_material));
+    let metal_material_index = materials.add_material(MaterialEnum::Metal(Metal{albedo: Color{x: 0.8, y: 0.8, z: 0.9}, fuzz: 1.0}));
+    objects.push(Sphere::new(Point3{x: 0.0, y: 150.0, z: 145.0}, 50.0, metal_material_index));
 
     // Volume sphere
-    let index_of_refraction = 1.5;
-    let volume_sphere_boundary_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
-    let boundary = Sphere::new(Point3{x: 360.0, y: 150.0, z: 145.0}, 70.0, &volume_sphere_boundary_material);
+    let boundary = Sphere::new(Point3{x: 360.0, y: 150.0, z: 145.0}, 70.0, glass_material_index);
     let boundary_arc: Arc<dyn Hittable> = Arc::new(boundary);
     objects.push_arc(&boundary_arc);
 
-    let light_phase_function: Arc<dyn Material> = Arc::new(Isotropic::from_color( &Color{x: 0.2, y: 0.4, z: 0.9} ));
-    let volume_sphere= ConstantMedium::new(&boundary_arc, &light_phase_function, 0.2);
+    let blue_phase_function_index = materials.add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 0.2, y: 0.4, z: 0.9} )));
+    let volume_sphere= ConstantMedium::new(&boundary_arc, blue_phase_function_index, 0.2);
     objects.push(volume_sphere);
 
-    let global_volume_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
-    let global_volume_sphere: Arc<dyn Hittable> = Arc::new(Sphere::new(Point3{x: 0.0, y: 0.0, z: 0.0}, 5000.0, &global_volume_material));
-    let global_volume = ConstantMedium::new(&global_volume_sphere, &light_phase_function, 0.0001);
+    let global_phase_function_index = materials.add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 1.0, y: 1.0, z: 1.0} )));
+    let global_volume_sphere: Arc<dyn Hittable> = Arc::new(Sphere::new(Point3{x: 0.0, y: 0.0, z: 0.0}, 5000.0, glass_material_index));
+    let global_volume = ConstantMedium::new(&global_volume_sphere, global_phase_function_index, 0.0001);
     objects.push(global_volume);
 
     let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("earthmap.png"));
-    let earth_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: earth_texture });
-    objects.push(Sphere::new(Vector3::new(400.0, 200.0, 400.0), 100.0, &earth_material));
+    let earth_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: earth_texture}));
+    objects.push(Sphere::new(Vector3::new(400.0, 200.0, 400.0), 100.0, earth_material_index));
 
     
     // The Noise Texture runs pretty deep
     // I just need some determinism, not all the way
     let mut thread_rng = rand::thread_rng();
     let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, perlin_element_count, 0.1));
-    let perlin_material: Arc<dyn Material> = Arc::new(Lambertian{albedo: perlin_texture});
-    objects.push(Sphere::new(Point3{x: 220.0, y: 280.0, z: 300.0}, 80.0, &perlin_material));
+    let perlin_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{albedo: perlin_texture}));
+    objects.push(Sphere::new(Point3{x: 220.0, y: 280.0, z: 300.0}, 80.0, perlin_material_index));
 
 
-    let mut cube_spheres = HittableList::default();
     let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
-
+    let white_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+    let mut cube_spheres = HittableList::default();
     for _j in 0..cube_sphere_count {
-        cube_spheres.push(Sphere::new(Vector3::random_range_chacha(&mut rng, 0.0, 165.0), 10.0, &white_material));
+        cube_spheres.push(Sphere::new(Vector3::random_range_chacha(&mut rng, 0.0, 165.0), 10.0, white_material_index));
     }
     let cube_spheres_bvh = BVHNode::from_hittable_list(&mut cube_spheres, camera.get_start_time(), camera.get_end_time());
     let cube_spheres_arc: Arc <dyn Hittable> = Arc::new(cube_spheres_bvh);
@@ -530,167 +555,103 @@ fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_
     let background = Color{x:0.0, y:0.0, z: 0.0};
 
 
-    (objects, lights, camera, background)
+    (objects, materials, lights, camera, background)
 }
 
-fn final_scene_book_3(aspect_ratio: f64) -> (HittableList, HittableList, Camera, Color) {
-    let (mut world, mut lights, camera, background) = empty_cornell_box_scene(aspect_ratio);
+fn final_scene_book_3(aspect_ratio: f64) -> (HittableList, MaterialService, HittableList, Camera, Color) {
+    let (mut world, mut materials, mut lights, camera, background) = empty_cornell_box_scene(aspect_ratio);
     
     let white_texture: Arc<dyn Texture> = Arc::new(SolidColor::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-    let white_material: Arc<dyn Material> = Arc::new(Lambertian{ albedo: white_texture });
+    let white_material_index = materials.add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
 
-    let box_1 = Box::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, &white_material);
+    let diffuse_light_material_index = materials.add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } )));
+
+    let index_of_refraction = 1.5;
+    let glass_material_index = materials.add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
+
+    let box_1 = BoxHittable::new(Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, white_material_index);
     let box_1_arc : Arc<dyn Hittable> = Arc::new(box_1);
     let box_1_rotation: Arc<dyn Hittable> = Arc::new(RotateY::new(15.0, &box_1_arc));
     let box_1_translated = Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, &box_1_rotation);
     world.push(box_1_translated);
 
-    let index_of_refraction = 1.5;
-    let glass_material: Arc<dyn Material> = Arc::new(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction});
-    world.push(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, &glass_material));
-    let diffuse_light_material: Arc<dyn Material> = Arc::new(DiffuseLight::from_color( &Color{x: 15.0, y: 15.0, z: 15.0 } ));
-    lights.push(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, &diffuse_light_material));
+    world.push(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, glass_material_index));
+    lights.push(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, diffuse_light_material_index));
 
-    (world, lights, camera, background)
+    (world, materials, lights, camera, background)
 }
-
-// // Try splitting this into a mixture and non-mixture pdfs function, as some scenes don't have lights (though they should)
-// fn ray_color(
-//     rng: &mut ThreadRng, 
-//     background: &Color, 
-//     ray: &Ray, 
-//     world: & dyn Hittable, 
-//     lights: &Arc<dyn Hittable>,
-//     lights_count: usize, 
-//     depth: i64) -> Color {
-
-//     for depth in (0..depth).rev() {
-
-//     }
-
-//     if depth <= 0 {
-//         return Color::new(0.0, 0.0, 0.0);
-//     }
-
-//     if let Some(hit) = world.hit(rng, ray, 0.001, f64::MAX) {
-//         let mut scatter_record= ScatterRecord::default();
-//         let emitted: Color = hit.material.emitted(ray, &hit, hit.u, hit.v, &hit.position);
-//         if !hit.material.scatter(rng, ray, &hit, &mut scatter_record) {
-//             return emitted;
-//         }
-
-//         if scatter_record.is_specular {
-//             return scatter_record.attenuation * ray_color(rng, background, &scatter_record.specular_ray, world, lights, lights_count, depth - 1);
-//         }
-
-//         if 0 < lights_count { 
-//             let light_pdf: Arc<dyn PDF> = Arc::new(HittablePDF::new(lights, &hit.position));
-//             let other_pdf: Arc<dyn PDF> = 
-//                 if scatter_record.pdf.is_some() { 
-//                     scatter_record.pdf.expect("Failed to unwrap pdf")
-//                 } else {
-//                     light_pdf.clone()
-//                 };
-//             let mixture_pdf: MixturePDF = MixturePDF::new( &light_pdf, &other_pdf ); 
-    
-//             let scattered = Ray::new(hit.position, mixture_pdf.generate(rng), ray.time);
-//             let pdf_val = mixture_pdf.value(rng, &scattered.direction);
-
-//             return 
-//             emitted + 
-//             scatter_record.attenuation * 
-//             hit.material.scattering_pdf(rng, &hit, &scattered) * 
-//             ray_color(rng, background, &scattered, world, lights, lights_count, depth - 1) /
-//             pdf_val;
-//         } else {
-//             let pdf: Arc<dyn PDF> =
-//                 scatter_record.pdf.expect("Failed to unwrap pdf");
-
-//             let scattered = Ray::new(hit.position, pdf.generate(rng), ray.time);
-//             let pdf_val = pdf.value(rng, &scattered.direction);
-
-//             return 
-//             emitted + 
-//             scatter_record.attenuation * 
-//             hit.material.scattering_pdf(rng, &hit, &scattered) * 
-//             ray_color(rng, background, &scattered, world, lights, lights_count, depth - 1) /
-//             pdf_val;
-//         }
-//     } 
-
-//     *background
-// }
 
 // Try splitting this into a mixture and non-mixture pdfs function, as some scenes don't have lights (though they should)
 fn ray_color_recursive(
-    rng: &mut ThreadRng, 
+    rng: &mut ThreadRng,
+    materials_service: &MaterialService,
     background: &Color, 
     ray: &Ray, 
     world: & dyn Hittable, 
     lights: &Arc<dyn Hittable>,
     lights_count: usize, 
     depth: i64) -> Color {
+
     if depth <= 0 {
         return Color::new(0.0, 0.0, 0.0);
     }
 
-    let default_material: Arc<dyn Material> = Arc::new(DefaultMaterial{});
-    let mut hit:HitRecord = HitRecord { t: 0.0, u: 0.0, v: 0.0, position: Vector3::zero(), normal: Vector3::zero(), is_front_face: false, material: Arc::clone(&default_material) };
-    if world.hit(rng, ray, 0.001, f64::MAX, &mut hit) {
-        let mut scatter_record= ScatterRecord::default();
-        let emitted: Color = hit.material.emitted(ray, &hit, hit.u, hit.v, &hit.position);
-        if !hit.material.scatter(rng, ray, &hit, &mut scatter_record) {
-            return emitted;
-        }
-
-        if scatter_record.is_specular {
-            return scatter_record.attenuation * ray_color_recursive(rng, background, &scatter_record.specular_ray, world, lights, lights_count, depth - 1);
-        }
-
-        if 0 < lights_count { 
-            let light_pdf: Arc<dyn PDF> = Arc::new(HittablePDF::new(lights, &hit.position));
-            let other_pdf: Arc<dyn PDF> = 
-                if scatter_record.pdf.is_some() { 
-                    scatter_record.pdf.expect("Failed to unwrap pdf")
-                } else {
-                    light_pdf.clone()
-                };
-            let mixture_pdf: MixturePDF = MixturePDF::new( &light_pdf, &other_pdf ); 
+    let mut rec:HitRecord = HitRecord::default();
     
-            let scattered = Ray::new(hit.position, mixture_pdf.generate(rng), ray.time);
+    
+    if !world.hit(rng, ray, 0.001, f64::MAX, &mut rec) {
+        return *background;
+    }
 
-            let mut hit_pdf:HitRecord = HitRecord { t: 0.0, u: 0.0, v: 0.0, position: Vector3::zero(), normal: Vector3::zero(), is_front_face: false, material: Arc::clone(&default_material) };
-            let pdf_val = mixture_pdf.value(rng, &scattered.direction, &mut hit_pdf);
 
-            return 
+    let mut scatter_record= ScatterRecord::default();
+    let emitted: Color = materials_service.emission(ray, &rec, rec.u, rec.v, &rec.position);
+    
+    if !materials_service.scatter(rng, ray, &rec, &mut scatter_record) {
+        return emitted;
+    }
+
+    if scatter_record.is_specular {
+        return scatter_record.attenuation * ray_color_recursive(rng, materials_service, background, &scatter_record.specular_ray, world, lights, lights_count, depth - 1);
+    }
+
+    if 0 < lights_count {
+        let light_pdf: Box<dyn PDF> = Box::new(HittablePDF::new(lights, &rec.position));
+        let other_pdf: Box<dyn PDF> = 
+            if scatter_record.pdf.is_some() {  // Get rid of this whole option<Arc> thing
+                scatter_record.pdf.expect("Failed to unwrap pdf")
+            } else {
+                Box::new(HittablePDF::new(lights, &rec.position))
+            };
+        let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, other_pdf ); 
+    
+        let scattered = Ray::new(rec.position, mixture_pdf.generate(rng), ray.time);
+        let pdf_val = mixture_pdf.value(rng, &scattered.direction);
+    
+        return 
             emitted + 
             scatter_record.attenuation * 
-            hit.material.scattering_pdf(rng, &hit, &scattered) * 
-            ray_color_recursive(rng, background, &scattered, world, lights, lights_count, depth - 1) /
+            materials_service.scattering_pdf(rng, ray, &rec, &scattered) *
+            ray_color_recursive(rng, materials_service, background, &scattered, world, lights, lights_count, depth - 1) /
             pdf_val;
-        } else {
-            let pdf: Arc<dyn PDF> =
-                scatter_record.pdf.expect("Failed to unwrap pdf");
+    } else {
+        let pdf: Box<dyn PDF> = scatter_record.pdf.expect("Failed to unwrap pdf");
+        let scattered = Ray::new(rec.position, pdf.generate(rng), ray.time);
+        let pdf_val = pdf.value(rng, &scattered.direction);
 
-            let scattered = Ray::new(hit.position, pdf.generate(rng), ray.time);
-
-            let mut hit_pdf:HitRecord = HitRecord { t: 0.0, u: 0.0, v: 0.0, position: Vector3::zero(), normal: Vector3::zero(), is_front_face: false, material: default_material };
-            let pdf_val = pdf.value(rng, &scattered.direction, &mut hit_pdf);
-
-            return 
+        return 
             emitted + 
             scatter_record.attenuation * 
-            hit.material.scattering_pdf(rng, &hit, &scattered) * 
-            ray_color_recursive(rng, background, &scattered, world, lights, lights_count, depth - 1) /
+            materials_service.scattering_pdf(rng, ray, &rec, &scattered) *
+            ray_color_recursive(rng, materials_service, background, &scattered, world, lights, lights_count, depth - 1) /
             pdf_val;
-        }
-    } 
+    }
 
-    *background
 }
 
 fn render_pixel(
     rng: &mut ThreadRng, 
+    materials_service: &MaterialService,
     background: &Color, 
     pixel_index: i64, 
     image_width: i64, 
@@ -715,14 +676,14 @@ fn render_pixel(
             let u = (column_index as f64 + seed0 ) / ((image_width - 1) as f64);
             let v = (row_index as f64 + seed1 ) / ((image_height - 1) as f64);
             let ray = camera.get_ray(&mut rng, u, v);
-            ray_color_recursive(&mut rng, background, &ray, world, lights, lights_count, max_depth)
+            ray_color_recursive(&mut rng, materials_service, background, &ray, world, lights, lights_count, max_depth)
         }).sum();
     } else {
         for _sample_index in 0..samples_per_pixel {
             let u = (column_index as f64 + rng.gen::<f64>() ) / ((image_width - 1) as f64);
             let v = (row_index as f64 + rng.gen::<f64>() ) / ((image_height - 1) as f64);
             let ray = camera.get_ray(rng, u, v);
-            color_buffer += ray_color_recursive(rng, background, &ray, world, lights, lights_count, max_depth);
+            color_buffer += ray_color_recursive(rng, materials_service, background, &ray, world, lights, lights_count, max_depth);
         }
     }
 
@@ -730,6 +691,7 @@ fn render_pixel(
     if color_buffer.y != color_buffer.y { color_buffer.y = 0.0; }
     if color_buffer.z != color_buffer.z { color_buffer.z = 0.0; }
 
+    // Try and apply this scaling to the colors before summation
     color_buffer.x = 255.999 * clamp(0.0, (scale * color_buffer.x).sqrt(), 0.999);
     color_buffer.y = 255.999 * clamp(0.0, (scale * color_buffer.y).sqrt(), 0.999);
     color_buffer.z = 255.999 * clamp(0.0, (scale * color_buffer.z).sqrt(), 0.999);
@@ -743,13 +705,15 @@ fn render_pixel(
 // Unit testing
 // Performance optimization
 // Reduce the amount of ARC
-// Use material indices
+// Use texture indices
+// Use hittable indices
 // Replace vector3 with nalgebra or something numpy-like
 // Change color to its own type
 // Try to convert from dynamic dispatch to static dispatch
 // Try to convert to SIMD
 // Refactor
 // Enforce fused multiply-adds
+// Gather all the scene relevant stuff into a scene struct in a different file. This is getting ridiculous
 fn main() {
     // Display Image
     let mut aspect_ratio = 16.0 / 9.0;
@@ -772,8 +736,8 @@ fn main() {
     let random_balls_count = 11;
     let noise_points_count = 256;
     let cube_sphere_count = 1000;
-    let scene_index = 1;
-    let (mut world, lights, camera, background) = match scene_index {
+    let scene_index = 11;
+    let (mut world, materials_service, lights, camera, background) = match scene_index {
         0 => random_spheres_scene(aspect_ratio, random_balls_count),
         1 => random_moving_spheres_scene(aspect_ratio, random_balls_count),
         2 => two_spheres_scene(aspect_ratio),
@@ -802,13 +766,13 @@ fn main() {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
             image_height = image_height + image_height % 2;
-            final_scene_book_2(aspect_ratio, noise_points_count, cube_sphere_count)
+            cornell_box_diffuse_metal_boxes_scene(aspect_ratio)
         },
         10 => {
             aspect_ratio = 1.0;
             image_height = ((image_width as f64) / aspect_ratio) as i64;
             image_height = image_height + image_height % 2;
-            cornell_box_diffuse_metal_boxes_scene(aspect_ratio)
+            final_scene_book_2(aspect_ratio, noise_points_count, cube_sphere_count)
         },
         11 => {
             aspect_ratio = 1.0;
@@ -831,12 +795,42 @@ fn main() {
     if run_parallel {
         (0..total_pixels).into_par_iter().map(|pixel_index:i64| {
             let mut rng = rand::thread_rng();
-            render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, &lights_arc, lights_count, max_depth, scale, run_samples_parallel)
+            render_pixel(
+                &mut rng, 
+                &materials_service, 
+                &background, 
+                pixel_index, 
+                image_width, 
+                image_height, 
+                samples_per_pixel, 
+                &camera, 
+                &world, 
+                &lights_arc, 
+                lights_count, 
+                max_depth, 
+                scale, 
+                run_samples_parallel
+            )
         }).collect()
     } else {
         let mut rng = rand::thread_rng();
         (0..total_pixels).into_iter().map(|pixel_index:i64| {
-            render_pixel(&mut rng, &background, pixel_index, image_width, image_height, samples_per_pixel, &camera, &world, &lights_arc, lights_count, max_depth, scale, run_samples_parallel)
+            render_pixel(
+                &mut rng, 
+                &materials_service, 
+                &background, 
+                pixel_index, 
+                image_width, 
+                image_height, 
+                samples_per_pixel, 
+                &camera, 
+                &world, 
+                &lights_arc, 
+                lights_count, 
+                max_depth, 
+                scale, 
+                run_samples_parallel
+            )
         }).collect()
     };
     println!("{} seconds elapsed", now.elapsed().as_millis() as f64 * 0.001);

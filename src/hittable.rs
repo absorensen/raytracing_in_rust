@@ -3,7 +3,6 @@ use rand::rngs::ThreadRng;
 
 use crate::vector3::Vector3;
 use crate::ray::Ray;
-use crate::material::{Material, DefaultMaterial};
 use crate::aabb::AABB;
 
 use std::sync::Arc;
@@ -16,10 +15,14 @@ pub struct HitRecord {
     pub position: Vector3,
     pub normal: Vector3,
     pub is_front_face: bool,
-    pub material: Arc<dyn Material>,
+    pub material: usize,
 }
 
 impl HitRecord{
+    pub fn default() -> Self {
+        HitRecord { t: 0.0, u: 0.0, v: 0.0, position: Vector3::zero(), normal: Vector3::zero(), is_front_face: false, material: 0 }
+    }
+
     pub fn new(
         ray: &Ray,
         t: f64,
@@ -27,19 +30,25 @@ impl HitRecord{
         v: f64,
         position: &Vector3,
         normal: &Vector3,
-        material: &Arc<dyn Material>
+        material: usize
     ) -> Self {
-        let mut result = HitRecord{ t, u, v, position: position.clone(), normal: normal.clone(), is_front_face: true, material: Arc::clone(material) };
+        let mut result = HitRecord{ t, u, v, position: position.clone(), normal: normal.clone(), is_front_face: false, material };
         result.set_face_normal(ray, normal);
         result
     }
     
     pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vector3) {
         self.is_front_face = Vector3::dot(&ray.direction, outward_normal) < 0.0;
+
+        // Convert this to a multiplication of -1 or 1
         if self.is_front_face {
-            self.normal = outward_normal.clone();
+            self.normal.x = outward_normal.x;
+            self.normal.y = outward_normal.y;
+            self.normal.z = outward_normal.z;
         } else {
-            self.normal = -outward_normal.clone();
+            self.normal.x = -outward_normal.x;
+            self.normal.y = -outward_normal.y;
+            self.normal.z = -outward_normal.z;
         }
     }
 }
@@ -48,8 +57,8 @@ pub trait Hittable: Sync + Send {
     // Maybe convert these to take an output argument
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool;
     fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool;
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 { 0.0 }
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _origin: &Vector3,_vv: &Vector3) -> f64 { 0.0 }
+    fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 }
 
 #[derive(Default)]
@@ -77,11 +86,25 @@ impl HittableList {
 
 impl Hittable for HittableList {
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+        let mut temp_record = HitRecord::default();
+        let mut hit_anything = false;
         let mut closest_so_far = t_max;
+
         for hittable in self.objects.iter() {
-            hittable.hit(rng, ray, t_min, closest_so_far, hit_out);
+            if hittable.hit(rng, ray, t_min, closest_so_far, &mut temp_record) {
+                hit_anything = true;
+                closest_so_far = temp_record.t;
+                hit_out.t = temp_record.t;
+                hit_out.u = temp_record.u;
+                hit_out.v = temp_record.v;
+                hit_out.position = temp_record.position;
+                hit_out.normal = temp_record.normal;
+                hit_out.is_front_face = temp_record.is_front_face;
+                hit_out.material = temp_record.material;
+            }
         }
-        hit_out.t < t_max
+
+        hit_anything
     }
 
     fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
@@ -112,11 +135,12 @@ impl Hittable for HittableList {
         !first_box
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
         let mut sum = 0.0;
-        let inverse_length = 1.0 / self.objects.len() as f64;
+
         for object_index in 0..self.objects.len(){
-            sum += self.objects[object_index].pdf_value(rng, origin, v, hit_out) * inverse_length;
+            sum += weight * self.objects[object_index].pdf_value(rng, origin, v);
         }
 
         sum
@@ -130,7 +154,7 @@ impl Hittable for HittableList {
 }
 
 pub struct XYRect {
-    material: Arc<dyn Material>,
+    material: usize,
     x0: f64,
     x1: f64,
     y0: f64,
@@ -139,8 +163,8 @@ pub struct XYRect {
 }
 
 impl XYRect {
-    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, material: &Arc<dyn Material>) -> XYRect {
-        XYRect { material: Arc::clone(material), x0, x1, y0, y1, k }
+    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, material: usize) -> XYRect {
+        XYRect { material, x0, x1, y0, y1, k }
     }
 
 }
@@ -168,7 +192,7 @@ impl Hittable for XYRect {
         hit_out.v = v;
         hit_out.position = ray.at(t);
         hit_out.set_face_normal(ray, &outward_normal);
-        hit_out.material = Arc::clone(&self.material);
+        hit_out.material = self.material;
 
         true
     }
@@ -180,7 +204,7 @@ impl Hittable for XYRect {
 
         box_out.maximum.x = self.x1;
         box_out.maximum.y = self.y1;
-        box_out.maximum.z = self.k+0.0001;
+        box_out.maximum.z = self.k + 0.0001;
 
         true
     }
@@ -188,7 +212,7 @@ impl Hittable for XYRect {
 }
 
 pub struct XZRect {
-    material: Arc<dyn Material>,
+    material: usize,
     x0: f64,
     x1: f64,
     z0: f64,
@@ -197,8 +221,8 @@ pub struct XZRect {
 }
 
 impl XZRect {
-    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, material: &Arc<dyn Material>) -> XZRect {
-        XZRect { material: Arc::clone(material), x0, x1, z0, z1, k }
+    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, material: usize) -> XZRect {
+        XZRect { material, x0, x1, z0, z1, k }
     }
 
 }
@@ -226,11 +250,14 @@ impl Hittable for XZRect {
         hit_out.v = v;
         hit_out.position = ray.at(t);
         hit_out.set_face_normal(ray, &outward_normal);
-        hit_out.material = Arc::clone(&self.material);
+        hit_out.material = self.material;
 
         true
     }
 
+
+
+    
     fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.x0;
         box_out.minimum.y = self.k - 0.0001;
@@ -243,18 +270,20 @@ impl Hittable for XZRect {
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
         let ray = Ray::new(origin.clone(), v.clone(), 0.0);
-        if self.hit(rng, &ray, 0.001, f64::INFINITY, hit_out) {
-
-            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
-            let distance_squared = hit_out.t * hit_out.t * v.length_squared();
-            let cosine = (Vector3::dot(v, &hit_out.normal) / v.length()).abs();
-
-            return distance_squared / (cosine * area);
+        let hit = &mut HitRecord::default();
+        
+        if !self.hit(rng, &ray, 0.001, f64::INFINITY, hit) {
+            return 0.0;
         }
 
-        0.0
+        let area = (self.x1 - self.x0) * (self.z1 - self.z0);
+        let distance_squared = hit.t * hit.t * v.length_squared();
+        let cosine = (Vector3::dot(v, &hit.normal) / v.length()).abs();
+
+        return distance_squared / (cosine * area);
+
     }
 
     fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
@@ -266,7 +295,7 @@ impl Hittable for XZRect {
 }
 
 pub struct YZRect {
-    material: Arc<dyn Material>,
+    material: usize,
     y0: f64,
     y1: f64,
     z0: f64,
@@ -275,8 +304,8 @@ pub struct YZRect {
 }
 
 impl YZRect {
-    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64,  k: f64, material: &Arc<dyn Material>) -> YZRect {
-        YZRect { material: Arc::clone(material), y0, y1, z0, z1, k }
+    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, material: usize) -> YZRect {
+        YZRect { material, y0, y1, z0, z1, k }
     }
 
 }
@@ -305,7 +334,7 @@ impl Hittable for YZRect {
         hit_out.v = v;
         hit_out.position = ray.at(t);
         hit_out.set_face_normal(ray, &outward_normal);
-        hit_out.material = Arc::clone(&self.material);
+        hit_out.material = self.material;
 
         true
     }
@@ -324,31 +353,45 @@ impl Hittable for YZRect {
 
 }
 
-pub struct Box {
+pub struct BoxHittable {
     sides: HittableList,
     box_min: Vector3,
     box_max: Vector3,
 }
 
-impl Box {
-    pub fn new(point_0: Vector3, point_1: Vector3, material: &Arc<dyn Material>) -> Box {
+impl BoxHittable {
+    pub fn new(point_0: Vector3, point_1: Vector3, material: usize) -> BoxHittable {
         let mut sides : HittableList = HittableList::default();
 
-        sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material));
-        sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material));
+        // sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material));
+        // sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material));
         
+        // sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material));
+        // sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material));
+        
+        // sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_1.x, material));
+        // sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material));
+
+        sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material));
+        let back: Arc<dyn Hittable> = Arc::new(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material));
+        sides.push(FlipFace::new(&back));
+
         sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material));
-        sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material));
+        let top: Arc<dyn Hittable> = Arc::new(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material));
+        sides.push(FlipFace::new(&top));
         
         sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_1.x, material));
-        sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material));
+        let left: Arc<dyn Hittable> = Arc::new(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material));
+        sides.push(FlipFace::new(&left));
 
-        Box { box_min: point_0, box_max: point_1, sides: sides }
+    
+
+        BoxHittable { box_min: point_0, box_max: point_1, sides: sides }
     }
 
 }
 
-impl Hittable for Box {
+impl Hittable for BoxHittable {
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         self.sides.hit(rng, ray, t_min, t_max, hit_out)
     }
@@ -403,7 +446,7 @@ impl Hittable for Translate {
         box_out.minimum += self.offset;
         box_out.maximum += self.offset;
 
-        return true;
+        true
     }
 
 }
@@ -487,19 +530,19 @@ impl Hittable for RotateY {
         normal[0] = self.cos_theta * hit_out.normal[0] + self.sin_theta * hit_out.normal[2];
         normal[2] = -self.sin_theta * hit_out.normal[0] + self.cos_theta * hit_out.normal[2];
 
+        hit_out.position = position;
         // Cloning the normal here is poop, and should be refactored somehow.
         // The issues is hit is borrowed mutably for set_face_normal, making 
         // impossible the immutable borrow for outward_normal
         hit_out.set_face_normal(&rotated_ray, &normal);
 
-        hit_out.position = position;
-        hit_out.normal = normal;
-
 
         true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+        if !self.has_bbox { return false; }
+
         box_out.minimum.x = self.bbox.minimum.x;
         box_out.minimum.y = self.bbox.minimum.y;
         box_out.minimum.z = self.bbox.minimum.z;
@@ -516,15 +559,15 @@ impl Hittable for RotateY {
 
 pub struct ConstantMedium {
     boundary: Arc<dyn Hittable>,
-    phase_function: Arc<dyn Material>,
+    phase_function: usize,
     negative_inverse_density: f64,
 }
 
 impl ConstantMedium {
-    pub fn new(model: &Arc<dyn Hittable>, phase_function: &Arc<dyn Material>, density: f64) -> ConstantMedium {
+    pub fn new(model: &Arc<dyn Hittable>, phase_function: usize, density: f64) -> ConstantMedium {
         ConstantMedium { 
             boundary: Arc::clone(model), 
-            phase_function: Arc::clone(phase_function), 
+            phase_function, 
             negative_inverse_density: -1.0 / density 
         }
     }
@@ -534,12 +577,16 @@ impl Hittable for ConstantMedium {
     fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
 
         // TODO: Try using hit_out in both hits
-        let default_material: Arc<dyn Material> = Arc::new(DefaultMaterial{});
-        let mut hit_1 = HitRecord::new(ray, 0.0, 0.0, 0.0, &Vector3::zero(), &Vector3::zero(), &default_material);
-        let hit_1_hit = self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY, &mut hit_1);
+        let zero_vector = Vector3::zero();
+        let mut hit_1 = HitRecord::new(ray, 0.0, 0.0, 0.0, &zero_vector, &zero_vector, 0);
+        if !self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY, &mut hit_1) {
+            return false;
+        }
 
-        let mut hit_2 = HitRecord::new(ray, 0.0, 0.0, 0.0, &Vector3::zero(), &Vector3::zero(), &default_material);
-        let hit_2_hit = self.boundary.hit(rng, ray, hit_1.t+0.0001, f64::INFINITY, &mut hit_2);
+        let mut hit_2 = HitRecord::new(ray, 0.0, 0.0, 0.0, &zero_vector, &zero_vector, 0);
+        if !self.boundary.hit(rng, ray, hit_1.t+0.0001, f64::INFINITY, &mut hit_2) {
+            return false;
+        }
 
 
         if hit_1.t < t_min { hit_1.t = t_min; };
@@ -561,8 +608,9 @@ impl Hittable for ConstantMedium {
         hit_out.u = 0.0;
         hit_out.v = 0.0;
         hit_out.position = ray.at(t);
-        hit_out.set_face_normal(ray, &Vector3 { x: 1.0, y: 0.0, z: 0.0 });
-        hit_out.material = Arc::clone(&self.phase_function);
+        hit_out.normal = Vector3 { x: 1.0, y: 0.0, z: 0.0 };
+        hit_out.is_front_face = true;
+        hit_out.material = self.phase_function;
 
         true
     }
@@ -571,9 +619,9 @@ impl Hittable for ConstantMedium {
         self.boundary.bounding_box(time_0, time_1, box_out)
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 { 0.0 }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
 
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 
 }
 
@@ -585,7 +633,6 @@ impl FlipFace {
     pub fn new(model: &Arc<dyn Hittable>) -> FlipFace {
         FlipFace{model: Arc::clone(model)}
     }
-
 }
 
 impl Hittable for FlipFace {

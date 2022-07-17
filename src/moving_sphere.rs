@@ -1,9 +1,7 @@
 use std::f64::consts::PI;
-use std::sync::Arc;
 
 use rand::rngs::ThreadRng;
 
-use crate::material::Material;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::hittable::{HitRecord, Hittable};
@@ -13,18 +11,18 @@ pub struct MovingSphere {
     pub radius: f64,
     pub center_0: Vector3,
     pub center_1: Vector3,
-    pub material: Arc<dyn Material>,
+    pub material: usize,
     pub time_0: f64,
     pub time_1: f64,
 }
 
 impl MovingSphere {
-    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3, material: &Arc<dyn Material>, time_0: f64, time_1: f64) -> Self { 
+    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3, material: usize, time_0: f64, time_1: f64) -> Self { 
         MovingSphere {
             radius, 
             center_0,
             center_1,
-            material: Arc::clone(material),
+            material,
             time_0,
             time_1 
         } 
@@ -75,7 +73,7 @@ impl Hittable for MovingSphere{
         hit_out.v = v;
         hit_out.position = position;
         hit_out.set_face_normal(ray, &normal);
-        hit_out.material = Arc::clone(&self.material);
+        hit_out.material = self.material;
 
         true
     }
@@ -100,7 +98,7 @@ impl Hittable for MovingSphere{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3, hit_out: &mut HitRecord) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
         0.0
     }
 
