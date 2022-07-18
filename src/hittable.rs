@@ -61,6 +61,16 @@ pub trait Hittable: Sync + Send {
     fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 }
 
+pub struct DefaultHittable {
+}
+
+impl Hittable for DefaultHittable {
+    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool { false }
+    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool { false }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _origin: &Vector3,_vv: &Vector3) -> f64 { 0.0 }
+    fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+}
+
 #[derive(Default)]
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable>>,

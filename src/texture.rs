@@ -8,26 +8,46 @@ pub trait Texture : Sync + Send {
     fn value(&self, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool;
 }
 
+pub struct DefaultTexture {
+}
 
-pub struct SolidColor {
+impl DefaultTexture {
+    pub fn default() -> Self {
+        DefaultTexture{}
+    }
+}
+
+impl Texture for DefaultTexture {
+    fn value(&self, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
+        color_out.x = 0.0;
+        color_out.y = 1.0;
+        color_out.z = 0.0;
+
+        true
+    }
+}
+
+
+
+pub struct SolidColorTexture {
     color: Color,
 }
 
-impl SolidColor {
+impl SolidColorTexture {
     pub fn default() -> Self {
-        SolidColor{color: Color{x: 0.0, y: 0.0, z: 0.0}}
+        SolidColorTexture{color: Color{x: 0.0, y: 0.0, z: 0.0}}
     }
 
     pub fn new(red: f64, green: f64, blue: f64) -> Self {
-        SolidColor{color: Color{x: red, y: blue, z: green}}
+        SolidColorTexture{color: Color{x: red, y: blue, z: green}}
     }
 
     pub fn from_color(color: &Color) -> Self {
-        SolidColor{ color: color.clone() }
+        SolidColorTexture{ color: color.clone() }
     }
 }
 
-impl Texture for SolidColor {
+impl Texture for SolidColorTexture {
     fn value(&self, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
         color_out.x = self.color.x;
         color_out.y = self.color.y;
@@ -44,8 +64,8 @@ pub struct CheckerTexture {
 
 impl CheckerTexture {
     pub fn from_colors(c1: &Color, c2: &Color) -> Self {
-        let odd: Arc<dyn Texture> = Arc::new(SolidColor::from_color(c1));
-        let even: Arc<dyn Texture> = Arc::new(SolidColor::from_color(c2));
+        let odd: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(c1));
+        let even: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(c2));
         CheckerTexture{odd, even}
     }
 
