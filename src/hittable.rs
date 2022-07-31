@@ -136,14 +136,13 @@ impl Hittable for HittableList {
     }
 
     fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f64 {
-        let weight = 1.0 / self.hittable_indices.len() as f64; // Maybe just do a single division at the end
         let mut sum = 0.0;
 
         for object_index in 0..self.hittable_indices.len(){
-            sum += weight * hittable_service.pdf_value(self.hittable_indices[object_index], rng, origin, v);
+            sum += hittable_service.pdf_value(self.hittable_indices[object_index], rng, origin, v);
         }
 
-        sum
+        sum / self.hittable_indices.len() as f64
     }
 
     fn random(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3) -> Vector3 {
@@ -367,24 +366,21 @@ impl BoxHittable {
         let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material)));
         sides.push(hittable_index);
 
-
         let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material)));
-        let hittable_index = hittable_service.add_hittable(HittableEnum::FlipFace(FlipFace::new(hittable_index)));
         sides.push(hittable_index);
 
 
         let hittable_index = hittable_service.add_hittable(HittableEnum::XZRect(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material)));
         sides.push(hittable_index);
-
-        let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material)));
-        let hittable_index = hittable_service.add_hittable(HittableEnum::FlipFace(FlipFace::new(hittable_index)));
+        
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XZRect(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material)));
         sides.push(hittable_index);
 
-        let hittable_index = hittable_service.add_hittable(HittableEnum::XZRect(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material)));
+        
+        let hittable_index = hittable_service.add_hittable(HittableEnum::YZRect(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_1.x, material)));
         sides.push(hittable_index);
 
-        let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material)));
-        let hittable_index = hittable_service.add_hittable(HittableEnum::FlipFace(FlipFace::new(hittable_index)));
+        let hittable_index = hittable_service.add_hittable(HittableEnum::YZRect(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material)));
         sides.push(hittable_index);
 
         let root_node = HittableEnum::BVHNode(BVHNode::from_index_list(rng, hittable_service, &mut sides, 0.0, 1.0));
@@ -624,9 +620,9 @@ impl Hittable for ConstantMedium {
         //self.boundary.bounding_box(time_0, time_1, box_out)
     }
 
-    // fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
 
-    // fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 
 }
 

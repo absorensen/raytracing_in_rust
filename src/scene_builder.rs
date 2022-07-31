@@ -395,7 +395,7 @@ impl SceneBuilder {
     
         let unflipped_light_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, diffuse_light_material_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(unflipped_light_index))));
-        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, diffuse_light_material_index))));
+        light_index_list.push(unflipped_light_index);
     
         (rng, service_locator, hittable_index_list, light_index_list)
     }
@@ -512,11 +512,11 @@ impl SceneBuilder {
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(white_wall_3_index))));
     
     
-        let unflipped_light_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index)));
+        let unflipped_light_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(unflipped_light_index))));
-        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(213.0, 343.0, 227.0, 332.0, 554.0, diffuse_light_material_index))));
-    
-    
+        light_index_list.push(unflipped_light_index);
+
+
         let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, white_material_index);
         let box_1_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
         let box_1_rotation = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, box_1_index);
@@ -588,10 +588,10 @@ impl SceneBuilder {
                     )
                 );
 
-                    floor_cubes_indices.push(
-                        service_locator.get_hittable_service_mut().add_hittable(
-                            element
-                    ));
+                floor_cubes_indices.push(
+                    service_locator.get_hittable_service_mut().add_hittable(
+                        element
+                ));
             }
         }
     
@@ -603,7 +603,7 @@ impl SceneBuilder {
         let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new( diffuse_light_texture_index )));
         let unflipped_light_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(unflipped_light_index))));
-        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index))));
+        light_index_list.push(unflipped_light_index);
     
         let center_0 = Vector3{x: 400.0, y: 400.0, z: 200.0};
         let center_1 = center_0 + Vector3{x: 30.0, y: 0.0, z: 0.0};
@@ -673,9 +673,6 @@ impl SceneBuilder {
         let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
         let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
     
-        let diffuse_light_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 15.0, y: 15.0, z: 15.0 })));
-        let diffuse_light_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new( diffuse_light_texture_index )));
-    
         let index_of_refraction = 1.5;
         let glass_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
     
@@ -686,9 +683,9 @@ impl SceneBuilder {
         let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3 { x: 265.0, y: 0.0, z: 295.0 }, box_1_rotation_index)));
         hittable_index_list.push(box_1_translated_index);
     
-    
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, glass_material_index))));
-        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, diffuse_light_material_index))));
+        let sphere_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 190.0, y: 90.0, z: 190.0}, 90.0, glass_material_index)));
+        hittable_index_list.push(sphere_index);
+        light_index_list.push(sphere_index);
     
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
 

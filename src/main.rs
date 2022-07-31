@@ -87,8 +87,7 @@ fn ray_color_recursive(
                 depth - 1
             );
     }
-    // let has_lights = false;
-
+    
     // Maybe put the non-recursive loop after this if statement and move the above in there
     if has_lights {
         let light_pdf: Box<dyn PDF> = Box::new(HittablePDF::new(&rec.position, lights_root_index));
@@ -242,7 +241,7 @@ fn main() {
 
     // Render Settings
     let samples_per_pixel = 100;
-    let max_depth = 30;
+    let max_depth = 50;
 
     // Compute Settings
     let run_pixel_parallel = true;
@@ -251,7 +250,7 @@ fn main() {
 
 
     // Scene
-    let scene_index = 1;
+    let scene_index = 11;
 
     let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(aspect_ratio, image_width, scene_index);
     
