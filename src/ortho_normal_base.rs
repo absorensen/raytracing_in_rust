@@ -18,10 +18,6 @@ impl OrthoNormalBase {
         OrthoNormalBase { u, v, w }
     }
 
-    pub fn local_doubles(&self, a: f64, b: f64, c: f64) -> Vector3 {
-        a * self.u + b * self.v + c * self.w
-    }
-
     pub fn local_vector(&self, a: &Vector3) -> Vector3 {
         a.x * self.u + a.y * self.v + a.z * self.w
     }

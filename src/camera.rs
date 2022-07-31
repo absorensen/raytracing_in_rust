@@ -13,7 +13,7 @@ pub struct Camera {
     lower_left_corner: Point3,
     u: Vector3,
     v: Vector3,
-    w: Vector3,
+    _w: Vector3,
     lens_radius: f64,
     time_0: f64,
     time_1: f64,
@@ -38,12 +38,12 @@ impl Camera {
         let lens_radius = aperture * 0.5;
 
         Camera{
-            origin: origin, 
-            horizontal: horizontal, 
-            vertical: vertical, 
-            lower_left_corner: lower_left_corner, 
-            u: u, v:v, w:w, 
-            lens_radius:lens_radius, 
+            origin, 
+            horizontal, 
+            vertical, 
+            lower_left_corner, 
+            u, v, _w:w, 
+            lens_radius, 
             time_0, time_1
         }
     }

@@ -3,12 +3,8 @@ use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use pdf::{PDF, HittablePDF, MixturePDF};
 // Look into performance optimization of the RNG
 use rand::prelude::*;
-use rand_chacha::{ChaCha20Rng};
-use scene_service::SceneService;
-use texture::{SolidColorTexture, NoiseTexture};
 use std::f64;
-use std::sync::Arc;
-use std::time::{Instant};
+use std::time::Instant;
 use rayon::prelude::*;
 
 mod ortho_normal_base;
@@ -31,32 +27,29 @@ mod service_locator;
 mod scene_service;
 mod scene_builder;
 
-use texture::{Texture, CheckerTexture, ImageTexture};
-use bvh_node::{BVHNode};
-use vector3::{Vector3, Point3, Color};
+use vector3::{Vector3, Color};
 use ray::Ray;
-use sphere::Sphere;
-use hittable::{Hittable, HittableList, XYRect, XZRect, YZRect, BoxHittable, RotateY, Translate, ConstantMedium, FlipFace, HitRecord};
-use moving_sphere::MovingSphere;
-use camera::Camera;
-use material::{Lambertian, Metal, Dielectric, DiffuseLight, Isotropic, ScatterRecord};
-use material_service::{MaterialService, MaterialEnum};
-use texture_service::{TextureService, TextureEnum};
-use hittable_service::{HittableService, HittableEnum};
+use hittable::HitRecord;
+use material::ScatterRecord;
+use material_service::MaterialService;
+use texture_service::TextureService;
+use hittable_service::HittableService;
 use service_locator::ServiceLocator;
 
 use crate::scene_builder::SceneBuilder;
 
-
 // Try splitting this into a mixture and non-mixture pdfs function, as some scenes don't have lights (though they should)
 fn ray_color_recursive(
     rng: &mut ThreadRng,
-    materials_service: &MaterialService,
+    service_locator: &ServiceLocator,
+    material_service: &MaterialService,
+    hittable_service: &HittableService,
+    texture_service: &TextureService,
+    bvh_root_index: usize,
+    lights_root_index: usize,
+    has_lights: bool,
     background: &Color, 
     ray: &Ray, 
-    world: & dyn Hittable, 
-    lights: &Arc<dyn Hittable>,
-    lights_count: usize, 
     depth: i64) -> Color {
 
     if depth <= 0 {
@@ -66,52 +59,90 @@ fn ray_color_recursive(
     let mut rec:HitRecord = HitRecord::default();
     
     
-    if !world.hit(rng, ray, 0.001, f64::MAX, &mut rec) {
+    if !hittable_service.hit(bvh_root_index, rng, ray, 0.001, f64::MAX, &mut rec) {
         return *background;
     }
 
 
     let mut scatter_record= ScatterRecord::default();
-    let emitted: Color = materials_service.emission(ray, &rec, rec.u, rec.v, &rec.position);
+    let emitted: Color = material_service.emission(ray, &rec, rec.u, rec.v, &rec.position);
     
-    if !materials_service.scatter(rng, ray, &rec, &mut scatter_record) {
+    if !material_service.scatter(rng, ray, &rec, &mut scatter_record) {
         return emitted;
     }
 
     if scatter_record.is_specular {
-        return scatter_record.attenuation * ray_color_recursive(rng, materials_service, background, &scatter_record.specular_ray, world, lights, lights_count, depth - 1);
+        return scatter_record.attenuation * 
+            ray_color_recursive(
+                rng, 
+                service_locator, 
+                material_service, 
+                hittable_service, 
+                texture_service, 
+                bvh_root_index, 
+                lights_root_index,
+                has_lights,
+                background,
+                &scatter_record.specular_ray, 
+                depth - 1
+            );
     }
+    // let has_lights = false;
 
     // Maybe put the non-recursive loop after this if statement and move the above in there
-    if 0 < lights_count {
-        let light_pdf: Box<dyn PDF> = Box::new(HittablePDF::new(lights, &rec.position));
+    if has_lights {
+        let light_pdf: Box<dyn PDF> = Box::new(HittablePDF::new(&rec.position, lights_root_index));
         let other_pdf: Box<dyn PDF> = 
             if scatter_record.pdf.is_some() {  // Get rid of this whole option<Arc> thing
                 scatter_record.pdf.expect("Failed to unwrap pdf")
             } else {
-                Box::new(HittablePDF::new(lights, &rec.position))
+                Box::new(HittablePDF::new(&rec.position, lights_root_index))
             };
-        let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, other_pdf ); 
+        let pdfs = vec![light_pdf, other_pdf]; 
+        let mixture_pdf: MixturePDF = MixturePDF::new( pdfs ); 
     
-        let scattered = Ray::new(rec.position, mixture_pdf.generate(rng), ray.time);
-        let pdf_val = mixture_pdf.value(rng, &scattered.direction);
+        let scattered = Ray::new(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
+        let pdf_val = mixture_pdf.value(rng, hittable_service, &scattered.direction);
     
         return 
             emitted + 
             scatter_record.attenuation * 
-            materials_service.scattering_pdf(rng, ray, &rec, &scattered) *
-            ray_color_recursive(rng, materials_service, background, &scattered, world, lights, lights_count, depth - 1) /
+            material_service.scattering_pdf(rng, ray, &rec, &scattered) *
+            ray_color_recursive(
+                rng, 
+                service_locator, 
+                material_service, 
+                hittable_service, 
+                texture_service, 
+                bvh_root_index, 
+                lights_root_index, 
+                has_lights, 
+                background, 
+                &scattered, 
+                depth - 1
+            ) /
             pdf_val;
     } else {
         let pdf: Box<dyn PDF> = scatter_record.pdf.expect("Failed to unwrap pdf");
-        let scattered = Ray::new(rec.position, pdf.generate(rng), ray.time);
-        let pdf_val = pdf.value(rng, &scattered.direction);
+        let scattered = Ray::new(rec.position, pdf.generate(rng, hittable_service), ray.time);
+        let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
 
         return 
             emitted + 
             scatter_record.attenuation * 
-            materials_service.scattering_pdf(rng, ray, &rec, &scattered) *
-            ray_color_recursive(rng, materials_service, background, &scattered, world, lights, lights_count, depth - 1) /
+            material_service.scattering_pdf(rng, ray, &rec, &scattered) *
+            ray_color_recursive(
+                rng, 
+                service_locator, 
+                material_service, 
+                hittable_service, 
+                texture_service, 
+                bvh_root_index, 
+                lights_root_index, 
+                has_lights, 
+                background, 
+                &scattered, 
+                depth - 1) /
             pdf_val;
     }
 
@@ -119,15 +150,11 @@ fn ray_color_recursive(
 
 fn render_pixel(
     rng: &mut ThreadRng, 
-    materials_service: &MaterialService,
-    scene_service: &SceneService,
+    service_locator: &ServiceLocator,
     pixel_index: i64, 
     image_width: i64, 
     image_height: i64, 
     samples_per_pixel: i64, 
-    world: &dyn Hittable, 
-    lights: &Arc<dyn Hittable>, 
-    lights_count: usize,
     max_depth: i64, 
     scale: f64, 
     use_parallel: bool) 
@@ -135,8 +162,21 @@ fn render_pixel(
     let column_index = pixel_index % image_width;
     let row_index = pixel_index / image_width;
 
+
+    let scene_service = service_locator.get_scene_service();
     let camera = scene_service.get_camera();
     let background = scene_service.get_background();
+
+    let material_service: &MaterialService = service_locator.get_material_service();
+    let texture_service: &TextureService = service_locator.get_texture_service();
+
+    let hittable_service: &HittableService = service_locator.get_hittable_service();
+    let bvh_root_index: usize = hittable_service.get_bvh_root_index();
+    let lights_root_index: usize = hittable_service.get_lights_root_index();
+    let has_lights: bool = hittable_service.has_lights();
+
+
+
 
     let mut color_buffer = Color{x: 0.0, y: 0.0, z: 0.0};
     if use_parallel {
@@ -146,14 +186,39 @@ fn render_pixel(
             let u = (column_index as f64 + seed0 ) / ((image_width - 1) as f64);
             let v = (row_index as f64 + seed1 ) / ((image_height - 1) as f64);
             let ray = camera.get_ray(&mut rng, u, v);
-            ray_color_recursive(&mut rng, materials_service, background, &ray, world, lights, lights_count, max_depth)
+            ray_color_recursive(
+                &mut rng, 
+                service_locator, 
+                material_service, 
+                hittable_service, 
+                texture_service, 
+                bvh_root_index, 
+                lights_root_index, 
+                has_lights, 
+                background, 
+                &ray, 
+                max_depth
+            )
         }).sum();
     } else {
         for _sample_index in 0..samples_per_pixel {
             let u = (column_index as f64 + rng.gen::<f64>() ) / ((image_width - 1) as f64);
             let v = (row_index as f64 + rng.gen::<f64>() ) / ((image_height - 1) as f64);
             let ray = camera.get_ray(rng, u, v);
-            color_buffer += ray_color_recursive(rng, materials_service, background, &ray, world, lights, lights_count, max_depth);
+            color_buffer += 
+                ray_color_recursive(
+                    rng, 
+                    service_locator, 
+                    material_service, 
+                    hittable_service, 
+                    texture_service, 
+                    bvh_root_index, 
+                    lights_root_index, 
+                    has_lights, 
+                    background, 
+                    &ray, 
+                    max_depth
+                );
         }
     }
 
@@ -170,31 +235,29 @@ fn render_pixel(
 }
 
 // TODO:
-// Injest config files
+// -- Injest config files
+// -- Image descriptor service
 // Project restructuring
 // Unit testing
 // Performance optimization
-// Reduce the amount of ARC
-// Use texture indices
-// Use hittable indices
+// ---- Reduce the amount of ARC
+// ---- Use texture indices
+// -- Reduce recursions to loops
 // Replace vector3 with nalgebra or something numpy-like
 // Change color to its own type
-// Try to convert from dynamic dispatch to static dispatch
+// ---- Try to convert from dynamic dispatch to static dispatch
 // Try to convert to SIMD
 // Refactor
 // Enforce fused multiply-adds
-// Gather all the scene relevant stuff into a scene struct in a different file. This is getting ridiculous
 fn main() {
     // Display Image
-    let mut aspect_ratio = 16.0 / 9.0;
+    let aspect_ratio = 16.0 / 9.0;
     let image_width: i64 = 500;
-    let mut image_height = ((image_width as f64) / aspect_ratio) as i64;
-    image_height = image_height + image_height % 2;
     let output_path = "output.png";
 
     // Render Settings
     let samples_per_pixel = 100;
-    let max_depth = 10;
+    let max_depth = 30;
 
     // Compute Settings
     let run_parallel = true;
@@ -203,23 +266,10 @@ fn main() {
 
 
     // Scene
-    let random_balls_count = 11;
-    let noise_points_count = 256;
-    let cube_sphere_count = 1000;
-    let scene_index = 10;
+    let scene_index = 8;
 
-    if 5 < scene_index {
-        aspect_ratio = 1.0;
-        image_height = ((image_width as f64) / aspect_ratio) as i64;
-        image_height = image_height + image_height % 2;
-    }
-
-    let (mut world, materials_service, lights, scene_service) = SceneBuilder::build_scene(scene_index);
-    let world = BVHNode::from_hittable_list(&mut world, scene_service.get_camera().get_start_time(), scene_service.get_camera().get_end_time());
-    let lights_count = lights.len();
-    let lights_arc : Arc<dyn Hittable> = Arc::new( lights );
-
-
+    let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(aspect_ratio, image_width, scene_index);
+    
     let scale = 1.0 / (samples_per_pixel as f64);
 
     let now = Instant::now();
@@ -230,15 +280,11 @@ fn main() {
             let mut rng = rand::thread_rng();
             render_pixel(
                 &mut rng, 
-                &materials_service, 
-                &scene_service,
+                &service_locator,
                 pixel_index, 
                 image_width, 
                 image_height, 
                 samples_per_pixel, 
-                &world, 
-                &lights_arc, 
-                lights_count, 
                 max_depth, 
                 scale, 
                 run_samples_parallel
@@ -249,15 +295,11 @@ fn main() {
         (0..total_pixels).into_iter().map(|pixel_index:i64| {
             render_pixel(
                 &mut rng, 
-                &materials_service,
-                &scene_service, 
+                &service_locator,
                 pixel_index, 
                 image_width, 
                 image_height, 
                 samples_per_pixel, 
-                &world, 
-                &lights_arc, 
-                lights_count, 
                 max_depth, 
                 scale, 
                 run_samples_parallel

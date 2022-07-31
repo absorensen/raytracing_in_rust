@@ -3,6 +3,7 @@ use std::f64::consts::PI;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
+use crate::hittable_service::HittableService;
 use crate::ortho_normal_base::OrthoNormalBase;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
@@ -29,7 +30,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere{
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let oc = ray.origin - self.center;
         let a = ray.direction.length_squared();
         let half_b = Vector3::dot(&ray.direction, &oc);
@@ -64,7 +65,7 @@ impl Hittable for Sphere{
     }
 
     
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.center.x - self.radius;
         box_out.minimum.y = self.center.y - self.radius;
         box_out.minimum.z = self.center.z - self.radius;
@@ -76,9 +77,9 @@ impl Hittable for Sphere{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f64 {
         let hit_out = &mut HitRecord::default();
-        if self.hit(rng, &Ray::new(*origin, *v, 0.5), 0.001, f64::INFINITY, hit_out) {
+        if self.hit(rng, hittable_service,  &Ray::new(*origin, *v, 0.5), 0.001, f64::INFINITY, hit_out) {
             let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
 
@@ -88,7 +89,7 @@ impl Hittable for Sphere{
         0.0
     }
 
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+    fn random(&self, rng: &mut ThreadRng, _hittable_service: &HittableService, origin: &Vector3) -> Vector3 {
         let direction = self.center - *origin;
         let distance_squared = direction.length_squared();
         let uvw = OrthoNormalBase::build_from_w(&direction);

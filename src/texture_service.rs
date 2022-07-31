@@ -29,12 +29,12 @@ impl TextureService {
     }
 
     #[inline]
-    pub fn fetch_texture(&self, index: usize) -> &TextureEnum {
+    pub fn _fetch_texture(&self, index: usize) -> &TextureEnum {
         &self.textures[index]
     }
 
     #[inline]
-    fn value(&self, texture_index: usize, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
+    fn _value(&self, texture_index: usize, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
         match &self.textures[texture_index] {
             TextureEnum::DefaultTexture(default) => default.value(u, v, p, color_out),
             TextureEnum::SolidColorTexture(solid_color) => solid_color.value(u, v, p, color_out),

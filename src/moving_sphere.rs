@@ -2,6 +2,7 @@ use std::f64::consts::PI;
 
 use rand::rngs::ThreadRng;
 
+use crate::hittable_service::HittableService;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::hittable::{HitRecord, Hittable};
@@ -43,7 +44,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere{
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let center = self.center(ray.time);
 
         let oc = ray.origin - center;
@@ -80,17 +81,17 @@ impl Hittable for MovingSphere{
 
 
 
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
         let center_0 = self.center(time_0);
         let center_1 = self.center(time_1);
 
-        box_out.minimum.x = self.center_0.x - self.radius;
-        box_out.minimum.y = self.center_0.y - self.radius;
-        box_out.minimum.z = self.center_0.z - self.radius;
+        box_out.minimum.x = center_0.x - self.radius;
+        box_out.minimum.y = center_0.y - self.radius;
+        box_out.minimum.z = center_0.z - self.radius;
 
-        box_out.maximum.x = self.center_0.x + self.radius;
-        box_out.maximum.y = self.center_0.y + self.radius;
-        box_out.maximum.z = self.center_0.z + self.radius;
+        box_out.maximum.x = center_0.x + self.radius;
+        box_out.maximum.y = center_0.y + self.radius;
+        box_out.maximum.z = center_0.z + self.radius;
 
         box_out.expand_by_point(&(center_1 - Vector3{x: self.radius, y: self.radius, z: self.radius}));
         box_out.expand_by_point(&(center_1 + Vector3{x: self.radius, y: self.radius, z: self.radius}));
@@ -98,11 +99,11 @@ impl Hittable for MovingSphere{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 {
         0.0
     }
 
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 {
         Vector3::new(1.0, 0.0, 0.0)
     }
 }

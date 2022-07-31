@@ -1,61 +1,107 @@
 use core::panic;
-use std::{sync::Arc, cmp::Ordering};
+use std::{cmp::Ordering};
 use rand::{Rng, rngs::ThreadRng};
-use crate::{hittable::{Hittable, HitRecord, HittableList}, aabb::AABB, ray::Ray, vector3::Vector3};
+use rand_chacha::ChaCha20Rng;
+use crate::{hittable::{Hittable, HitRecord}, aabb::AABB, ray::Ray, hittable_service::{HittableService, HittableEnum}};
 
 
 pub struct BVHNode {
-    left : Arc<dyn Hittable>,
-    right : Arc<dyn Hittable>,
+    left_index : usize,
+    right_index : usize,
     bbox: AABB,
 }
 
 impl BVHNode {
-    pub fn from_hittable_list(list: &mut HittableList, time_0: f64, time_1: f64) -> Self {
-        let mut rng = rand::thread_rng();
-        let elements_count = list.len();
-        Self::new(&mut rng, list.as_slice_mut(), 0, elements_count, time_0, time_1)
+    pub fn from_index_list(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, index_list: &mut Vec<usize>, time_0: f64, time_1: f64) -> Self {
+        let elements_count = index_list.len();
+        let slice = index_list.as_mut_slice();
+        Self::new(rng, hittable_service, slice, 0, elements_count, time_0, time_1)
     }
 
     // This doesn't need to be the fastest in the world right now as it only runs once before the render loop
-    pub fn new(rng: &mut ThreadRng, source_objects: &mut [Arc<dyn Hittable>], start: usize, end: usize, time_0: f64, time_1: f64) -> Self {
+    pub fn new(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, source_indices: &mut [usize], start: usize, end: usize, time_0: f64, time_1: f64) -> Self {
         let axis: u8 = rng.gen_range(0..3);
-        let comparator = match axis {
-            0 => Self::compare::<0>,
-            1 => Self::compare::<1>,
-            2 => Self::compare::<2>,
+
+        // Probably optimize this by sharing this with the recursive call
+        // This won't allow the capturing of hittable_service
+        // This could be overcome by making the building loop based instead of 
+        // Recursive, maybe in a different function
+        let comparator: Box<dyn Fn(&usize, &usize) -> Ordering> = match axis {
+            0 => Box::new(|a: &usize, b: &usize| -> Ordering {
+
+                let mut box_a = AABB::default();
+                hittable_service.bounding_box(*a, 0.0, 0.0, &mut box_a);
+                let mut box_b = AABB::default();
+                hittable_service.bounding_box(*b, 0.0, 0.0, &mut box_b);
+    
+                if box_a.minimum[0] < box_b.minimum[0] {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            }),
+            1 => Box::new(|a: &usize, b: &usize| -> Ordering {
+
+                let mut box_a = AABB::default();
+                hittable_service.bounding_box(*a, 0.0, 0.0, &mut box_a);
+                let mut box_b = AABB::default();
+                hittable_service.bounding_box(*b, 0.0, 0.0, &mut box_b);
+    
+                if box_a.minimum[1] < box_b.minimum[1] {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            }),
+            2 => Box::new(|a: &usize, b: &usize| -> Ordering {
+
+                let mut box_a = AABB::default();
+                hittable_service.bounding_box(*a, 0.0, 0.0, &mut box_a);
+                let mut box_b = AABB::default();
+                hittable_service.bounding_box(*b, 0.0, 0.0, &mut box_b);
+    
+                if box_a.minimum[2] < box_b.minimum[2] {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            }),
             _ => panic!("Chose invalid axis in compare function!"),
         };
 
+
+
         let object_span = end - start;
 
-        let result_left: Arc<dyn Hittable>;
-        let result_right: Arc<dyn Hittable>;
+        let result_left: usize;
+        let result_right: usize;
 
         if object_span == 1 {
-            result_left = Arc::clone(&source_objects[start]);
-            result_right = Arc::clone(&source_objects[start]);
+            result_left = source_indices[start];
+            result_right = source_indices[start];
         } else if object_span == 2 {
-            if comparator(&source_objects[start], &source_objects[start + 1]).is_lt() {
-                result_left = Arc::clone(&source_objects[start]);
-                result_right = Arc::clone(&source_objects[start + 1]);
+            if comparator(&source_indices[start], &source_indices[start + 1]).is_lt() {
+                result_left = source_indices[start];
+                result_right = source_indices[start + 1];
             } else {
-                result_left = Arc::clone(&source_objects[start + 1]);
-                result_right = Arc::clone(&source_objects[start]);
+                result_left = source_indices[start + 1];
+                result_right = source_indices[start];
             }
         } else {
-            source_objects[start..end].sort_unstable_by(comparator);
+            source_indices[start..end].sort_unstable_by(comparator);
 
             let mid = start + object_span / 2;
-            result_left = Arc::new(Self::new(rng, source_objects, start, mid, time_0, time_1));
-            result_right = Arc::new(Self::new(rng, source_objects, mid, end, time_0, time_1));
+            let left_hittable = HittableEnum::BVHNode(Self::new(rng, hittable_service, source_indices, start, mid, time_0, time_1));
+            result_left = hittable_service.add_hittable(left_hittable);
+            let right_hittable = HittableEnum::BVHNode(Self::new(rng, hittable_service, source_indices, mid, end, time_0, time_1));
+            result_right = hittable_service.add_hittable(right_hittable);
         }
 
         let mut bbox_left = AABB::default();
-        let bbox_left_found = result_left.bounding_box(time_0, time_1, &mut bbox_left);
+        let bbox_left_found = hittable_service.bounding_box(result_left, time_0, time_1, &mut bbox_left);
 
         let mut bbox_right = AABB::default();
-        let bbox_right_found = result_right.bounding_box(time_0, time_1, &mut bbox_right);
+        let bbox_right_found = hittable_service.bounding_box(result_right, time_0, time_1, &mut bbox_right);
 
         if !bbox_left_found || !bbox_right_found {
             panic!("Is missing a bounding box when constructing BVH");
@@ -63,39 +109,25 @@ impl BVHNode {
 
         bbox_left.expand_by_box(&bbox_right);
 
-        BVHNode{ left: result_left, right: result_right, bbox: bbox_left}
+        BVHNode{ left_index: result_left, right_index: result_right, bbox: bbox_left}
     }
 
-    // Inspired by https://github.com/fyrchik/rayst/blob/main/src/bvh.rs
-    // but I don't have my Vector3 as an array, so I had to come up with a fix
-    fn compare<const AXIS: usize>(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
 
-        let mut box_a = AABB::default();
-        a.bounding_box(0.0, 0.0, &mut box_a);
-        let mut box_b = AABB::default();
-        b.bounding_box(0.0, 0.0, &mut box_b);
-
-        if box_a.minimum[AXIS] < box_b.minimum[AXIS] {
-            Ordering::Less
-        } else {
-            Ordering::Greater
-        }
-    }
 }
 
 impl Hittable for BVHNode{
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         if !self.bbox.hit(ray, t_min, t_max){
             return false;
         }
 
-        let hit_left = self.left.hit(rng, ray, t_min, t_max, hit_out);
-        let hit_right = self.right.hit(rng, ray, t_min, if hit_left { hit_out.t } else { t_max }, hit_out);
+        let hit_left = hittable_service.hit(self.left_index, rng, ray, t_min, t_max, hit_out);
+        let hit_right = hittable_service.hit(self.right_index, rng, ray, t_min, if hit_left { hit_out.t } else { t_max }, hit_out);
 
         hit_left || hit_right
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.bbox.minimum.x;
         box_out.minimum.y = self.bbox.minimum.y;
         box_out.minimum.z = self.bbox.minimum.z;

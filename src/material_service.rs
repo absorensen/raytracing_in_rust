@@ -34,11 +34,6 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn fetch_material(&self, index: usize) -> &MaterialEnum {
-        &self.materials[index]
-    }
-
-    #[inline]
     pub fn emission(&self, ray: &Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
         match &self.materials[hit.material] {
             MaterialEnum::DefaultMaterial(default) => default.emitted(ray, hit, u, v, point),

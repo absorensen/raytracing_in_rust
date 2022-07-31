@@ -12,15 +12,15 @@ pub struct DefaultTexture {
 }
 
 impl DefaultTexture {
-    pub fn default() -> Self {
+    pub fn _default() -> Self {
         DefaultTexture{}
     }
 }
 
 impl Texture for DefaultTexture {
-    fn value(&self, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
-        color_out.x = 0.0;
-        color_out.y = 1.0;
+    fn value(&self, _u: f64, _v: f64, _p: &Vector3, color_out: &mut Color) -> bool {
+        color_out.x = 1.0;
+        color_out.y = 0.0;
         color_out.z = 0.0;
 
         true
@@ -34,21 +34,13 @@ pub struct SolidColorTexture {
 }
 
 impl SolidColorTexture {
-    pub fn default() -> Self {
-        SolidColorTexture{color: Color{x: 0.0, y: 0.0, z: 0.0}}
-    }
-
-    pub fn new(red: f64, green: f64, blue: f64) -> Self {
-        SolidColorTexture{color: Color{x: red, y: blue, z: green}}
-    }
-
     pub fn from_color(color: &Color) -> Self {
         SolidColorTexture{ color: color.clone() }
     }
 }
 
 impl Texture for SolidColorTexture {
-    fn value(&self, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, _u: f64, _v: f64, _p: &Vector3, color_out: &mut Color) -> bool {
         color_out.x = self.color.x;
         color_out.y = self.color.y;
         color_out.z = self.color.z;
@@ -69,7 +61,7 @@ impl CheckerTexture {
         CheckerTexture{odd, even}
     }
 
-    pub fn from_texture(odd: &Arc<dyn Texture>, even: &Arc<dyn Texture>) -> Self {
+    pub fn _from_texture(odd: &Arc<dyn Texture>, even: &Arc<dyn Texture>) -> Self {
         CheckerTexture { odd: Arc::clone(odd), even: Arc::clone(even) }
     }
 }

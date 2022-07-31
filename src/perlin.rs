@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::vector3::{Vector3, Color};
+use crate::vector3::{Vector3};
 
 pub struct Perlin {
     point_count: u32,
@@ -111,7 +109,7 @@ impl Perlin {
     }
 
 
-    fn trilinear_interpolation(samples: &[[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+    fn _trilinear_interpolation(samples: &[[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
         let mut sum = 0.0;
 
         for i in 0..2usize {

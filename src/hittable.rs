@@ -1,11 +1,12 @@
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use rand_chacha::ChaCha20Rng;
 
+use crate::bvh_node::BVHNode;
 use crate::vector3::Vector3;
 use crate::ray::Ray;
 use crate::aabb::AABB;
-
-use std::sync::Arc;
+use crate::hittable_service::{HittableService, HittableEnum};
 
 // Turn the material into an index and derive default
 pub struct HitRecord {
@@ -55,53 +56,42 @@ impl HitRecord{
 
 pub trait Hittable: Sync + Send {
     // Maybe convert these to take an output argument
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool;
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool;
-    fn pdf_value(&self, _rng: &mut ThreadRng, _origin: &Vector3,_vv: &Vector3) -> f64 { 0.0 }
-    fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    fn hit(&self, rng: &mut ThreadRng, _hittable_service: &HittableService,  ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool;
+    fn bounding_box(&self, _hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool;
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3,_vv: &Vector3) -> f64 { 0.0 }
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 }
 
 pub struct DefaultHittable {
 }
 
 impl Hittable for DefaultHittable {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool { false }
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool { false }
-    fn pdf_value(&self, _rng: &mut ThreadRng, _origin: &Vector3,_vv: &Vector3) -> f64 { 0.0 }
-    fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _ray: &Ray, _t_min: f64, _t_max: f64, _hit_out: &mut HitRecord) -> bool { false }
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, _box_out: &mut AABB) -> bool { false }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3,_vv: &Vector3) -> f64 { 0.0 }
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 }
 
+// Get rid of this, or make sure it is only used for a pre-BVH-build step
 #[derive(Default)]
 pub struct HittableList {
-    pub objects: Vec<Arc<dyn Hittable>>,
+    hittable_indices: Vec<usize>,
 }
 
 impl HittableList {
-    pub fn push(&mut self, hittable: impl Hittable + 'static) {
-        self.objects.push(Arc::new(hittable))
-    }
-
-    pub fn push_arc(&mut self, hittable: &Arc<dyn Hittable>) {
-        self.objects.push(Arc::clone(hittable))
-    }
-
-    pub fn as_slice_mut(&mut self) -> &mut [Arc<dyn Hittable>] {
-        &mut self.objects
-    }
-
-    pub fn len(&self) -> usize {
-        self.objects.len()
+    pub fn from_list(hittable_indices: Vec<usize>) -> HittableList {
+        HittableList { hittable_indices }
     }
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let mut temp_record = HitRecord::default();
         let mut hit_anything = false;
         let mut closest_so_far = t_max;
 
-        for hittable in self.objects.iter() {
-            if hittable.hit(rng, ray, t_min, closest_so_far, &mut temp_record) {
+        for hittable_index in &self.hittable_indices {
+            if hittable_service.hit(*hittable_index, rng, ray, t_min, closest_so_far, &mut temp_record) {
                 hit_anything = true;
                 closest_so_far = temp_record.t;
                 hit_out.t = temp_record.t;
@@ -117,14 +107,14 @@ impl Hittable for HittableList {
         hit_anything
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
-        if self.objects.len() < 1 { return false };
+    fn bounding_box(&self, hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        if self.hittable_indices.len() < 1 { return false };
 
         let mut temp_box_option: AABB = AABB::default();
         let mut first_box: bool = true;
 
-        for object in &self.objects {
-            if object.bounding_box(time_0, time_1, &mut temp_box_option) {
+        for hittable_index in &self.hittable_indices {
+            if hittable_service.bounding_box(*hittable_index, time_0, time_1, &mut temp_box_option) {
                 if first_box { 
                     first_box = false;
 
@@ -145,20 +135,20 @@ impl Hittable for HittableList {
         !first_box
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
-        let weight = 1.0 / self.objects.len() as f64;
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f64 {
+        let weight = 1.0 / self.hittable_indices.len() as f64; // Maybe just do a single division at the end
         let mut sum = 0.0;
 
-        for object_index in 0..self.objects.len(){
-            sum += weight * self.objects[object_index].pdf_value(rng, origin, v);
+        for object_index in 0..self.hittable_indices.len(){
+            sum += weight * hittable_service.pdf_value(self.hittable_indices[object_index], rng, origin, v);
         }
 
         sum
     }
 
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
-        let random_object_index = rng.gen_range(0..self.objects.len());
-        self.objects[random_object_index].random(rng, origin) / self.objects.len() as f64
+    fn random(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3) -> Vector3 {
+        let random_object_index = rng.gen_range(0..self.hittable_indices.len());
+        hittable_service.random(self.hittable_indices[random_object_index], rng, origin) / self.hittable_indices.len() as f64
     }
 
 }
@@ -180,7 +170,7 @@ impl XYRect {
 }
 
 impl Hittable for XYRect {
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let t = (self.k - ray.origin.z) / ray.direction.z;
         if t < t_min || t_max < t {
             return false;
@@ -207,7 +197,7 @@ impl Hittable for XYRect {
         true
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.x0;
         box_out.minimum.y = self.y0;
         box_out.minimum.z = self.k - 0.0001;
@@ -238,7 +228,7 @@ impl XZRect {
 }
 
 impl Hittable for XZRect {
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let t = (self.k - ray.origin.y) / ray.direction.y;
         if t < t_min || t_max < t {
             return false;
@@ -268,7 +258,7 @@ impl Hittable for XZRect {
 
 
     
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.x0;
         box_out.minimum.y = self.k - 0.0001;
         box_out.minimum.z = self.z0;
@@ -280,11 +270,11 @@ impl Hittable for XZRect {
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f64 {
         let ray = Ray::new(origin.clone(), v.clone(), 0.0);
         let hit = &mut HitRecord::default();
         
-        if !self.hit(rng, &ray, 0.001, f64::INFINITY, hit) {
+        if !self.hit(rng, hittable_service, &ray, 0.001, f64::INFINITY, hit) {
             return 0.0;
         }
 
@@ -296,7 +286,7 @@ impl Hittable for XZRect {
 
     }
 
-    fn random(&self, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+    fn random(&self, rng: &mut ThreadRng, _hittable_service: &HittableService, origin: &Vector3) -> Vector3 {
         let random_point = Vector3::new(rng.gen_range(self.x0..self.x1), self.k, rng.gen_range(self.z0..self.z1));
 
         random_point - *origin
@@ -321,7 +311,7 @@ impl YZRect {
 }
 
 impl Hittable for YZRect {
-    fn hit(&self, _rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let t = (self.k - ray.origin.x) / ray.direction.x;
         if t < t_min || t_max < t {
             return false;
@@ -349,7 +339,7 @@ impl Hittable for YZRect {
         true
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.k - 0.0001;
         box_out.minimum.y = self.y0;
         box_out.minimum.z = self.z0;
@@ -363,50 +353,54 @@ impl Hittable for YZRect {
 
 }
 
+// Change this to BVH
 pub struct BoxHittable {
-    sides: HittableList,
+    sides_index: usize,
     box_min: Vector3,
     box_max: Vector3,
 }
 
 impl BoxHittable {
-    pub fn new(point_0: Vector3, point_1: Vector3, material: usize) -> BoxHittable {
-        let mut sides : HittableList = HittableList::default();
+    pub fn new(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, point_0: Vector3, point_1: Vector3, material: usize) -> BoxHittable {
+        let mut sides : Vec<usize> = Vec::new();
 
-        // sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material));
-        // sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material));
-        
-        // sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material));
-        // sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material));
-        
-        // sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_1.x, material));
-        // sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material));
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material)));
+        sides.push(hittable_index);
 
-        sides.push(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material));
-        let back: Arc<dyn Hittable> = Arc::new(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material));
-        sides.push(FlipFace::new(&back));
 
-        sides.push(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material));
-        let top: Arc<dyn Hittable> = Arc::new(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_0.y, material));
-        sides.push(FlipFace::new(&top));
-        
-        sides.push(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_1.x, material));
-        let left: Arc<dyn Hittable> = Arc::new(YZRect::new(point_0.y, point_1.y, point_0.z, point_1.z, point_0.x, material));
-        sides.push(FlipFace::new(&left));
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material)));
+        let hittable_index = hittable_service.add_hittable(HittableEnum::FlipFace(FlipFace::new(hittable_index)));
+        sides.push(hittable_index);
 
-    
 
-        BoxHittable { box_min: point_0, box_max: point_1, sides: sides }
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XZRect(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material)));
+        sides.push(hittable_index);
+
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material)));
+        let hittable_index = hittable_service.add_hittable(HittableEnum::FlipFace(FlipFace::new(hittable_index)));
+        sides.push(hittable_index);
+
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XZRect(XZRect::new(point_0.x, point_1.x, point_0.z, point_1.z, point_1.y, material)));
+        sides.push(hittable_index);
+
+        let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_0.z, material)));
+        let hittable_index = hittable_service.add_hittable(HittableEnum::FlipFace(FlipFace::new(hittable_index)));
+        sides.push(hittable_index);
+
+        let root_node = HittableEnum::BVHNode(BVHNode::from_index_list(rng, hittable_service, &mut sides, 0.0, 1.0));
+        let root_node_index = hittable_service.add_hittable(root_node);
+
+        BoxHittable { box_min: point_0, box_max: point_1, sides_index: root_node_index }
     }
 
 }
 
 impl Hittable for BoxHittable {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
-        self.sides.hit(rng, ray, t_min, t_max, hit_out)
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+        hittable_service.hit(self.sides_index, rng, ray, t_min, t_max, hit_out)
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.box_min.x;
         box_out.minimum.y = self.box_min.y;
         box_out.minimum.z = self.box_min.z;
@@ -421,21 +415,21 @@ impl Hittable for BoxHittable {
 }
 
 pub struct Translate {
-    model: Arc<dyn Hittable>,
+    model_index: usize,
     offset: Vector3,
 }
 
 impl Translate {
-    pub fn new(displacement: Vector3, model: &Arc<dyn Hittable>) -> Translate {
-        Translate{model: Arc::clone(model), offset: displacement}
+    pub fn new(displacement: Vector3, model_index: usize) -> Translate {
+        Translate{model_index, offset: displacement}
     }
 
 }
 
 impl Hittable for Translate {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let moved_ray = Ray{ origin: ray.origin - self.offset, direction: ray.direction, time: ray.time };
-        if !self.model.hit(rng, &moved_ray, t_min, t_max, hit_out) {
+        if !hittable_service.hit(self.model_index, rng, &moved_ray, t_min, t_max, hit_out) {
             return false;
         }
 
@@ -448,8 +442,8 @@ impl Hittable for Translate {
         true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
-        if !self.model.bounding_box(time_0, time_1, box_out) {
+    fn bounding_box(&self, hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        if !hittable_service.bounding_box(self.model_index, time_0, time_1, box_out) {
             return false;
         } 
 
@@ -462,7 +456,7 @@ impl Hittable for Translate {
 }
 
 pub struct RotateY {
-    model: Arc<dyn Hittable>,
+    model_index: usize,
     sin_theta: f64,
     cos_theta: f64,
     has_bbox: bool,
@@ -470,14 +464,14 @@ pub struct RotateY {
 }
 
 impl RotateY {
-    pub fn new(angle: f64, model: &Arc<dyn Hittable>) -> RotateY {
+    pub fn new(hittable_service: &HittableService, angle: f64, model_index:usize) -> RotateY {
         let radians = angle.to_radians();
 
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
 
         let mut bbox = AABB::default();
-        let has_bbox = model.bounding_box(0.0, 1.0, &mut bbox);
+        let has_bbox = hittable_service.bounding_box(model_index, 0.0, 1.0, &mut bbox);
 
         let mut min = Vector3{x: f64::INFINITY, y: f64::INFINITY, z: f64::INFINITY };
         let mut max = Vector3{x: f64::NEG_INFINITY, y: f64::NEG_INFINITY, z: f64::NEG_INFINITY };
@@ -510,12 +504,12 @@ impl RotateY {
 
         let bbox = AABB{minimum: min, maximum: max};
 
-        RotateY { model: Arc::clone(model), sin_theta, cos_theta, has_bbox, bbox }
+        RotateY { model_index, sin_theta, cos_theta, has_bbox, bbox }
     }
 }
 
 impl Hittable for RotateY {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
         let mut origin = ray.origin.clone();
         let mut direction = ray.direction.clone();
 
@@ -527,7 +521,7 @@ impl Hittable for RotateY {
 
         let rotated_ray = Ray{ origin, direction, time: ray.time };
 
-        if !self.model.hit(rng, &rotated_ray, t_min, t_max, hit_out) {
+        if !hittable_service.hit(self.model_index, rng, &rotated_ray, t_min, t_max, hit_out) {
             return false;
         }
 
@@ -550,7 +544,7 @@ impl Hittable for RotateY {
         true
     }
 
-    fn bounding_box(&self, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
         if !self.has_bbox { return false; }
 
         box_out.minimum.x = self.bbox.minimum.x;
@@ -568,15 +562,15 @@ impl Hittable for RotateY {
 
 
 pub struct ConstantMedium {
-    boundary: Arc<dyn Hittable>,
+    boundary_index: usize,
     phase_function: usize,
     negative_inverse_density: f64,
 }
 
 impl ConstantMedium {
-    pub fn new(model: &Arc<dyn Hittable>, phase_function: usize, density: f64) -> ConstantMedium {
+    pub fn new(model_index: usize, phase_function: usize, density: f64) -> ConstantMedium {
         ConstantMedium { 
-            boundary: Arc::clone(model), 
+            boundary_index: model_index, 
             phase_function, 
             negative_inverse_density: -1.0 / density 
         }
@@ -584,17 +578,17 @@ impl ConstantMedium {
 }
 
 impl Hittable for ConstantMedium {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
 
         // TODO: Try using hit_out in both hits
         let zero_vector = Vector3::zero();
         let mut hit_1 = HitRecord::new(ray, 0.0, 0.0, 0.0, &zero_vector, &zero_vector, 0);
-        if !self.boundary.hit(rng, ray, f64::NEG_INFINITY, f64::INFINITY, &mut hit_1) {
+        if !hittable_service.hit(self.boundary_index, rng, ray, f64::NEG_INFINITY, f64::INFINITY, &mut hit_1) {
             return false;
         }
 
         let mut hit_2 = HitRecord::new(ray, 0.0, 0.0, 0.0, &zero_vector, &zero_vector, 0);
-        if !self.boundary.hit(rng, ray, hit_1.t+0.0001, f64::INFINITY, &mut hit_2) {
+        if !hittable_service.hit(self.boundary_index, rng, ray, hit_1.t+0.0001, f64::INFINITY, &mut hit_2) {
             return false;
         }
 
@@ -625,29 +619,31 @@ impl Hittable for ConstantMedium {
         true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
-        self.boundary.bounding_box(time_0, time_1, box_out)
+    fn bounding_box(&self, hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        hittable_service.bounding_box(self.boundary_index, time_0, time_1, box_out)
+        //self.boundary.bounding_box(time_0, time_1, box_out)
     }
 
-    fn pdf_value(&self, _rng: &mut ThreadRng, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
 
-    fn random(&self, _rng: &mut ThreadRng, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 
 }
 
 pub struct FlipFace {
-    model: Arc<dyn Hittable>,
+    model_index: usize,
 }
 
+// Test whether this should be a bool on the other hittables instead
 impl FlipFace {
-    pub fn new(model: &Arc<dyn Hittable>) -> FlipFace {
-        FlipFace{model: Arc::clone(model)}
+    pub fn new(model_index: usize) -> FlipFace {
+        FlipFace{model_index}
     }
 }
 
 impl Hittable for FlipFace {
-    fn hit(&self, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
-        if !self.model.hit(rng, &ray, t_min, t_max, hit_out) {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+        if !hittable_service.hit(self.model_index, rng, &ray, t_min, t_max, hit_out) {
             return false;            
         }
 
@@ -657,7 +653,7 @@ impl Hittable for FlipFace {
         true
     }
 
-    fn bounding_box(&self, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
-        self.model.bounding_box(time_0, time_1, box_out)
+    fn bounding_box(&self, hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+        hittable_service.bounding_box(self.model_index, time_0, time_1, box_out)
     }
 }
