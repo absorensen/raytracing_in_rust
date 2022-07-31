@@ -36,7 +36,7 @@ impl ServiceLocator {
         &self.texture_service
     }
 
-    pub fn _get_texture_service_mut(&mut self) -> &mut TextureService {
+    pub fn get_texture_service_mut(&mut self) -> &mut TextureService {
         &mut self.texture_service
     }
 

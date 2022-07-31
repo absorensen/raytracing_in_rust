@@ -624,9 +624,9 @@ impl Hittable for ConstantMedium {
         //self.boundary.bounding_box(time_0, time_1, box_out)
     }
 
-    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
+    // fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 { 0.0 }
 
-    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
+    // fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3) -> Vector3 { Vector3::new(1.0, 0.0, 0.0) }
 
 }
 

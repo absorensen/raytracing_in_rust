@@ -1,8 +1,6 @@
 // REFACTOR THIS LIKE THERE IS NO TOMORROW.
 // IT IS AN ABSOLUTE PAIN TO CHANGE ANYTHING.
 
-use std::sync::Arc;
-
 use rand::{SeedableRng, Rng};
 use rand_chacha::ChaCha20Rng;
 
@@ -11,12 +9,12 @@ use crate::{
     material_service::{MaterialEnum}, 
     camera::Camera, 
     vector3::{Color, Point3, Vector3}, 
-    texture::{CheckerTexture, Texture, SolidColorTexture, NoiseTexture, ImageTexture}, 
+    texture::{CheckerTexture, SolidColorTexture, NoiseTexture, ImageTexture}, 
     sphere::Sphere, 
     material::{Lambertian, Dielectric, Metal, DiffuseLight, Isotropic}, 
     moving_sphere::MovingSphere, bvh_node::BVHNode, 
     scene_service::{SceneService},
-    service_locator::{ServiceLocator}, hittable_service::{HittableEnum}
+    service_locator::{ServiceLocator}, hittable_service::{HittableEnum}, texture_service::TextureEnum
 };
 
 pub struct SceneBuilder {
@@ -129,9 +127,10 @@ impl SceneBuilder {
 
         let (mut rng, mut service_locator, mut hittable_index_list, light_index_list) = init_build_resources(camera, background);
 
-
-        let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
-        let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: ground_texture}));
+        let ground_odd_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.2, y:0.3, z:0.1})));
+        let ground_even_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.9, y:0.9, z:0.9})));
+        let ground_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::CheckerTexture(CheckerTexture::new(ground_odd_texture_index, ground_even_texture_index)));
+        let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(ground_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, ground_material_index))));
     
         let index_of_refraction = 1.5;
@@ -144,8 +143,8 @@ impl SceneBuilder {
     
                 if 0.9 < (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() {
                     if choose_mat < 0.8 {
-                        let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
-                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: chosen_texture}));
+                        let chosen_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng)))));
+                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(chosen_texture_index)));
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(center, 0.2, chosen_material_index))));
                     } else if choose_mat < 0.95 {
                         let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()}));
@@ -159,8 +158,8 @@ impl SceneBuilder {
         
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, glass_material_index))));
     
-        let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
-        let lambertian_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: lambertian_texture}));
+        let lambertian_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.4, y: 0.2, z: 0.1})));
+        let lambertian_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(lambertian_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, lambertian_material_index))));
     
         let metal_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0}));
@@ -187,8 +186,10 @@ impl SceneBuilder {
         let (mut rng, mut service_locator, mut hittable_index_list, light_index_list) = init_build_resources(camera, background);
 
 
-        let ground_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
-        let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: ground_texture}));
+        let ground_odd_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.2, y:0.3, z:0.1})));
+        let ground_even_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.9, y:0.9, z:0.9})));
+        let ground_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::CheckerTexture(CheckerTexture::new(ground_odd_texture_index, ground_even_texture_index)));
+        let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(ground_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, ground_material_index))));
     
         let index_of_refraction = 1.5;
@@ -204,8 +205,8 @@ impl SceneBuilder {
                         let mut movement = Vector3::zero();
                         movement.y = rng.gen::<f64>() * 0.5;
     
-                        let chosen_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng))));
-                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: chosen_texture}));
+                        let chosen_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng)))));
+                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(chosen_texture_index)));
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::MovingSphere(MovingSphere::new(0.2, center, center + movement,  chosen_material_index, 0.0, 1.0))));
                     } else if choose_mat < 0.95 {    
                         let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()}));
@@ -219,8 +220,8 @@ impl SceneBuilder {
     
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 1.0, z: 0.0}, 1.0, glass_material_index))));
     
-        let lambertian_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.4, y: 0.2, z: 0.1}));
-        let lambertian_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: lambertian_texture}));
+        let lambertian_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.4, y: 0.2, z: 0.1})));
+        let lambertian_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(lambertian_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: -4.0, y: 1.0, z: 0.0}, 1.0, lambertian_material_index))));
     
         let metal_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color{x: 0.7, y: 0.6, z: 0.5}, fuzz: 0.0}));
@@ -247,8 +248,10 @@ impl SceneBuilder {
         let (mut rng, mut service_locator, mut hittable_index_list, mut _light_index_list) = init_build_resources(camera, background);
 
     
-        let checker_texture: Arc<dyn Texture> = Arc::new(CheckerTexture::from_colors(&Color{x:0.2, y:0.3, z:0.1}, &Color{x:0.9, y:0.9, z:0.9}));
-        let checker_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: checker_texture}));
+        let checker_odd_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.2, y:0.3, z:0.1})));
+        let checker_even_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.9, y:0.9, z:0.9})));
+        let checker_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::CheckerTexture(CheckerTexture::new(checker_odd_texture_index, checker_even_texture_index)));
+        let checker_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(checker_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: -10.0, z: 0.0}, 10.0, checker_material_index))));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 10.0, z: 0.0}, 10.0, checker_material_index))));
     
@@ -276,8 +279,8 @@ impl SceneBuilder {
         // The Noise Texture runs pretty deep
         // I just need some determinism, not all the way
         let mut thread_rng = rand::thread_rng();
-        let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, element_count, 4.0));
-        let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: perlin_texture}));
+        let perlin_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::NoiseTexture(NoiseTexture::new(&mut thread_rng, element_count, 4.0)));
+        let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(perlin_texture_index)));
 
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, perlin_material_index))));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, perlin_material_index))));
@@ -302,8 +305,8 @@ impl SceneBuilder {
 
         let (mut rng, mut service_locator, mut hittable_index_list, mut _light_index_list) = init_build_resources(camera, background);
     
-        let texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("earthmap.png"));
-        let material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: texture}));
+        let texture_index:usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::ImageTexture(ImageTexture::new("earthmap.png")));
+        let material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::new(0.0, 0.0, 0.0), 2.0, material_index))));
     
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, _light_index_list);
@@ -329,12 +332,13 @@ impl SceneBuilder {
         // The Noise Texture runs pretty deep
         // I just need some determinism, not all the way
         let mut thread_rng = rand::thread_rng();
-        let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, element_count, 4.0));
-        let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: perlin_texture}));
+        let perlin_texture_index: usize =  service_locator.get_texture_service_mut().add_texture(TextureEnum::NoiseTexture(NoiseTexture::new(&mut thread_rng, element_count, 4.0)));
+        let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(perlin_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: -1000.0, z: 0.0}, 1000.0, perlin_material_index))));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 2.0, z: 0.0}, 2.0, perlin_material_index))));
     
-        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color(&Color{x: 4.0, y: 4.0, z: 4.0 })));
+        let diffuse_ligt_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 4.0, y: 4.0, z: 4.0 })));
+        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new(diffuse_ligt_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XYRect(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, diffuse_light_material_index))));
         light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XYRect(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, diffuse_light_material_index))));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 7.0, z: 0.0}, 2.0, diffuse_light_material_index))));
@@ -363,16 +367,17 @@ impl SceneBuilder {
 
 
     
-        let red_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.65, y: 0.05, z: 0.05}));
-        let red_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: red_texture }));
+        let red_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.65, y: 0.05, z: 0.05})));
+        let red_material_index: usize  = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(red_texture_index)));
     
-        let white_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+        let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
+        let white_material_index: usize  = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
     
-        let green_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.12, y: 0.45, z: 0.15}));
-        let green_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: green_texture }));
+        let green_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.12, y: 0.45, z: 0.15})));
+        let green_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(green_texture_index)));
     
-        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 15.0, y: 15.0, z: 15.0 } )));
+        let diffuse_light_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 15.0, y: 15.0, z: 15.0 })));
+        let diffuse_light_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new( diffuse_light_texture_index )));
     
     
         let green_wall_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::YZRect(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green_material_index)));
@@ -406,8 +411,8 @@ impl SceneBuilder {
     fn cornell_box_two_diffuse_boxes_scene(aspect_ratio: f64) -> ServiceLocator {
         let (mut rng, mut service_locator, mut hittable_index_list, light_index_list) = Self::empty_cornell_box_scene_prebuild(aspect_ratio);
 
-        let white_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+        let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
+        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
 
         let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, white_material_index);
         let box_1_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
@@ -433,8 +438,8 @@ impl SceneBuilder {
 
         let metal_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal::new(Color{x: 0.8, y: 0.85, z: 0.88}, 0.0)));
     
-        let white_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+        let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
+        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
     
         let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3{x: 0.0, y: 0.0, z: 0.0}, Vector3{x: 165.0, y: 330.0, z: 165.0}, metal_material_index);
         let box_1_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
@@ -472,21 +477,25 @@ impl SceneBuilder {
 
         let (mut rng, mut service_locator, mut hittable_index_list, mut light_index_list) = init_build_resources(camera, background);
 
+        let red_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.65, y: 0.05, z: 0.05})));
+        let red_material_index: usize  = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(red_texture_index)));
     
-        let red_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.65, y: 0.05, z: 0.05}));
-        let red_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: red_texture }));
+        let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
+        let white_material_index: usize  = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
     
-        let white_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+        let green_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.12, y: 0.45, z: 0.15})));
+        let green_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(green_texture_index)));
     
-        let green_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.12, y: 0.45, z: 0.15}));
-        let green_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: green_texture }));
+        let diffuse_light_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 7.0, y: 7.0, z: 7.0 })));
+        let diffuse_light_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new( diffuse_light_texture_index )));
     
-        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } )));
-    
-        let dark_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 0.0, y: 0.0, z: 0.0} )));
-        let light_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 1.0, y: 1.0, z: 1.0} )));
-    
+        let dark_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.0, y: 0.0, z: 0.0})));
+        let dark_phase_function_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(dark_phase_texture_index)));
+
+        let light_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 1.0, y: 1.0, z: 1.0})));
+        let light_phase_function_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(light_phase_texture_index)));
+
+
         let green_wall = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::YZRect(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green_material_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(green_wall))));
         
@@ -552,9 +561,10 @@ impl SceneBuilder {
         
         let mut floor_cubes_indices: Vec<usize> = Vec::new();
     
-        let ground_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x:0.48, y:0.83, z:0.53}));
-        let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: ground_texture}));
-    
+        let ground_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x:0.48, y:0.83, z:0.53})));
+        let ground_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(ground_texture_index)));
+
+
         let boxes_per_side = 20;
         for i in 0..boxes_per_side {
             let i_f = i as f64;
@@ -589,16 +599,16 @@ impl SceneBuilder {
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BVHNode(floor_cubes_bvh)));
     
     
-    
-        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } )));
+        let diffuse_light_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 7.0, y: 7.0, z: 7.0 })));
+        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new( diffuse_light_texture_index )));
         let unflipped_light_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(unflipped_light_index))));
         light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XZRect(XZRect::new(113.0, 443.0, 127.0, 432.0, 554.0, diffuse_light_material_index))));
     
         let center_0 = Vector3{x: 400.0, y: 400.0, z: 200.0};
         let center_1 = center_0 + Vector3{x: 30.0, y: 0.0, z: 0.0};
-        let moving_sphere_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.7, y: 0.3, z: 0.1}));
-        let moving_sphere_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: moving_sphere_texture }));
+        let moving_sphere_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.7, y: 0.3, z: 0.1})));
+        let moving_sphere_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(moving_sphere_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::MovingSphere(MovingSphere{ radius: 50.0, center_0, center_1, material: moving_sphere_material_index, time_0: 0.0, time_1: 1.0 })));
     
     
@@ -614,30 +624,32 @@ impl SceneBuilder {
         let boundary_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3
             {x: 360.0, y: 150.0, z: 145.0}, 70.0, glass_material_index)));
 
-        let blue_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 0.2, y: 0.4, z: 0.9} )));
+        let blue_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.2, y: 0.4, z: 0.9})));
+        let blue_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(blue_phase_texture_index)));
         let volume_sphere= ConstantMedium::new(boundary_index, blue_phase_function_index, 0.2);
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::ConstantMedium(volume_sphere)));
     
-        let global_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::from_color( &Color{x: 1.0, y: 1.0, z: 1.0} )));
+        let global_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 1.0, y: 1.0, z: 1.0})));
+        let global_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(global_phase_texture_index)));
         let global_volume_sphere_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 0.0, z: 0.0}, 5000.0, glass_material_index)));
         let global_volume = HittableEnum::ConstantMedium(ConstantMedium::new(global_volume_sphere_index, global_phase_function_index, 0.0001));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(global_volume));
     
-        let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::new("earthmap.png"));
-        let earth_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: earth_texture}));
+        let earth_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::ImageTexture(ImageTexture::new("earthmap.png")));
+        let earth_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(earth_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::new(400.0, 200.0, 400.0), 100.0, earth_material_index))));
     
         
         // The Noise Texture runs pretty deep
         // I just need some determinism, not all the way
         let mut thread_rng = rand::thread_rng();
-        let perlin_texture: Arc<dyn Texture> = Arc::new(NoiseTexture::new(&mut thread_rng, perlin_element_count, 0.1));
-        let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{albedo: perlin_texture}));
+        let perlin_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::NoiseTexture(NoiseTexture::new(&mut thread_rng, perlin_element_count, 0.1)));
+        let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(perlin_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 220.0, y: 280.0, z: 300.0}, 80.0, perlin_material_index))));
     
     
-        let white_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+        let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
+        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
         let mut cube_spheres_indices: Vec<usize> = Vec::new();
         for _j in 0..cube_sphere_count {
             cube_spheres_indices.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::random_range_chacha(&mut rng, 0.0, 165.0), 10.0, white_material_index))));
@@ -658,10 +670,11 @@ impl SceneBuilder {
     fn final_scene_book_3(aspect_ratio: f64) -> ServiceLocator {
         let (mut rng, mut service_locator, mut hittable_index_list, mut light_index_list) = Self::empty_cornell_box_scene_prebuild(aspect_ratio);
 
-        let white_texture: Arc<dyn Texture> = Arc::new(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73}));
-        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian{ albedo: white_texture }));
+        let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
+        let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
     
-        let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::from_color( &Color{x: 7.0, y: 7.0, z: 7.0 } )));
+        let diffuse_light_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 15.0, y: 15.0, z: 15.0 })));
+        let diffuse_light_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new( diffuse_light_texture_index )));
     
         let index_of_refraction = 1.5;
         let glass_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));

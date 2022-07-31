@@ -65,9 +65,9 @@ fn ray_color_recursive(
 
 
     let mut scatter_record= ScatterRecord::default();
-    let emitted: Color = material_service.emission(ray, &rec, rec.u, rec.v, &rec.position);
+    let emitted: Color = material_service.emission(texture_service, ray, &rec, rec.u, rec.v, &rec.position);
     
-    if !material_service.scatter(rng, ray, &rec, &mut scatter_record) {
+    if !material_service.scatter(rng, texture_service, ray, &rec, &mut scatter_record) {
         return emitted;
     }
 
@@ -234,21 +234,6 @@ fn render_pixel(
     color_buffer
 }
 
-// TODO:
-// -- Injest config files
-// -- Image descriptor service
-// Project restructuring
-// Unit testing
-// Performance optimization
-// ---- Reduce the amount of ARC
-// ---- Use texture indices
-// -- Reduce recursions to loops
-// Replace vector3 with nalgebra or something numpy-like
-// Change color to its own type
-// ---- Try to convert from dynamic dispatch to static dispatch
-// Try to convert to SIMD
-// Refactor
-// Enforce fused multiply-adds
 fn main() {
     // Display Image
     let aspect_ratio = 16.0 / 9.0;
@@ -260,13 +245,13 @@ fn main() {
     let max_depth = 30;
 
     // Compute Settings
-    let run_parallel = true;
-    let run_samples_parallel = true;
+    let run_pixel_parallel = true;
+    let run_sample_parallel = false;
 
 
 
     // Scene
-    let scene_index = 8;
+    let scene_index = 1;
 
     let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(aspect_ratio, image_width, scene_index);
     
@@ -275,7 +260,7 @@ fn main() {
     let now = Instant::now();
     let total_pixels = image_height * image_width;
     let image: Vec<Vector3> = 
-    if run_parallel {
+    if run_pixel_parallel {
         (0..total_pixels).into_par_iter().map(|pixel_index:i64| {
             let mut rng = rand::thread_rng();
             render_pixel(
@@ -287,7 +272,7 @@ fn main() {
                 samples_per_pixel, 
                 max_depth, 
                 scale, 
-                run_samples_parallel
+                run_sample_parallel
             )
         }).collect()
     } else {
@@ -302,7 +287,7 @@ fn main() {
                 samples_per_pixel, 
                 max_depth, 
                 scale, 
-                run_samples_parallel
+                run_sample_parallel
             )
         }).collect()
     };
