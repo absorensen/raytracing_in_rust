@@ -2,11 +2,11 @@ use std::f32::consts::PI;
 
 use rand::{Rng, rngs::ThreadRng};
 
+use crate::hittables::hittable::HitRecord;
+use crate::math::vector3::{Color, Vector3};
 use crate::pdf::{PDF, CosinePDF};
-use crate::texture_service::TextureService;
-use crate::vector3::{Color, Vector3};
 use crate::ray::Ray;
-use crate::hittable::{HitRecord};
+use crate::services::texture_service::TextureService;
 
 pub struct ScatterRecord {
     pub specular_ray: Ray,

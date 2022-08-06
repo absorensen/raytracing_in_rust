@@ -2,7 +2,10 @@ use core::panic;
 use std::{cmp::Ordering};
 use rand::{Rng, rngs::ThreadRng};
 use rand_chacha::ChaCha20Rng;
-use crate::{hittable::{Hittable, HitRecord}, aabb::AABB, ray::Ray, hittable_service::{HittableService, HittableEnum}};
+
+use crate::{services::hittable_service::{HittableService, HittableEnum}, geometry::aabb::AABB, ray::Ray};
+
+use super::hittable::{HitRecord, Hittable};
 
 
 pub struct BVHNode {

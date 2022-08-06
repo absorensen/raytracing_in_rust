@@ -1,44 +1,35 @@
 extern crate minifb;
+use hittables::hittable::HitRecord;
+use materials::material::ScatterRecord;
+use math::vector3::{Color, Vector3};
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use pdf::{PDF, HittablePDF, MixturePDF};
+use pdfs::pdf;
 // Look into performance optimization of the RNG
 use rand::prelude::*;
+use ray::Ray;
+use services::hittable_service::HittableService;
+use services::material_service::MaterialService;
+use services::service_locator::ServiceLocator;
+use services::texture_service::TextureService;
 use std::f32;
 use std::time::Instant;
 use rayon::prelude::*;
 
-mod ortho_normal_base;
-mod vector3;
+use crate::scene::scene_builder::SceneBuilder;
+use crate::utility::render_config::RenderConfig;
+
+mod geometry;
+mod hittables;
+mod materials;
+mod math;
+mod noise;
+mod pdfs;
+mod scene;
+mod services;
+mod textures;
+mod utility;
 mod ray;
-mod sphere;
-mod moving_sphere;
-mod hittable;
-mod camera;
-mod material;
-mod aabb;
-mod bvh_node;
-mod texture;
-mod perlin;
-mod pdf;
-mod material_service;
-mod texture_service;
-mod hittable_service;
-mod service_locator;
-mod scene_service;
-mod scene_builder;
-mod render_config;
-
-use vector3::{Vector3, Color};
-use ray::Ray;
-use hittable::HitRecord;
-use material::ScatterRecord;
-use material_service::MaterialService;
-use texture_service::TextureService;
-use hittable_service::HittableService;
-use service_locator::ServiceLocator;
-use render_config::RenderConfig;
-
-use crate::scene_builder::SceneBuilder;
 
 // Try splitting this into a mixture and non-mixture pdfs function, as some scenes don't have lights (though they should)
 fn ray_color_recursive(

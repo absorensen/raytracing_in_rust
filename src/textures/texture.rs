@@ -1,6 +1,6 @@
 use rand::rngs::ThreadRng;
 
-use crate::{vector3::{Vector3, Color}, perlin::Perlin, texture_service::TextureService};
+use crate::{math::vector3::{Vector3, Color}, noise::perlin::Perlin, services::texture_service::TextureService};
 
 pub trait Texture : Sync + Send {
     fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vector3, color_out: &mut Color) -> bool;

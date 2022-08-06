@@ -1,4 +1,4 @@
-use crate::{camera::Camera, vector3::Color};
+use crate::{scene::camera::Camera, math::vector3::Color};
 
 pub struct SceneService {
     camera: Camera,

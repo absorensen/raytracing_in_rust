@@ -3,12 +3,12 @@ use std::f32::consts::PI;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::hittable_service::HittableService;
-use crate::ortho_normal_base::OrthoNormalBase;
-use crate::vector3::Vector3;
+use crate::math::ortho_normal_base::OrthoNormalBase;
+use crate::{math::vector3::Vector3, geometry::aabb::AABB};
 use crate::ray::Ray;
-use crate::hittable::{HitRecord, Hittable};
-use crate::aabb::AABB;
+use crate::services::hittable_service::HittableService;
+
+use super::hittable::{Hittable, HitRecord};
 
 pub struct Sphere {
     pub radius: f32,

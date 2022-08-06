@@ -1,6 +1,7 @@
 use std::ops::{Index, IndexMut};
 
-use crate::vector3::Vector3;
+use super::vector3::Vector3;
+
 
 pub struct OrthoNormalBase {
     pub u: Vector3,

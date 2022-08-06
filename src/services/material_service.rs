@@ -1,10 +1,10 @@
 use rand::prelude::ThreadRng;
 
-use crate::material::{DefaultMaterial, Lambertian, Metal, Dielectric, DiffuseLight, Isotropic, ScatterRecord, Material};
+use crate::materials::material::{DefaultMaterial, Lambertian, Metal, Dielectric, DiffuseLight, Isotropic, ScatterRecord, Material};
 use crate::ray::Ray;
-use crate::hittable::HitRecord;
-use crate::texture_service::TextureService;
-use crate::vector3::{Vector3, Color};
+use crate::hittables::hittable::HitRecord;
+use crate::services::texture_service::TextureService;
+use crate::math::vector3::{Vector3, Color};
 
 pub enum MaterialEnum {
     DefaultMaterial(DefaultMaterial),

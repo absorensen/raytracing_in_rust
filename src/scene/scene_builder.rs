@@ -5,16 +5,16 @@ use rand::{SeedableRng, Rng};
 use rand_chacha::ChaCha20Rng;
 
 use crate::{
-    hittable::{XYRect, YZRect, FlipFace, XZRect, BoxHittable, RotateY, Translate, ConstantMedium, HittableList}, 
-    material_service::{MaterialEnum}, 
-    camera::Camera, 
-    vector3::{Color, Point3, Vector3}, 
-    texture::{CheckerTexture, SolidColorTexture, NoiseTexture, ImageTexture}, 
-    sphere::Sphere, 
-    material::{Lambertian, Dielectric, Metal, DiffuseLight, Isotropic}, 
-    moving_sphere::MovingSphere, bvh_node::BVHNode, 
-    scene_service::{SceneService},
-    service_locator::{ServiceLocator}, hittable_service::{HittableEnum}, texture_service::TextureEnum
+    hittables::hittable::{XYRect, YZRect, FlipFace, XZRect, BoxHittable, RotateY, Translate, ConstantMedium, HittableList}, 
+    services::material_service::{MaterialEnum}, 
+    scene::camera::Camera, 
+    math::vector3::{Color, Point3, Vector3}, 
+    textures::texture::{CheckerTexture, SolidColorTexture, NoiseTexture, ImageTexture}, 
+    hittables::sphere::Sphere, 
+    materials::material::{Lambertian, Dielectric, Metal, DiffuseLight, Isotropic}, 
+    hittables::moving_sphere::MovingSphere, hittables::bvh_node::BVHNode, 
+    services::scene_service::{SceneService},
+    services::service_locator::{ServiceLocator}, services::hittable_service::{HittableEnum}, services::texture_service::TextureEnum
 };
 
 pub struct SceneBuilder {

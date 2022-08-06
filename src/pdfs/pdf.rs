@@ -2,7 +2,8 @@ use std::{f32::consts::PI};
 
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{vector3::Vector3, ortho_normal_base::OrthoNormalBase, hittable_service::HittableService};
+use crate::{services::hittable_service::HittableService, math::{vector3::Vector3, ortho_normal_base::OrthoNormalBase}};
+
 
 pub trait PDF: Sync + Send {
     // Maybe convert these to take an output argument

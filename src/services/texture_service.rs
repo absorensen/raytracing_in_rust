@@ -1,5 +1,5 @@
-use crate::texture::{Texture, DefaultTexture, SolidColorTexture, CheckerTexture, NoiseTexture, ImageTexture};
-use crate::vector3::{Vector3, Color};
+use crate::textures::texture::{Texture, DefaultTexture, SolidColorTexture, CheckerTexture, NoiseTexture, ImageTexture};
+use crate::math::vector3::{Vector3, Color};
 
 pub enum TextureEnum {
     DefaultTexture(DefaultTexture),

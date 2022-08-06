@@ -1,12 +1,12 @@
 use rand::prelude::ThreadRng;
 
-use crate::aabb::AABB;
-use crate::bvh_node::BVHNode;
-use crate::hittable::{HittableList, XYRect, XZRect, YZRect, BoxHittable, RotateY, Translate, ConstantMedium, FlipFace, HitRecord, DefaultHittable, Hittable};
-use crate::moving_sphere::MovingSphere;
+use crate::geometry::aabb::AABB;
+use crate::hittables::bvh_node::BVHNode;
+use crate::hittables::hittable::{HittableList, XYRect, XZRect, YZRect, BoxHittable, RotateY, Translate, ConstantMedium, FlipFace, HitRecord, DefaultHittable, Hittable};
+use crate::hittables::moving_sphere::MovingSphere;
 use crate::ray::Ray;
-use crate::sphere::Sphere;
-use crate::vector3::{Vector3};
+use crate::hittables::sphere::Sphere;
+use crate::math::vector3::{Vector3};
 
 pub enum HittableEnum {
     DefaultHittable(DefaultHittable),

@@ -1,4 +1,4 @@
-use crate::{material_service::MaterialService, hittable_service::HittableService, texture_service::TextureService, scene_service::SceneService};
+use crate::services::{material_service::MaterialService, hittable_service::HittableService, texture_service::TextureService, scene_service::SceneService};
 
 pub struct ServiceLocator {
     hittable_service: HittableService,

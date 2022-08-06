@@ -1,5 +1,4 @@
-use crate::vector3::Vector3;
-use crate::ray::Ray;
+use crate::{ray::Ray, math::vector3::Vector3};
 
 #[derive(Default, Copy, Clone, PartialEq)]
 pub struct AABB {

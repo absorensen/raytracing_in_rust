@@ -2,11 +2,12 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 use rand_chacha::ChaCha20Rng;
 
-use crate::bvh_node::BVHNode;
-use crate::vector3::Vector3;
+use crate::geometry::aabb::AABB;
+use crate::math::vector3::Vector3;
 use crate::ray::Ray;
-use crate::aabb::AABB;
-use crate::hittable_service::{HittableService, HittableEnum};
+use crate::services::hittable_service::{HittableService, HittableEnum};
+
+use super::bvh_node::BVHNode;
 
 // Turn the material into an index and derive default
 pub struct HitRecord {

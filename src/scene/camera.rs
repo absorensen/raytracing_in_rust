@@ -3,7 +3,7 @@ use std::f32;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::vector3::{Vector3, Point3};
+use crate::math::vector3::{Point3, Vector3};
 use crate::ray::Ray;
 
 pub struct Camera {

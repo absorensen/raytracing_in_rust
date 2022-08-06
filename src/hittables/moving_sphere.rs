@@ -2,11 +2,9 @@ use std::f32::consts::PI;
 
 use rand::rngs::ThreadRng;
 
-use crate::hittable_service::HittableService;
-use crate::vector3::Vector3;
-use crate::ray::Ray;
-use crate::hittable::{HitRecord, Hittable};
-use crate::aabb::AABB;
+use crate::{ray::Ray, math::vector3::Vector3, services::hittable_service::HittableService, geometry::aabb::AABB};
+
+use super::hittable::{HitRecord, Hittable};
 
 pub struct MovingSphere {
     pub radius: f32,
