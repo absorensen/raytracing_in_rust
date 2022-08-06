@@ -26,6 +26,7 @@ mod hittable_service;
 mod service_locator;
 mod scene_service;
 mod scene_builder;
+mod render_config;
 
 use vector3::{Vector3, Color};
 use ray::Ray;
@@ -35,6 +36,7 @@ use material_service::MaterialService;
 use texture_service::TextureService;
 use hittable_service::HittableService;
 use service_locator::ServiceLocator;
+use render_config::RenderConfig;
 
 use crate::scene_builder::SceneBuilder;
 
@@ -50,7 +52,7 @@ fn ray_color_recursive(
     has_lights: bool,
     background: &Color, 
     ray: &Ray, 
-    depth: i64) -> Color {
+    depth: usize) -> Color {
 
     if depth <= 0 {
         return Color::new(0.0, 0.0, 0.0);
@@ -150,11 +152,11 @@ fn ray_color_recursive(
 fn render_pixel(
     rng: &mut ThreadRng, 
     service_locator: &ServiceLocator,
-    pixel_index: i64, 
-    image_width: i64, 
-    image_height: i64, 
-    samples_per_pixel: i64, 
-    max_depth: i64, 
+    pixel_index: usize, 
+    image_width: usize, 
+    image_height: usize, 
+    samples_per_pixel: usize, 
+    max_depth: usize, 
     scale: f32, 
     use_parallel: bool) 
     -> Vector3 {
@@ -234,71 +236,39 @@ fn render_pixel(
 }
 
 fn main() {
-    // Display Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width: i64 = 500;
-    let output_path = "output.png";
+    let config: RenderConfig = confy::load("render_config/book_3.render_config").expect("Unable to load config file");
 
-    // Render Settings
-    let samples_per_pixel = 100;
-    let max_depth = 50;
-
-    // Compute Settings
-    let run_pixel_parallel = true;
-    let run_sample_parallel = false;
-
-
-
-    // Scene
-    let scene_index = 11;
-
-    let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(aspect_ratio, image_width, scene_index);
+    let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(config.aspect_ratio, config.image_width, config.scene_index);
     
-    let scale = 1.0 / (samples_per_pixel as f32);
+    let scale = 1.0 / (config.samples_per_pixel as f32);
 
     let now = Instant::now();
-    let total_pixels = image_height * image_width;
+    let total_pixels = image_height * config.image_width;
     let image: Vec<Vector3> = 
-    if run_pixel_parallel {
-        (0..total_pixels).into_par_iter().map(|pixel_index:i64| {
+        (0..total_pixels).into_par_iter().map(|pixel_index:usize| {
             let mut rng = rand::thread_rng();
             render_pixel(
                 &mut rng, 
                 &service_locator,
                 pixel_index, 
-                image_width, 
+                config.image_width, 
                 image_height, 
-                samples_per_pixel, 
-                max_depth, 
+                config.samples_per_pixel, 
+                config.max_depth, 
                 scale, 
-                run_sample_parallel
+                config.run_sample_parallel
             )
-        }).collect()
-    } else {
-        let mut rng = rand::thread_rng();
-        (0..total_pixels).into_iter().map(|pixel_index:i64| {
-            render_pixel(
-                &mut rng, 
-                &service_locator,
-                pixel_index, 
-                image_width, 
-                image_height, 
-                samples_per_pixel, 
-                max_depth, 
-                scale, 
-                run_sample_parallel
-            )
-        }).collect()
-    };
+        }).collect();
+
     println!("{} seconds elapsed", now.elapsed().as_millis() as f32 * 0.001);
 
     let zero = Vector3{x: 0.0, y: 0.0, z: 0.0};
     let mut final_image: Vec<Vector3> = vec![zero; image.len()];
 
     for row_index in 0..image_height {
-        for column_index in 0..(image_width / 2) {
-            let column_index_left = (row_index * image_width + column_index) as usize;
-            let column_index_right = (row_index * image_width + (image_width - column_index - 1)) as usize;
+        for column_index in 0..(config.image_width / 2) {
+            let column_index_left = (row_index * config.image_width + column_index) as usize;
+            let column_index_right = (row_index * config.image_width + (config.image_width - column_index - 1)) as usize;
             final_image[column_index_left] = image[column_index_right];
             final_image[column_index_right] = image[column_index_left];
         }
@@ -313,7 +283,7 @@ fn main() {
 
     let mut window = Window::new(
         "Ray Tracing in Rust - Press ESC to exit",
-        image_width as usize,
+        config.image_width,
         image_height as usize,
         WindowOptions {
             resize: true,
@@ -329,7 +299,7 @@ fn main() {
         window
         .update_with_buffer(
             &window_buffer,
-            image_width as usize,
+            config.image_width,
             image_height as usize,
         )
         .unwrap();
@@ -337,9 +307,9 @@ fn main() {
 
     let mut horizontally_flipped_image: Vec<Vector3> = vec![zero; image.len()];
     for row_index in 0..(image_height / 2) {
-        for column_index in 0..image_width {
-            let row_index_top = (row_index * image_width + column_index) as usize;
-            let row_index_bottom = ((image_height - row_index - 1) * image_width + column_index) as usize;
+        for column_index in 0..config.image_width {
+            let row_index_top = (row_index * config.image_width + column_index) as usize;
+            let row_index_bottom = ((image_height - row_index - 1) * config.image_width + column_index) as usize;
             horizontally_flipped_image[row_index_top] = image[row_index_bottom];
             horizontally_flipped_image[row_index_bottom] = image[row_index_top];
         }
@@ -353,16 +323,16 @@ fn main() {
 
 
     let save_result = image::save_buffer_with_format(
-        output_path, 
+        &config.output_path, 
         &ouput_buffer, 
-        image_width.try_into().unwrap(), 
+        config.image_width.try_into().unwrap(), 
         image_height.try_into().unwrap(), 
         image::ColorType::Rgb8, 
         image::ImageFormat::Png
     );
 
     if save_result.is_ok() {
-        println!("Saved output image to {}", output_path);
+        println!("Saved output image to {}", config.output_path);
     } else {
         let error = save_result.unwrap_err();
         panic!("{}", error.to_string());

@@ -75,9 +75,9 @@ fn build_acceleration_structures(rng: &mut ChaCha20Rng, service_locator: &mut Se
 
 // Conver to output image description service
 impl SceneBuilder {
-    pub fn build_scene(mut aspect_ratio: f32, image_width: i64, scene_index: usize) -> (f32, i64, ServiceLocator) {
+    pub fn build_scene(mut aspect_ratio: f32, image_width: usize, scene_index: usize) -> (f32, usize, ServiceLocator) {
         // Display Image
-        let mut image_height = ((image_width as f32) / aspect_ratio) as i64;
+        let mut image_height = ((image_width as f32) / aspect_ratio) as usize;
         image_height = image_height + image_height % 2;
 
 
@@ -88,7 +88,7 @@ impl SceneBuilder {
 
         if 5 < scene_index {
             aspect_ratio = 1.0;
-            image_height = ((image_width as f32) / aspect_ratio) as i64;
+            image_height = ((image_width as f32) / aspect_ratio) as usize;
             image_height = image_height + image_height % 2;
         }
 
