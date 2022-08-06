@@ -5,16 +5,13 @@ use rand::{SeedableRng, Rng};
 use rand_chacha::ChaCha20Rng;
 
 use crate::{
-    hittables::hittable::{XYRect, YZRect, FlipFace, XZRect, BoxHittable, RotateY, Translate, ConstantMedium, HittableList}, 
     services::material_service::{MaterialEnum}, 
     scene::camera::Camera, 
     math::vector3::{Color, Point3, Vector3}, 
-    textures::texture::{CheckerTexture, SolidColorTexture, NoiseTexture, ImageTexture}, 
-    hittables::sphere::Sphere, 
-    materials::material::{Lambertian, Dielectric, Metal, DiffuseLight, Isotropic}, 
-    hittables::moving_sphere::MovingSphere, hittables::bvh_node::BVHNode, 
+    hittables::{sphere::Sphere, hittable_list::HittableList}, 
+    hittables::{moving_sphere::MovingSphere, yz_rect::YZRect, flip_face::FlipFace, xz_rect::XZRect, translate::Translate, constant_medium::ConstantMedium, box_hittable::BoxHittable, rotate_y::RotateY}, hittables::{bvh_node::BVHNode, xy_rect::XYRect}, 
     services::scene_service::{SceneService},
-    services::service_locator::{ServiceLocator}, services::hittable_service::{HittableEnum}, services::texture_service::TextureEnum
+    services::service_locator::{ServiceLocator}, services::hittable_service::{HittableEnum}, services::texture_service::TextureEnum, materials::{lambertian::Lambertian, dielectric::Dielectric, metal::Metal, diffuse_light::DiffuseLight, isotropic::Isotropic}, textures::{solid_color_texture::SolidColorTexture, checker_texture::CheckerTexture, noise_texture::NoiseTexture, image_texture::ImageTexture}
 };
 
 pub struct SceneBuilder {

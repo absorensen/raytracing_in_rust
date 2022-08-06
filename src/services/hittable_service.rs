@@ -1,9 +1,20 @@
 use rand::prelude::ThreadRng;
 
 use crate::geometry::aabb::AABB;
+use crate::hittables::box_hittable::BoxHittable;
 use crate::hittables::bvh_node::BVHNode;
-use crate::hittables::hittable::{HittableList, XYRect, XZRect, YZRect, BoxHittable, RotateY, Translate, ConstantMedium, FlipFace, HitRecord, DefaultHittable, Hittable};
+use crate::hittables::constant_medium::ConstantMedium;
+use crate::hittables::default_hittable::DefaultHittable;
+use crate::hittables::flip_face::FlipFace;
+use crate::hittables::hit_record::HitRecord;
+use crate::hittables::hittable::Hittable;
+use crate::hittables::hittable_list::HittableList;
 use crate::hittables::moving_sphere::MovingSphere;
+use crate::hittables::rotate_y::RotateY;
+use crate::hittables::translate::Translate;
+use crate::hittables::xy_rect::XYRect;
+use crate::hittables::xz_rect::XZRect;
+use crate::hittables::yz_rect::YZRect;
 use crate::ray::Ray;
 use crate::hittables::sphere::Sphere;
 use crate::math::vector3::{Vector3};

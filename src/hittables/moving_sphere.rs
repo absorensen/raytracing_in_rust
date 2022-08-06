@@ -4,7 +4,7 @@ use rand::rngs::ThreadRng;
 
 use crate::{ray::Ray, math::vector3::Vector3, services::hittable_service::HittableService, geometry::aabb::AABB};
 
-use super::hittable::{HitRecord, Hittable};
+use super::{hittable::{Hittable}, hit_record::HitRecord};
 
 pub struct MovingSphere {
     pub radius: f32,

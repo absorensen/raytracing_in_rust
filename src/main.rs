@@ -1,9 +1,11 @@
 extern crate minifb;
-use hittables::hittable::HitRecord;
-use materials::material::ScatterRecord;
+use hittables::hit_record::HitRecord;
+use materials::scatter_record::ScatterRecord;
 use math::vector3::{Color, Vector3};
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
-use pdf::{PDF, HittablePDF, MixturePDF};
+use pdf::{PDF};
+use pdfs::hittable_pdf::HittablePDF;
+use pdfs::mixture_pdf::MixturePDF;
 use pdfs::pdf;
 // Look into performance optimization of the RNG
 use rand::prelude::*;

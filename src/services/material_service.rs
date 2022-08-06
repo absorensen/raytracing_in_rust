@@ -1,8 +1,15 @@
 use rand::prelude::ThreadRng;
 
-use crate::materials::material::{DefaultMaterial, Lambertian, Metal, Dielectric, DiffuseLight, Isotropic, ScatterRecord, Material};
+use crate::hittables::hit_record::HitRecord;
+use crate::materials::default_material::DefaultMaterial;
+use crate::materials::dielectric::Dielectric;
+use crate::materials::diffuse_light::DiffuseLight;
+use crate::materials::isotropic::Isotropic;
+use crate::materials::lambertian::Lambertian;
+use crate::materials::material::Material;
+use crate::materials::metal::Metal;
+use crate::materials::scatter_record::ScatterRecord;
 use crate::ray::Ray;
-use crate::hittables::hittable::HitRecord;
 use crate::services::texture_service::TextureService;
 use crate::math::vector3::{Vector3, Color};
 

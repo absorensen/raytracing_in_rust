@@ -8,7 +8,8 @@ use crate::{math::vector3::Vector3, geometry::aabb::AABB};
 use crate::ray::Ray;
 use crate::services::hittable_service::HittableService;
 
-use super::hittable::{Hittable, HitRecord};
+use super::hit_record::HitRecord;
+use super::hittable::{Hittable};
 
 pub struct Sphere {
     pub radius: f32,

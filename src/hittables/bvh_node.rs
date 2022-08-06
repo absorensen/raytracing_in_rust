@@ -5,7 +5,7 @@ use rand_chacha::ChaCha20Rng;
 
 use crate::{services::hittable_service::{HittableService, HittableEnum}, geometry::aabb::AABB, ray::Ray};
 
-use super::hittable::{HitRecord, Hittable};
+use super::{hittable::{Hittable}, hit_record::HitRecord};
 
 
 pub struct BVHNode {
