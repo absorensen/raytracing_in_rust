@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::iter::Sum;
 use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index, IndexMut};
@@ -12,13 +12,13 @@ pub type Color = Vector3;
 
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vector3 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 impl Vector3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Vector3 {
+    pub fn new(x: f32, y: f32, z: f32) -> Vector3 {
         Vector3 { x, y, z }
     }
 
@@ -41,31 +41,31 @@ impl Vector3 {
 
     #[inline]
     pub fn random(rng: &mut ThreadRng) -> Self {
-        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+        Vector3{x: rng.gen::<f32>(), y: rng.gen::<f32>(), z: rng.gen::<f32>() }
     }
 
     #[inline]
-    pub fn random_range(rng: &mut ThreadRng, minimum: f64, maximum: f64) -> Self {
+    pub fn random_range(rng: &mut ThreadRng, minimum: f32, maximum: f32) -> Self {
         Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
     }
 
     #[inline]
     pub fn random_chacha(rng: &mut ChaChaRng) -> Self {
-        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+        Vector3{x: rng.gen::<f32>(), y: rng.gen::<f32>(), z: rng.gen::<f32>() }
     }
 
     #[inline]
-    pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f64, maximum: f64) -> Self {
+    pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f32, maximum: f32) -> Self {
         Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
     }
 
     #[inline]
     pub fn random_step(rng: &mut StepRng) -> Self {
-        Vector3{x: rng.gen::<f64>(), y: rng.gen::<f64>(), z: rng.gen::<f64>() }
+        Vector3{x: rng.gen::<f32>(), y: rng.gen::<f32>(), z: rng.gen::<f32>() }
     }
 
     #[inline]
-    pub fn random_range_step(rng: &mut StepRng, minimum: f64, maximum: f64) -> Self {
+    pub fn random_range_step(rng: &mut StepRng, minimum: f32, maximum: f32) -> Self {
         Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
     }
 
@@ -76,17 +76,17 @@ impl Vector3 {
 
 
     #[inline]
-    pub fn length_squared(&self) -> f64 {
+    pub fn length_squared(&self) -> f32 {
         return self.x.mul_add(self.x, self.y.mul_add(self.y, self.z * self.z));
     }
 
     #[inline]
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         return self.length_squared().sqrt();
     }
 
     #[inline]
-    pub fn dot(u: &Vector3, v: &Vector3) -> f64 {
+    pub fn dot(u: &Vector3, v: &Vector3) -> f32 {
         return u.x.mul_add(v.x, u.y.mul_add(v.y, u.z * v.z));
     }
 
@@ -113,7 +113,7 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn refract(v: &Vector3, n: &Vector3, etai_over_etat: f64, refracted_out: &mut Vector3) -> bool {
+    pub fn refract(v: &Vector3, n: &Vector3, etai_over_etat: f32, refracted_out: &mut Vector3) -> bool {
         let negative_uv = -*v;
         let cos_theta = Vector3::dot(&negative_uv,&n).min(1.0);
         let ray_out_perp = etai_over_etat * (*v + cos_theta * (*n));
@@ -167,8 +167,8 @@ impl Vector3 {
 
     #[inline]
     pub fn random_cosine_direction(rng: &mut ThreadRng) -> Self {
-        let r1 = rng.gen::<f64>();
-        let r2 = rng.gen::<f64>();
+        let r1 = rng.gen::<f32>();
+        let r2 = rng.gen::<f32>();
         let z = (1.0 - r2).sqrt();
 
         let phi = 2.0 * PI * r1;
@@ -179,14 +179,14 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn color_to_output(self, image_buffer: &mut Vec<f64>, offset: usize, scale: f64) -> () {
+    pub fn color_to_output(self, image_buffer: &mut Vec<f32>, offset: usize, scale: f32) -> () {
         let r = (scale * self.x).sqrt();
         let g = (scale * self.y).sqrt();
         let b = (scale * self.z).sqrt();
 
-        image_buffer[offset + 0] = (255.999 * clamp(0.0, r, 0.999)) as f64;
-        image_buffer[offset + 1] = (255.999 * clamp(0.0, g, 0.999)) as f64;
-        image_buffer[offset + 2] = (255.999 * clamp(0.0, b, 0.999)) as f64;
+        image_buffer[offset + 0] = (255.999 * clamp(0.0, r, 0.999)) as f32;
+        image_buffer[offset + 1] = (255.999 * clamp(0.0, g, 0.999)) as f32;
+        image_buffer[offset + 2] = (255.999 * clamp(0.0, b, 0.999)) as f32;
     }
 
     #[inline]
@@ -258,11 +258,11 @@ impl Mul for Vector3 {
     }
 }
 
-impl Mul<f64> for Vector3 {
+impl Mul<f32> for Vector3 {
     type Output = Vector3;
 
     #[inline]
-    fn mul(self, factor: f64) -> Vector3 {
+    fn mul(self, factor: f32) -> Vector3 {
         Vector3 {
             x: self.x * factor,
             y: self.y * factor,
@@ -271,7 +271,7 @@ impl Mul<f64> for Vector3 {
     }
 }
 
-impl Mul<Vector3> for f64 {
+impl Mul<Vector3> for f32 {
     type Output = Vector3;
 
     #[inline]
@@ -284,10 +284,10 @@ impl Mul<Vector3> for f64 {
     }
 }
 
-impl MulAssign<f64> for Vector3 {
+impl MulAssign<f32> for Vector3 {
 
     #[inline]
-    fn mul_assign(&mut self, factor: f64) {
+    fn mul_assign(&mut self, factor: f32) {
         *self = Self {
             x: self.x * factor,
             y: self.y * factor,
@@ -296,11 +296,11 @@ impl MulAssign<f64> for Vector3 {
     }
 }
 
-impl Div<f64> for Vector3 {
+impl Div<f32> for Vector3 {
     type Output = Vector3;
 
     #[inline]
-    fn div(self, factor: f64) -> Vector3 {
+    fn div(self, factor: f32) -> Vector3 {
         Vector3 {
             x: self.x / factor,
             y: self.y / factor,
@@ -309,10 +309,10 @@ impl Div<f64> for Vector3 {
     }
 }
 
-impl DivAssign<f64> for Vector3 {
+impl DivAssign<f32> for Vector3 {
 
     #[inline]
-    fn div_assign(&mut self, factor: f64) {
+    fn div_assign(&mut self, factor: f32) {
         *self = Vector3 {
             x: self.x / factor,
             y: self.y / factor,
@@ -348,9 +348,9 @@ impl Sum for Vector3 {
 }
 
 impl Index<usize> for Vector3 {
-    type Output = f64;
+    type Output = f32;
 
-    fn index(&self, i: usize) -> &f64 {
+    fn index(&self, i: usize) -> &f32 {
         match i {
             0 => &self.x,
             1 => &self.y,
@@ -361,7 +361,7 @@ impl Index<usize> for Vector3 {
 }
 
 impl IndexMut<usize> for Vector3 {
-    fn index_mut(&mut self, i: usize) -> &mut f64 {
+    fn index_mut(&mut self, i: usize) -> &mut f32 {
         match i {
             0 => &mut self.x,
             1 => &mut self.y,

@@ -72,7 +72,7 @@ impl HittableService {
     // TODO: How to do this in a nice way with lights, either double up on function calls or use a switch in the arguments
 
     #[inline] // Recursive to begin with, but make it a loop
-    pub fn hit(&self, index: usize, rng: &mut ThreadRng, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    pub fn hit(&self, index: usize, rng: &mut ThreadRng, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
         match &self.hittables[index] {
             HittableEnum::DefaultHittable(default) => default.hit(rng, &self, ray, t_min, t_max, hit_out),
             HittableEnum::BVHNode(bvh_node) => bvh_node.hit(rng, &self, ray, t_min, t_max, hit_out),
@@ -91,7 +91,7 @@ impl HittableService {
     }
 
     #[inline] 
-    pub fn bounding_box(&self, index:usize, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+    pub fn bounding_box(&self, index:usize, time_0: f32, time_1: f32, box_out: &mut AABB) -> bool {
         match &self.hittables[index] {
             HittableEnum::DefaultHittable(default) => default.bounding_box(&self, time_0, time_1, box_out),
             HittableEnum::BVHNode(bvh_node) => bvh_node.bounding_box(&self, time_0, time_1, box_out),
@@ -110,7 +110,7 @@ impl HittableService {
     }
     
     #[inline] 
-    pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3, vv: &Vector3) -> f64 { 
+    pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3, vv: &Vector3) -> f32 { 
         match &self.hittables[index] {
             HittableEnum::DefaultHittable(default) => default.pdf_value(rng, &self, origin, vv),
             HittableEnum::BVHNode(bvh_node) => bvh_node.pdf_value(rng, &self, origin, vv),

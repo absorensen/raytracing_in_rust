@@ -34,7 +34,7 @@ impl TextureService {
     }
 
     #[inline]
-    pub fn value(&self, texture_index: usize, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
+    pub fn value(&self, texture_index: usize, u: f32, v: f32, p: &Vector3, color_out: &mut Color) -> bool {
         match &self.textures[texture_index] {
             TextureEnum::DefaultTexture(default) => default.value(&self, u, v, p, color_out),
             TextureEnum::SolidColorTexture(solid_color) => solid_color.value(&self, u, v, p, color_out),

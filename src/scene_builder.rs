@@ -75,9 +75,9 @@ fn build_acceleration_structures(rng: &mut ChaCha20Rng, service_locator: &mut Se
 
 // Conver to output image description service
 impl SceneBuilder {
-    pub fn build_scene(mut aspect_ratio: f64, image_width: i64, scene_index: usize) -> (f64, i64, ServiceLocator) {
+    pub fn build_scene(mut aspect_ratio: f32, image_width: i64, scene_index: usize) -> (f32, i64, ServiceLocator) {
         // Display Image
-        let mut image_height = ((image_width as f64) / aspect_ratio) as i64;
+        let mut image_height = ((image_width as f32) / aspect_ratio) as i64;
         image_height = image_height + image_height % 2;
 
 
@@ -88,7 +88,7 @@ impl SceneBuilder {
 
         if 5 < scene_index {
             aspect_ratio = 1.0;
-            image_height = ((image_width as f64) / aspect_ratio) as i64;
+            image_height = ((image_width as f32) / aspect_ratio) as i64;
             image_height = image_height + image_height % 2;
         }
 
@@ -111,15 +111,15 @@ impl SceneBuilder {
         (aspect_ratio, image_height, service_locator)
     }
 
-    fn random_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> ServiceLocator {
+    fn random_spheres_scene(aspect_ratio: f32, number_of_balls: i32) -> ServiceLocator {
         // Camera
         let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
         let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.05;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let vfov = 20.0;
         let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
@@ -138,8 +138,8 @@ impl SceneBuilder {
     
         for a in -number_of_balls..number_of_balls {
             for b in -number_of_balls..number_of_balls {
-                let choose_mat = rng.gen::<f64>();
-                let center = Point3{x: a as f64 + 0.9 * rng.gen::<f64>(), y: 0.2, z: b as f64 + 0.9 * rng.gen::<f64>()};
+                let choose_mat = rng.gen::<f32>();
+                let center = Point3{x: a as f32 + 0.9 * rng.gen::<f32>(), y: 0.2, z: b as f32 + 0.9 * rng.gen::<f32>()};
     
                 if 0.9 < (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() {
                     if choose_mat < 0.8 {
@@ -147,7 +147,7 @@ impl SceneBuilder {
                         let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(chosen_texture_index)));
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(center, 0.2, chosen_material_index))));
                     } else if choose_mat < 0.95 {
-                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()}));
+                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f32>()}));
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(center, 0.2, chosen_material_index))));
                     } else {
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(center, 0.2, glass_material_index))));
@@ -170,15 +170,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn random_moving_spheres_scene(aspect_ratio: f64, number_of_balls: i32) -> ServiceLocator {
+    fn random_moving_spheres_scene(aspect_ratio: f32, number_of_balls: i32) -> ServiceLocator {
         // Camera
         let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
         let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.1;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
         let background = Color{x:0.7, y:0.8, z: 1.0};
@@ -197,19 +197,19 @@ impl SceneBuilder {
         
         for a in -number_of_balls..number_of_balls {
             for b in -number_of_balls..number_of_balls {
-                let choose_mat = rng.gen::<f64>();
-                let center = Point3{x: a as f64 + 0.9 * rng.gen::<f64>(), y: 0.2, z: b as f64 + 0.9 * rng.gen::<f64>()};
+                let choose_mat = rng.gen::<f32>();
+                let center = Point3{x: a as f32 + 0.9 * rng.gen::<f32>(), y: 0.2, z: b as f32 + 0.9 * rng.gen::<f32>()};
     
                 if (center - Point3{x: 4.0, y: 0.2, z: 0.0}).length() > 0.9 {
                     if choose_mat < 0.8 {
                         let mut movement = Vector3::zero();
-                        movement.y = rng.gen::<f64>() * 0.5;
+                        movement.y = rng.gen::<f32>() * 0.5;
     
                         let chosen_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&(Color::random_chacha(&mut rng) * Color::random_chacha(&mut rng)))));
                         let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(chosen_texture_index)));
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::MovingSphere(MovingSphere::new(0.2, center, center + movement,  chosen_material_index, 0.0, 1.0))));
                     } else if choose_mat < 0.95 {    
-                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f64>()}));
+                        let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: Color::random_chacha(&mut rng), fuzz: rng.gen::<f32>()}));
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(center, 0.2, chosen_material_index))));
                     } else {
                         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(center, 0.2, glass_material_index))));
@@ -232,15 +232,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn two_spheres_scene(aspect_ratio: f64) -> ServiceLocator {
+    fn two_spheres_scene(aspect_ratio: f32) -> ServiceLocator {
         // Camera
         let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
         let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.05;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
         let background = Color{x:0.7, y:0.8, z: 1.0};
@@ -260,15 +260,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn two_perlin_spheres_scene(aspect_ratio: f64, element_count: u32) -> ServiceLocator {    
+    fn two_perlin_spheres_scene(aspect_ratio: f32, element_count: u32) -> ServiceLocator {    
         // Camera
         let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
         let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.05;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
         let background = Color{x:0.7, y:0.8, z: 1.0};
@@ -290,15 +290,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn earth_scene(aspect_ratio: f64) -> ServiceLocator {
+    fn earth_scene(aspect_ratio: f32) -> ServiceLocator {
         // Camera
         let look_from = Point3{x: 13.0, y: 2.0, z: 3.0 };
         let look_at = Point3{x: 0.0, y: 0.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.05;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
         let background = Color{x:0.7, y:0.8, z: 1.0};
@@ -314,15 +314,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn simple_light_scene(aspect_ratio: f64, element_count: u32) -> ServiceLocator {    
+    fn simple_light_scene(aspect_ratio: f32, element_count: u32) -> ServiceLocator {    
         // Camera
         let look_from = Point3{x: 26.0, y: 3.0, z: 6.0 };
         let look_at = Point3{x: 0.0, y: 2.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.05;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let camera = Camera::new(look_from, look_at, v_up,20.0, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
     
         let background = Color{x:0.0, y:0.0, z: 0.0};
@@ -349,15 +349,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn empty_cornell_box_scene_prebuild(aspect_ratio: f64) -> (ChaCha20Rng, ServiceLocator, Vec<usize>, Vec<usize>) {
+    fn empty_cornell_box_scene_prebuild(aspect_ratio: f32) -> (ChaCha20Rng, ServiceLocator, Vec<usize>, Vec<usize>) {
         // Camera
         let look_from = Point3{x: 278.0, y: 278.0, z: -800.0 };
         let look_at = Point3{x: 278.0, y: 278.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.0;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let vfov = 40.0;
         let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
@@ -400,7 +400,7 @@ impl SceneBuilder {
         (rng, service_locator, hittable_index_list, light_index_list)
     }
     
-    fn empty_cornell_box_scene(aspect_ratio: f64) -> ServiceLocator {
+    fn empty_cornell_box_scene(aspect_ratio: f32) -> ServiceLocator {
         let (mut rng, mut service_locator, hittable_index_list, light_index_list) = Self::empty_cornell_box_scene_prebuild(aspect_ratio);
 
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
@@ -408,7 +408,7 @@ impl SceneBuilder {
         service_locator
     }
 
-    fn cornell_box_two_diffuse_boxes_scene(aspect_ratio: f64) -> ServiceLocator {
+    fn cornell_box_two_diffuse_boxes_scene(aspect_ratio: f32) -> ServiceLocator {
         let (mut rng, mut service_locator, mut hittable_index_list, light_index_list) = Self::empty_cornell_box_scene_prebuild(aspect_ratio);
 
         let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));
@@ -433,7 +433,7 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn cornell_box_diffuse_metal_boxes_scene(aspect_ratio: f64) -> ServiceLocator {
+    fn cornell_box_diffuse_metal_boxes_scene(aspect_ratio: f32) -> ServiceLocator {
         let (mut rng, mut service_locator, mut hittable_index_list, light_index_list) = Self::empty_cornell_box_scene_prebuild(aspect_ratio);
 
         let metal_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal::new(Color{x: 0.8, y: 0.85, z: 0.88}, 0.0)));
@@ -460,15 +460,15 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f64) -> ServiceLocator {    
+    fn cornell_box_two_smoke_boxes_scene(aspect_ratio: f32) -> ServiceLocator {    
         // Camera
         let look_from = Point3{x: 278.0, y: 278.0, z: -800.0 };
         let look_at = Point3{x: 278.0, y: 278.0, z: 0.0};
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.0;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let vfov = 40.0;
         let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
@@ -537,7 +537,7 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn final_scene_book_2(aspect_ratio: f64, perlin_element_count: u32, cube_sphere_count: u32) -> ServiceLocator {
+    fn final_scene_book_2(aspect_ratio: f32, perlin_element_count: u32, cube_sphere_count: u32) -> ServiceLocator {
         //let seed: u64 = 919;
 
         
@@ -547,8 +547,8 @@ impl SceneBuilder {
         let v_up = Vector3{x: 0.0, y:1.0, z:0.0};
         let dist_to_focus = 15.0;
         let aperture = 0.0;
-        let time_0: f64 = 0.0;
-        let time_1: f64 = 1.0;
+        let time_0: f32 = 0.0;
+        let time_1: f32 = 1.0;
         let vfov = 40.0;
         let camera = Camera::new(look_from, look_at, v_up, vfov, aspect_ratio, aperture, dist_to_focus, time_0, time_1);
 
@@ -567,16 +567,16 @@ impl SceneBuilder {
 
         let boxes_per_side = 20;
         for i in 0..boxes_per_side {
-            let i_f = i as f64;
+            let i_f = i as f32;
             for j in 0..boxes_per_side {
-                let j_f = j as f64;
-                let w : f64 = 100.0;
-                let x0: f64 = -1000.0 + i_f * w;
-                let z0: f64 = -1000.0 + j_f * w;
-                let y0: f64 = 0.0;
-                let x1: f64 = x0 + w;
-                let y1: f64 = rng.gen_range(1.0..101.0);
-                let z1: f64 = z0 + w;
+                let j_f = j as f32;
+                let w : f32 = 100.0;
+                let x0: f32 = -1000.0 + i_f * w;
+                let z0: f32 = -1000.0 + j_f * w;
+                let y0: f32 = 0.0;
+                let x1: f32 = x0 + w;
+                let y1: f32 = rng.gen_range(1.0..101.0);
+                let z1: f32 = z0 + w;
     
                 let element = HittableEnum::BoxHittable(
                     BoxHittable::new(
@@ -667,7 +667,7 @@ impl SceneBuilder {
         service_locator
     }
     
-    fn final_scene_book_3(aspect_ratio: f64) -> ServiceLocator {
+    fn final_scene_book_3(aspect_ratio: f32) -> ServiceLocator {
         let (mut rng, mut service_locator, mut hittable_index_list, mut light_index_list) = Self::empty_cornell_box_scene_prebuild(aspect_ratio);
 
         let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&Color{x: 0.73, y: 0.73, z: 0.73})));

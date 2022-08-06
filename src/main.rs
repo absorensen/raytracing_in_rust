@@ -3,7 +3,7 @@ use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use pdf::{PDF, HittablePDF, MixturePDF};
 // Look into performance optimization of the RNG
 use rand::prelude::*;
-use std::f64;
+use std::f32;
 use std::time::Instant;
 use rayon::prelude::*;
 
@@ -59,7 +59,7 @@ fn ray_color_recursive(
     let mut rec:HitRecord = HitRecord::default();
     
     
-    if !hittable_service.hit(bvh_root_index, rng, ray, 0.001, f64::MAX, &mut rec) {
+    if !hittable_service.hit(bvh_root_index, rng, ray, 0.001, f32::MAX, &mut rec) {
         return *background;
     }
 
@@ -155,7 +155,7 @@ fn render_pixel(
     image_height: i64, 
     samples_per_pixel: i64, 
     max_depth: i64, 
-    scale: f64, 
+    scale: f32, 
     use_parallel: bool) 
     -> Vector3 {
     let column_index = pixel_index % image_width;
@@ -179,11 +179,11 @@ fn render_pixel(
 
     let mut color_buffer = Color{x: 0.0, y: 0.0, z: 0.0};
     if use_parallel {
-        let seeds: Vec<(f64, f64)> = (0..samples_per_pixel).into_iter().map(|_| (rng.gen::<f64>(), rng.gen::<f64>()) ).collect();
+        let seeds: Vec<(f32, f32)> = (0..samples_per_pixel).into_iter().map(|_| (rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
         color_buffer = seeds.into_par_iter().map(|(seed0, seed1)| {
             let mut rng = rand::thread_rng();
-            let u = (column_index as f64 + seed0 ) / ((image_width - 1) as f64);
-            let v = (row_index as f64 + seed1 ) / ((image_height - 1) as f64);
+            let u = (column_index as f32 + seed0 ) / ((image_width - 1) as f32);
+            let v = (row_index as f32 + seed1 ) / ((image_height - 1) as f32);
             let ray = camera.get_ray(&mut rng, u, v);
             ray_color_recursive(
                 &mut rng, 
@@ -201,8 +201,8 @@ fn render_pixel(
         }).sum();
     } else {
         for _sample_index in 0..samples_per_pixel {
-            let u = (column_index as f64 + rng.gen::<f64>() ) / ((image_width - 1) as f64);
-            let v = (row_index as f64 + rng.gen::<f64>() ) / ((image_height - 1) as f64);
+            let u = (column_index as f32 + rng.gen::<f32>() ) / ((image_width - 1) as f32);
+            let v = (row_index as f32 + rng.gen::<f32>() ) / ((image_height - 1) as f32);
             let ray = camera.get_ray(rng, u, v);
             color_buffer += 
                 ray_color_recursive(
@@ -254,7 +254,7 @@ fn main() {
 
     let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(aspect_ratio, image_width, scene_index);
     
-    let scale = 1.0 / (samples_per_pixel as f64);
+    let scale = 1.0 / (samples_per_pixel as f32);
 
     let now = Instant::now();
     let total_pixels = image_height * image_width;
@@ -290,7 +290,7 @@ fn main() {
             )
         }).collect()
     };
-    println!("{} seconds elapsed", now.elapsed().as_millis() as f64 * 0.001);
+    println!("{} seconds elapsed", now.elapsed().as_millis() as f32 * 0.001);
 
     let zero = Vector3{x: 0.0, y: 0.0, z: 0.0};
     let mut final_image: Vec<Vector3> = vec![zero; image.len()];

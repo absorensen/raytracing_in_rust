@@ -29,11 +29,11 @@ impl Perlin {
         result
     }
 
-    pub fn turbulence_default(&self, point: &Vector3) -> f64 {
+    pub fn turbulence_default(&self, point: &Vector3) -> f32 {
         self.turbulence(point, 7)
     }
 
-    pub fn turbulence(&self, point: &Vector3, depth: i32) -> f64 {
+    pub fn turbulence(&self, point: &Vector3, depth: i32) -> f32 {
         let mut accumulator = 0.0;
         let mut temp_point = point.clone();
         let mut weight = 1.0;
@@ -44,12 +44,12 @@ impl Perlin {
             temp_point *= 2.0;
         }
 
-        f64::abs(accumulator)
+        f32::abs(accumulator)
     }
 
     // Check this out to see whether they could all just be usize
     // Also look at improving the triple loop
-    pub fn noise(&self, point: &Vector3) -> f64 {
+    pub fn noise(&self, point: &Vector3) -> f32 {
         let u = point.x - point.x.floor();
         let v = point.y - point.y.floor();
         let w = point.z - point.z.floor();
@@ -77,7 +77,7 @@ impl Perlin {
         Perlin::perlin_interpolation(&samples, u, v, w)
     }
 
-    fn perlin_interpolation(samples: &[[[Vector3; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+    fn perlin_interpolation(samples: &[[[Vector3; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);
         let ww = w * w * (3.0 - 2.0 * w);
@@ -88,13 +88,13 @@ impl Perlin {
         for i in 0..2usize {
             for j in 0..2usize {
                 for k in 0..2usize {
-                    weight_v.x = u - i as f64;
-                    weight_v.y = v - j as f64;
-                    weight_v.z = w - k as f64;
+                    weight_v.x = u - i as f32;
+                    weight_v.y = v - j as f32;
+                    weight_v.z = w - k as f32;
 
-                    let i_f = i as f64;
-                    let j_f = j as f64;
-                    let k_f = k as f64;
+                    let i_f = i as f32;
+                    let j_f = j as f32;
+                    let k_f = k as f32;
 
                     sum += 
                         (i_f * uu + (1.0 - i_f) * (1.0 - uu)) *
@@ -109,15 +109,15 @@ impl Perlin {
     }
 
 
-    fn _trilinear_interpolation(samples: &[[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+    fn _trilinear_interpolation(samples: &[[[f32; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         let mut sum = 0.0;
 
         for i in 0..2usize {
             for j in 0..2usize {
                 for k in 0..2usize {
-                    let i_f = i as f64;
-                    let j_f = j as f64;
-                    let k_f = k as f64;
+                    let i_f = i as f32;
+                    let j_f = j as f32;
+                    let k_f = k as f32;
                     sum += 
                         (i_f * u + (1.0 - i_f) * (1.0 - u)) *
                         (j_f * v + (1.0 - j_f) * (1.0 - v)) *

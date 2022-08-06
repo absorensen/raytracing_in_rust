@@ -3,7 +3,7 @@ use rand::rngs::ThreadRng;
 use crate::{vector3::{Vector3, Color}, perlin::Perlin, texture_service::TextureService};
 
 pub trait Texture : Sync + Send {
-    fn value(&self, texture_service: &TextureService, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool;
+    fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vector3, color_out: &mut Color) -> bool;
 }
 
 pub struct DefaultTexture {
@@ -16,7 +16,7 @@ impl DefaultTexture {
 }
 
 impl Texture for DefaultTexture {
-    fn value(&self, _texture_service: &TextureService, _u: f64, _v: f64, _p: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, _texture_service: &TextureService, _u: f32, _v: f32, _p: &Vector3, color_out: &mut Color) -> bool {
         color_out.x = 1.0;
         color_out.y = 0.0;
         color_out.z = 0.0;
@@ -38,7 +38,7 @@ impl SolidColorTexture {
 }
 
 impl Texture for SolidColorTexture {
-    fn value(&self, _texture_service: &TextureService, _u: f64, _v: f64, _p: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, _texture_service: &TextureService, _u: f32, _v: f32, _p: &Vector3, color_out: &mut Color) -> bool {
         color_out.x = self.color.x;
         color_out.y = self.color.y;
         color_out.z = self.color.z;
@@ -60,7 +60,7 @@ impl CheckerTexture {
 }
 
 impl Texture for CheckerTexture {
-    fn value(&self, texture_service: &TextureService, u: f64, v: f64, p: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vector3, color_out: &mut Color) -> bool {
         let sines = (10.0 * p.x).sin() * (10.0 * p.y).sin() * (10.0 * p.z).sin();
         if sines < 0.0 {
             return texture_service.value(self.odd, u, v, p, color_out);
@@ -72,17 +72,17 @@ impl Texture for CheckerTexture {
 
 pub struct NoiseTexture {
     perlin: Perlin,
-    scale: f64,
+    scale: f32,
 }
 
 impl NoiseTexture {
-    pub fn new(rng: &mut ThreadRng, point_count: u32, scale: f64) -> Self {
+    pub fn new(rng: &mut ThreadRng, point_count: u32, scale: f32) -> Self {
         NoiseTexture{perlin: Perlin::new(rng, point_count), scale}
     }
 }
 
 impl Texture for NoiseTexture {
-    fn value(&self, _texture_service: &TextureService, _u: f64, _v: f64, point: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, _texture_service: &TextureService, _u: f32, _v: f32, point: &Vector3, color_out: &mut Color) -> bool {
         color_out.x = 1.0;
         color_out.y = 1.0;
         color_out.z = 1.0;
@@ -113,7 +113,7 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, _texture_service: &TextureService, u: f64, v: f64, _point: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, _texture_service: &TextureService, u: f32, v: f32, _point: &Vector3, color_out: &mut Color) -> bool {
         if self.data.len() < 1 {
             color_out.x = 0.0;
             color_out.y = 1.0;
@@ -125,8 +125,8 @@ impl Texture for ImageTexture {
         let u = u.clamp(0.0, 1.0);
         let v = v.clamp(0.0, 1.0);
 
-        let mut i = ( u * self.width as f64 ) as usize;
-        let mut j = ( v * self.height as f64 ) as usize;
+        let mut i = ( u * self.width as f32 ) as usize;
+        let mut j = ( v * self.height as f32 ) as usize;
 
         if self.width <= i { i = self.width - 1; }
         if self.height <= j { j = self.height - 1; } 
@@ -134,9 +134,9 @@ impl Texture for ImageTexture {
         let color_scale = 1.0 / 255.0;
         let pixel_index = j * self.bytes_per_scanline + i * self.bytes_per_pixel;
 
-        color_out.x = color_scale * self.data[pixel_index    ] as f64;
-        color_out.y = color_scale * self.data[pixel_index + 1] as f64;
-        color_out.z = color_scale * self.data[pixel_index + 2] as f64;
+        color_out.x = color_scale * self.data[pixel_index    ] as f32;
+        color_out.y = color_scale * self.data[pixel_index + 1] as f32;
+        color_out.z = color_scale * self.data[pixel_index + 2] as f32;
 
 
         true

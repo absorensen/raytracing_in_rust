@@ -12,14 +12,14 @@ pub struct BVHNode {
 }
 
 impl BVHNode {
-    pub fn from_index_list(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, index_list: &mut Vec<usize>, time_0: f64, time_1: f64) -> Self {
+    pub fn from_index_list(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, index_list: &mut Vec<usize>, time_0: f32, time_1: f32) -> Self {
         let elements_count = index_list.len();
         let slice = index_list.as_mut_slice();
         Self::new(rng, hittable_service, slice, 0, elements_count, time_0, time_1)
     }
 
     // This doesn't need to be the fastest in the world right now as it only runs once before the render loop
-    pub fn new(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, source_indices: &mut [usize], start: usize, end: usize, time_0: f64, time_1: f64) -> Self {
+    pub fn new(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, source_indices: &mut [usize], start: usize, end: usize, time_0: f32, time_1: f32) -> Self {
         let axis: u8 = rng.gen_range(0..3);
 
         // Probably optimize this by sharing this with the recursive call
@@ -116,7 +116,7 @@ impl BVHNode {
 }
 
 impl Hittable for BVHNode{
-    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
         if !self.bbox.hit(ray, t_min, t_max){
             return false;
         }
@@ -127,7 +127,7 @@ impl Hittable for BVHNode{
         hit_left || hit_right
     }
 
-    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f32, _time_1: f32, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.bbox.minimum.x;
         box_out.minimum.y = self.bbox.minimum.y;
         box_out.minimum.z = self.bbox.minimum.z;

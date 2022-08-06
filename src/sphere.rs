@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
@@ -11,26 +11,26 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::aabb::AABB;
 
 pub struct Sphere {
-    pub radius: f64,
+    pub radius: f32,
     pub center: Vector3,
     pub material: usize,
 }
 
 impl Sphere {
-    pub fn new(center: Vector3, radius: f64, material: usize) -> Self { 
+    pub fn new(center: Vector3, radius: f32, material: usize) -> Self { 
         Sphere {center, radius, material } 
     }
 
-    fn get_sphere_uv(p: &Vector3) -> (f64, f64) {
+    fn get_sphere_uv(p: &Vector3) -> (f32, f32) {
         let theta = (-(*p).y).acos();
-        let phi = f64::atan2(-(*p).z,(*p).x) + PI;
+        let phi = f32::atan2(-(*p).z,(*p).x) + PI;
 
         ( phi / (2.0 * PI), theta / PI ) 
     }
 }
 
 impl Hittable for Sphere{
-    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
         let oc = ray.origin - self.center;
         let a = ray.direction.length_squared();
         let half_b = Vector3::dot(&ray.direction, &oc);
@@ -65,7 +65,7 @@ impl Hittable for Sphere{
     }
 
     
-    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f64, _time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, _time_0: f32, _time_1: f32, box_out: &mut AABB) -> bool {
         box_out.minimum.x = self.center.x - self.radius;
         box_out.minimum.y = self.center.y - self.radius;
         box_out.minimum.z = self.center.z - self.radius;
@@ -77,9 +77,9 @@ impl Hittable for Sphere{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f64 {
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f32 {
         let hit_out = &mut HitRecord::default();
-        if self.hit(rng, hittable_service,  &Ray::new(*origin, *v, 0.5), 0.001, f64::INFINITY, hit_out) {
+        if self.hit(rng, hittable_service,  &Ray::new(*origin, *v, 0.5), 0.001, f32::INFINITY, hit_out) {
             let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
 
@@ -100,9 +100,9 @@ impl Hittable for Sphere{
 }
 
 #[inline]
-fn random_to_sphere(rng: &mut ThreadRng, radius: f64, distance_squared: f64) -> Vector3 {
-    let r1 = rng.gen::<f64>();
-    let r2 = rng.gen::<f64>();
+fn random_to_sphere(rng: &mut ThreadRng, radius: f32, distance_squared: f32) -> Vector3 {
+    let r1 = rng.gen::<f32>();
+    let r2 = rng.gen::<f32>();
     let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
 
     let phi = 2.0 * PI * r1;

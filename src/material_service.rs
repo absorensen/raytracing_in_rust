@@ -35,7 +35,7 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn emission(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
+    pub fn emission(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> Color {
         match &self.materials[hit.material] {
             MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit, u, v, point),
             MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit, u, v, point),
@@ -59,7 +59,7 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn scattering_pdf(&self, rng: &mut ThreadRng, ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f64 {
+    pub fn scattering_pdf(&self, rng: &mut ThreadRng, ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f32 {
         match &self.materials[hit.material] {
             MaterialEnum::DefaultMaterial(default) => default.scattering_pdf(rng, ray, hit, scattered_ray),
             MaterialEnum::Lambertian(lambertian) => lambertian.scattering_pdf(rng, ray, hit, scattered_ray),

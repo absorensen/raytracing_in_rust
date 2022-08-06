@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 use rand::{Rng, rngs::ThreadRng};
 
@@ -27,7 +27,7 @@ impl ScatterRecord {
 }
 
 pub trait Material : Sync + Send {
-    fn emitted(&self, _texture_service: &TextureService, _ray:&Ray, _hit: &HitRecord, _u: f64, _v: f64, _point: &Vector3) -> Color {
+    fn emitted(&self, _texture_service: &TextureService, _ray:&Ray, _hit: &HitRecord, _u: f32, _v: f32, _point: &Vector3) -> Color {
         Color::new(0.0, 0.0, 0.0)
     }
 
@@ -35,7 +35,7 @@ pub trait Material : Sync + Send {
         false
     }
 
-    fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, _hit: &HitRecord, _scattered_ray: &Ray) -> f64 {
+    fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, _hit: &HitRecord, _scattered_ray: &Ray) -> f32 {
         0.0
     }
 }
@@ -65,7 +65,7 @@ impl Material for Lambertian {
         return true;
     }
 
-    fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f64 {
+    fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f32 {
         let cosine = Vector3::dot(&hit.normal, &(scattered_ray.direction.normalized()));
 
         if cosine < 0.0 { 0.0 } else { cosine / PI }
@@ -75,11 +75,11 @@ impl Material for Lambertian {
 
 pub struct Metal {
     pub albedo: Color,
-    pub fuzz: f64, // should be saturated to 1
+    pub fuzz: f32, // should be saturated to 1
 }
 
 impl Metal {
-    pub fn new(albedo: Color, fuzz:f64) -> Metal {
+    pub fn new(albedo: Color, fuzz:f32) -> Metal {
         Metal { albedo, fuzz: if fuzz < 1.0 { fuzz } else { 1.0 } }
     }
 }
@@ -98,8 +98,8 @@ impl Material for Metal {
 
 #[derive(Copy, Clone)]
 pub struct Dielectric {
-    pub index_of_refraction: f64,
-    pub inverse_index_of_refraction: f64,
+    pub index_of_refraction: f32,
+    pub inverse_index_of_refraction: f32,
 }
 
 impl Material for Dielectric {
@@ -115,7 +115,7 @@ impl Material for Dielectric {
 
         let cannot_refract = 1.0 < refraction_ratio * sin_theta;
         let mut direction = Vector3::zero();
-        if cannot_refract || rng.gen::<f64>() < Dielectric::reflectance(cos_theta, refraction_ratio) {
+        if cannot_refract || rng.gen::<f32>() < Dielectric::reflectance(cos_theta, refraction_ratio) {
             Vector3::reflect(&unit_direction, &hit.normal, &mut direction);
         } else {
             Vector3::refract(&unit_direction, &hit.normal, refraction_ratio, &mut direction);
@@ -129,7 +129,7 @@ impl Material for Dielectric {
 }
 
 impl Dielectric {
-    fn reflectance(cosine: f64, index_of_refraction: f64) -> f64 {
+    fn reflectance(cosine: f32, index_of_refraction: f32) -> f32 {
         let r0 = (1.0 - index_of_refraction) / (1.0 + index_of_refraction);
         let r0_squared = r0 * r0;
         let inverse_cosine = 1.0 - cosine;
@@ -149,7 +149,7 @@ impl DiffuseLight {
 }
 
 impl Material for DiffuseLight {
-    fn emitted(&self, texture_service: &TextureService, _ray:&Ray, hit: &HitRecord, u: f64, v: f64, point: &Vector3) -> Color {
+    fn emitted(&self, texture_service: &TextureService, _ray:&Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> Color {
         if hit.is_front_face {
             let mut color_out = Color::zero();
             texture_service.value(self.emission_texture_index, u, v, point, &mut color_out);

@@ -1,4 +1,4 @@
-use std::f64;
+use std::f32;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
@@ -14,15 +14,15 @@ pub struct Camera {
     u: Vector3,
     v: Vector3,
     _w: Vector3,
-    lens_radius: f64,
-    time_0: f64,
-    time_1: f64,
+    lens_radius: f32,
+    time_0: f32,
+    time_1: f32,
 }
 
 impl Camera {
-    pub fn new(look_from: Point3, look_at: Point3, v_up: Vector3, vfov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64, time_0: f64, time_1: f64) -> Self {
-        let theta = f64::consts::PI / 180.0 * vfov;
-        let h = f64::tan(theta * 0.5);
+    pub fn new(look_from: Point3, look_at: Point3, v_up: Vector3, vfov: f32, aspect_ratio: f32, aperture: f32, focus_dist: f32, time_0: f32, time_1: f32) -> Self {
+        let theta = f32::consts::PI / 180.0 * vfov;
+        let h = f32::tan(theta * 0.5);
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
@@ -49,24 +49,24 @@ impl Camera {
     }
 
     #[inline]
-    pub fn get_ray(&self, rng: &mut ThreadRng, s: f64, t: f64) -> Ray {
+    pub fn get_ray(&self, rng: &mut ThreadRng, s: f32, t: f32) -> Ray {
         let rd = self.lens_radius * Vector3::random_in_unit_disk(rng);
         let offset = self.u * rd.x + self.v * rd.y;
 
         Ray{
             origin: self.origin + offset, 
             direction: self.lower_left_corner + s*self.horizontal + t*self.vertical - self.origin - offset, 
-            time:(self.time_1 - self.time_0) * rng.gen::<f64>() + self.time_0
+            time:(self.time_1 - self.time_0) * rng.gen::<f32>() + self.time_0
         }
     }
 
     #[inline]
-    pub fn get_start_time(&self) -> f64{
+    pub fn get_start_time(&self) -> f32{
         self.time_0
     }
 
     #[inline]
-    pub fn get_end_time(&self) -> f64{
+    pub fn get_end_time(&self) -> f32{
         self.time_1
     }
 }

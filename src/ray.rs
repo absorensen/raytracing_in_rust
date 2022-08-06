@@ -5,17 +5,17 @@ use crate::vector3::Vector3;
 pub struct Ray {
     pub origin : Vector3,
     pub direction: Vector3,
-    pub time: f64,
+    pub time: f32,
 }
 
 impl Ray {
 
-    pub fn new (origin: Vector3, direction: Vector3, time: f64) -> Self {
+    pub fn new (origin: Vector3, direction: Vector3, time: f32) -> Self {
         Ray { origin, direction, time }
     }
 
     #[inline]
-    pub fn at(&self, t:f64) -> Vector3 {
+    pub fn at(&self, t:f32) -> Vector3 {
         self.origin + t * self.direction
     }
 

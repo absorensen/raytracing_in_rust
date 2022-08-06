@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 use rand::rngs::ThreadRng;
 
@@ -9,16 +9,16 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::aabb::AABB;
 
 pub struct MovingSphere {
-    pub radius: f64,
+    pub radius: f32,
     pub center_0: Vector3,
     pub center_1: Vector3,
     pub material: usize,
-    pub time_0: f64,
-    pub time_1: f64,
+    pub time_0: f32,
+    pub time_1: f32,
 }
 
 impl MovingSphere {
-    pub fn new(radius: f64, center_0: Vector3, center_1: Vector3, material: usize, time_0: f64, time_1: f64) -> Self { 
+    pub fn new(radius: f32, center_0: Vector3, center_1: Vector3, material: usize, time_0: f32, time_1: f32) -> Self { 
         MovingSphere {
             radius, 
             center_0,
@@ -29,22 +29,22 @@ impl MovingSphere {
         } 
     }
 
-    fn get_sphere_uv(p: &Vector3) -> (f64, f64) {
+    fn get_sphere_uv(p: &Vector3) -> (f32, f32) {
         let theta = (-(*p).y).acos();
-        let phi = f64::atan2(-(*p).z,(*p).x) + PI;
+        let phi = f32::atan2(-(*p).z,(*p).x) + PI;
 
         ( phi / (2.0 * PI), theta / PI ) 
     }
 }
 
 impl MovingSphere {
-    pub fn center(&self, time: f64) -> Vector3 {
+    pub fn center(&self, time: f32) -> Vector3 {
         self.center_0 + ((time - self.time_0) / (self.time_1 - self.time_0)) * (self.center_1 - self.center_0)
     }
 }
 
 impl Hittable for MovingSphere{
-    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f64, t_max: f64, hit_out: &mut HitRecord) -> bool {
+    fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
         let center = self.center(ray.time);
 
         let oc = ray.origin - center;
@@ -81,7 +81,7 @@ impl Hittable for MovingSphere{
 
 
 
-    fn bounding_box(&self, _hittable_service: &HittableService, time_0: f64, time_1: f64, box_out: &mut AABB) -> bool {
+    fn bounding_box(&self, _hittable_service: &HittableService, time_0: f32, time_1: f32, box_out: &mut AABB) -> bool {
         let center_0 = self.center(time_0);
         let center_1 = self.center(time_1);
 
@@ -99,7 +99,7 @@ impl Hittable for MovingSphere{
         true
     }
 
-    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f64 {
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3, _v: &Vector3) -> f32 {
         0.0
     }
 
