@@ -1,5 +1,6 @@
 use rand::prelude::ThreadRng;
 
+use crate::core::color_rgb::ColorRGB;
 use crate::hittables::hit_record::HitRecord;
 use crate::materials::default_material::DefaultMaterial;
 use crate::materials::dielectric::Dielectric;
@@ -11,7 +12,7 @@ use crate::materials::metal::Metal;
 use crate::materials::scatter_record::ScatterRecord;
 use crate::core::ray::Ray;
 use crate::services::texture_service::TextureService;
-use crate::math::vector3::{Vector3, Color};
+use crate::math::vector3::{Vector3};
 
 pub enum MaterialEnum {
     DefaultMaterial(DefaultMaterial),
@@ -42,7 +43,7 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn emission(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> Color {
+    pub fn emission(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> ColorRGB {
         match &self.materials[hit.material] {
             MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit, u, v, point),
             MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit, u, v, point),

@@ -1,4 +1,4 @@
-use crate::{services::texture_service::TextureService, math::vector3::{Vector3, Color}};
+use crate::{services::texture_service::TextureService, math::vector3::{Vector3}, core::color_rgb::ColorRGB};
 
 use super::texture::Texture;
 pub struct ImageTexture {
@@ -22,11 +22,11 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, _texture_service: &TextureService, u: f32, v: f32, _point: &Vector3, color_out: &mut Color) -> bool {
+    fn value(&self, _texture_service: &TextureService, u: f32, v: f32, _point: &Vector3, color_out: &mut ColorRGB) -> bool {
         if self.data.len() < 1 {
-            color_out.x = 0.0;
-            color_out.y = 1.0;
-            color_out.z = 1.0;
+            color_out.r = 0.0;
+            color_out.g = 1.0;
+            color_out.b = 1.0;
             
             return false;
         }
@@ -43,9 +43,9 @@ impl Texture for ImageTexture {
         let color_scale = 1.0 / 255.0;
         let pixel_index = j * self.bytes_per_scanline + i * self.bytes_per_pixel;
 
-        color_out.x = color_scale * self.data[pixel_index    ] as f32;
-        color_out.y = color_scale * self.data[pixel_index + 1] as f32;
-        color_out.z = color_scale * self.data[pixel_index + 2] as f32;
+        color_out.r = color_scale * self.data[pixel_index    ] as f32;
+        color_out.g = color_scale * self.data[pixel_index + 1] as f32;
+        color_out.b = color_scale * self.data[pixel_index + 2] as f32;
 
 
         true

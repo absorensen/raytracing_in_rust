@@ -1,16 +1,16 @@
 use rand::rngs::ThreadRng;
 
-use crate::{math::vector3::{Color, Vector3}, services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord};
+use crate::{math::vector3::{Vector3}, services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 
 pub struct Metal {
-    pub albedo: Color,
+    pub albedo: ColorRGB,
     pub fuzz: f32, // should be saturated to 1
 }
 
 impl Metal {
-    pub fn new(albedo: Color, fuzz:f32) -> Metal {
+    pub fn new(albedo: ColorRGB, fuzz:f32) -> Metal {
         Metal { albedo, fuzz: if fuzz < 1.0 { fuzz } else { 1.0 } }
     }
 }

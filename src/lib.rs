@@ -1,7 +1,6 @@
 extern crate minifb;
 use hittables::hit_record::HitRecord;
 use materials::scatter_record::ScatterRecord;
-use math::vector3::{Color, Vector3};
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use pdf::{PDF};
 use pdfs::hittable_pdf::HittablePDF;
@@ -14,6 +13,7 @@ use services::material_service::MaterialService;
 use services::service_locator::ServiceLocator;
 use services::texture_service::TextureService;
 use crate::core::ray::Ray;
+use crate::core::color_rgb::ColorRGB;
 use std::f32;
 use std::time::Instant;
 use rayon::prelude::*;
@@ -43,12 +43,12 @@ fn ray_color_recursive(
     bvh_root_index: usize,
     lights_root_index: usize,
     has_lights: bool,
-    background: &Color, 
+    background: &ColorRGB, 
     ray: &Ray, 
-    depth: usize) -> Color {
+    depth: usize) -> ColorRGB {
 
     if depth <= 0 {
-        return Color::new(0.0, 0.0, 0.0);
+        return ColorRGB::new(0.0, 0.0, 0.0);
     }
 
     let mut rec:HitRecord = HitRecord::default();
@@ -60,7 +60,7 @@ fn ray_color_recursive(
 
 
     let mut scatter_record= ScatterRecord::default();
-    let emitted: Color = material_service.emission(texture_service, ray, &rec, rec.u, rec.v, &rec.position);
+    let emitted: ColorRGB = material_service.emission(texture_service, ray, &rec, rec.u, rec.v, &rec.position);
     
     if !material_service.scatter(rng, texture_service, ray, &rec, &mut scatter_record) {
         return emitted;
@@ -152,7 +152,7 @@ fn render_pixel(
     max_depth: usize, 
     scale: f32, 
     use_parallel: bool) 
-    -> Vector3 {
+    -> ColorRGB {
     let column_index = pixel_index % image_width;
     let row_index = pixel_index / image_width;
 
@@ -172,7 +172,7 @@ fn render_pixel(
 
 
 
-    let mut color_buffer = Color{x: 0.0, y: 0.0, z: 0.0};
+    let mut color_buffer = ColorRGB::black();
     if use_parallel {
         let seeds: Vec<(f32, f32)> = (0..samples_per_pixel).into_iter().map(|_| (rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
         color_buffer = seeds.into_par_iter().map(|(seed0, seed1)| {
@@ -216,14 +216,14 @@ fn render_pixel(
         }
     }
 
-    if color_buffer.x != color_buffer.x { color_buffer.x = 0.0; }
-    if color_buffer.y != color_buffer.y { color_buffer.y = 0.0; }
-    if color_buffer.z != color_buffer.z { color_buffer.z = 0.0; }
+    if color_buffer.r != color_buffer.r { color_buffer.r = 0.0; }
+    if color_buffer.g != color_buffer.g { color_buffer.g = 0.0; }
+    if color_buffer.b != color_buffer.b { color_buffer.b = 0.0; }
 
     // Try and apply this scaling to the colors before summation
-    color_buffer.x = 255.999 * clamp(0.0, (scale * color_buffer.x).sqrt(), 0.999);
-    color_buffer.y = 255.999 * clamp(0.0, (scale * color_buffer.y).sqrt(), 0.999);
-    color_buffer.z = 255.999 * clamp(0.0, (scale * color_buffer.z).sqrt(), 0.999);
+    color_buffer.r = 255.999 * clamp(0.0, (scale * color_buffer.r).sqrt(), 0.999);
+    color_buffer.g = 255.999 * clamp(0.0, (scale * color_buffer.g).sqrt(), 0.999);
+    color_buffer.b = 255.999 * clamp(0.0, (scale * color_buffer.b).sqrt(), 0.999);
 
     color_buffer
 }
@@ -237,7 +237,7 @@ pub fn render(config_path: &str) {
 
     let now = Instant::now();
     let total_pixels = image_height * config.image_width;
-    let image: Vec<Vector3> = 
+    let image: Vec<ColorRGB> = 
         (0..total_pixels).into_par_iter().map(|pixel_index:usize| {
             let mut rng = rand::thread_rng();
             render_pixel(
@@ -255,8 +255,8 @@ pub fn render(config_path: &str) {
 
     println!("{} seconds elapsed", now.elapsed().as_millis() as f32 * 0.001);
 
-    let zero = Vector3{x: 0.0, y: 0.0, z: 0.0};
-    let mut final_image: Vec<Vector3> = vec![zero; image.len()];
+    let zero = ColorRGB::black();
+    let mut final_image: Vec<ColorRGB> = vec![zero; image.len()];
 
     for row_index in 0..image_height {
         for column_index in 0..(config.image_width / 2) {
@@ -270,7 +270,7 @@ pub fn render(config_path: &str) {
     
     let window_buffer: Vec<u32> = final_image
         .iter()
-        .map(|v| ((v.x as u32) << 16) | ((v.y as u32) << 8) | v.z as u32)
+        .map(|v| ((v.r as u32) << 16) | ((v.g as u32) << 8) | v.b as u32)
         .rev()
         .collect();
 
@@ -298,7 +298,7 @@ pub fn render(config_path: &str) {
         .unwrap();
     }
 
-    let mut horizontally_flipped_image: Vec<Vector3> = vec![zero; image.len()];
+    let mut horizontally_flipped_image: Vec<ColorRGB> = vec![zero; image.len()];
     for row_index in 0..(image_height / 2) {
         for column_index in 0..config.image_width {
             let row_index_top = (row_index * config.image_width + column_index) as usize;
@@ -310,7 +310,7 @@ pub fn render(config_path: &str) {
 
     let ouput_buffer: Vec<u8> = 
         horizontally_flipped_image.iter()
-            .flat_map(|vector| [vector.x as u8, vector.y as u8, vector.z as u8])
+            .flat_map(|vector| [vector.r as u8, vector.g as u8, vector.b as u8])
             .collect();
 
 

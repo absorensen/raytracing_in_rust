@@ -1,6 +1,6 @@
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord, math::vector3::{Color, Vector3}};
+use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, math::vector3::{Vector3}};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 
@@ -14,7 +14,7 @@ impl Material for Dielectric {
     fn scatter(&self, rng: &mut ThreadRng, _texture_service: &TextureService, ray:&Ray, hit: &HitRecord, scatter_out: &mut ScatterRecord) -> bool {
         scatter_out.is_specular = true;
         scatter_out.pdf = None;
-        scatter_out.attenuation = Color::new(1.0, 1.0, 1.0);
+        scatter_out.attenuation = ColorRGB::new(1.0, 1.0, 1.0);
 
         let refraction_ratio = if hit.is_front_face { self.inverse_index_of_refraction } else { self.index_of_refraction };
         let unit_direction = Vector3::normalized(&ray.direction);

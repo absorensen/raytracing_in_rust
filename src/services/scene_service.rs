@@ -1,14 +1,14 @@
-use crate::{scene::camera::Camera, math::vector3::Color};
+use crate::{scene::camera::Camera, core::color_rgb::ColorRGB};
 
 pub struct SceneService {
     camera: Camera,
-    background: Color,
+    background: ColorRGB,
     // config loaded from config file goes here
     // dynamic global state goes here
 }
 
 impl SceneService {
-    pub fn new(camera: Camera, background: Color) -> SceneService {
+    pub fn new(camera: Camera, background: ColorRGB) -> SceneService {
         SceneService{ camera, background }
     }
 
@@ -16,7 +16,7 @@ impl SceneService {
         &self.camera
     }
 
-    pub fn get_background(&self) -> &Color {
+    pub fn get_background(&self) -> &ColorRGB {
         &self.background
     }
 }

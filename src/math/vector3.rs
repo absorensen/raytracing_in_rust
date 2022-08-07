@@ -8,7 +8,7 @@ use rand::{Rng, rngs::ThreadRng};
 use rand_chacha::ChaChaRng;
 
 pub type Point3 = Vector3;
-pub type Color = Vector3;
+//pub type Color = Vector3;
 
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vector3 {
