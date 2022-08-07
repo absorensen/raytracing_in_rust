@@ -15,7 +15,7 @@ use crate::hittables::translate::Translate;
 use crate::hittables::xy_rect::XYRect;
 use crate::hittables::xz_rect::XZRect;
 use crate::hittables::yz_rect::YZRect;
-use crate::ray::Ray;
+use crate::core::ray::Ray;
 use crate::hittables::sphere::Sphere;
 use crate::math::vector3::{Vector3};
 

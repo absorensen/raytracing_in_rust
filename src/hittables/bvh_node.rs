@@ -3,7 +3,7 @@ use std::{cmp::Ordering};
 use rand::{Rng, rngs::ThreadRng};
 use rand_chacha::ChaCha20Rng;
 
-use crate::{services::hittable_service::{HittableService, HittableEnum}, geometry::aabb::AABB, ray::Ray};
+use crate::{services::hittable_service::{HittableService, HittableEnum}, geometry::aabb::AABB, core::ray::Ray};
 
 use super::{hittable::{Hittable}, hit_record::HitRecord};
 

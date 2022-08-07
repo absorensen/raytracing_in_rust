@@ -9,7 +9,7 @@ use crate::materials::lambertian::Lambertian;
 use crate::materials::material::Material;
 use crate::materials::metal::Metal;
 use crate::materials::scatter_record::ScatterRecord;
-use crate::ray::Ray;
+use crate::core::ray::Ray;
 use crate::services::texture_service::TextureService;
 use crate::math::vector3::{Vector3, Color};
 

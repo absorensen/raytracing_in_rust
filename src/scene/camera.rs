@@ -4,7 +4,7 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 
 use crate::math::vector3::{Point3, Vector3};
-use crate::ray::Ray;
+use crate::core::ray::Ray;
 
 pub struct Camera {
     origin: Point3,

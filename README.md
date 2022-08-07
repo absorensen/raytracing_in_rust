@@ -1,7 +1,6 @@
 # raytracing_in_rust
 
 # TODO:
----- Project restructuring \
 --- Image descriptor service \
 --- Replace vector3 with nalgebra or something numpy-like \
 --- Change color to its own type \

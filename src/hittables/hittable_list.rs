@@ -1,6 +1,6 @@
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{services::hittable_service::HittableService, ray::Ray, geometry::aabb::AABB, math::vector3::Vector3};
+use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB, math::vector3::Vector3};
 
 use super::{hittable::Hittable, hit_record::HitRecord};
 

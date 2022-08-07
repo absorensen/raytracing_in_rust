@@ -2,7 +2,7 @@ use rand::{rngs::ThreadRng};
 
 use crate::hittables::hit_record::HitRecord;
 use crate::math::vector3::{Color, Vector3};
-use crate::ray::Ray;
+use crate::core::ray::Ray;
 use crate::services::texture_service::TextureService;
 
 use super::scatter_record::ScatterRecord;

@@ -1,4 +1,4 @@
-use crate::{math::vector3::Vector3, ray::Ray};
+use crate::{math::vector3::Vector3, core::ray::Ray};
 
 pub struct HitRecord {
     pub t: f32,

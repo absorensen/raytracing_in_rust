@@ -1,6 +1,6 @@
 use rand::rngs::ThreadRng;
 
-use crate::{math::vector3::{Color, Vector3}, services::texture_service::TextureService, ray::Ray, hittables::hit_record::HitRecord};
+use crate::{math::vector3::{Color, Vector3}, services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 

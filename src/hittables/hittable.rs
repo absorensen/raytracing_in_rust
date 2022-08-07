@@ -2,7 +2,7 @@ use rand::rngs::ThreadRng;
 
 use crate::geometry::aabb::AABB;
 use crate::math::vector3::Vector3;
-use crate::ray::Ray;
+use crate::core::ray::Ray;
 use crate::services::hittable_service::{HittableService};
 
 use super::hit_record::HitRecord;

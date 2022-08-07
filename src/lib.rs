@@ -9,11 +9,11 @@ use pdfs::mixture_pdf::MixturePDF;
 use pdfs::pdf;
 // Look into performance optimization of the RNG
 use rand::prelude::*;
-use ray::Ray;
 use services::hittable_service::HittableService;
 use services::material_service::MaterialService;
 use services::service_locator::ServiceLocator;
 use services::texture_service::TextureService;
+use crate::core::ray::Ray;
 use std::f32;
 use std::time::Instant;
 use rayon::prelude::*;
@@ -31,7 +31,7 @@ mod scene;
 mod services;
 mod textures;
 mod utility;
-mod ray;
+mod core;
 
 // Try splitting this into a mixture and non-mixture pdfs function, as some scenes don't have lights (though they should)
 fn ray_color_recursive(
@@ -228,8 +228,8 @@ fn render_pixel(
     color_buffer
 }
 
-pub fn render() {
-    let config: RenderConfig = confy::load("render_config/book_3.render_config").expect("Unable to load config file");
+pub fn render(config_path: &str) {
+    let config: RenderConfig = confy::load_path(config_path).expect("Unable to load config file");
 
     let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(config.aspect_ratio, config.image_width, config.scene_index);
     

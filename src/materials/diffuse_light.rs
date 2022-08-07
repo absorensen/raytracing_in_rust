@@ -1,4 +1,4 @@
-use crate::{math::vector3::{Color, Vector3}, ray::Ray, hittables::hit_record::HitRecord, services::texture_service::TextureService};
+use crate::{math::vector3::{Color, Vector3}, core::ray::Ray, hittables::hit_record::HitRecord, services::texture_service::TextureService};
 
 use super::material::Material;
 

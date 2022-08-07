@@ -5,7 +5,7 @@ use rand::rngs::ThreadRng;
 
 use crate::math::ortho_normal_base::OrthoNormalBase;
 use crate::{math::vector3::Vector3, geometry::aabb::AABB};
-use crate::ray::Ray;
+use crate::core::ray::Ray;
 use crate::services::hittable_service::HittableService;
 
 use super::hit_record::HitRecord;
