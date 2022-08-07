@@ -3,6 +3,14 @@ name = "raytracing_in_rust"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "raytracing_in_rust"
+path = "src/main.rs"
+
+[lib]
+name = "raytracing_in_rust"
+path = "src/lib.rs"
+
 [profile.release]
 opt-level = 3
 lto = true
