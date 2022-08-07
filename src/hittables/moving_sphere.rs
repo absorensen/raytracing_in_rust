@@ -37,7 +37,7 @@ impl MovingSphere {
 
 impl MovingSphere {
     pub fn center(&self, time: f32) -> Vector3 {
-        self.center_0 + ((time - self.time_0) / (self.time_1 - self.time_0)) * (self.center_1 - self.center_0)
+        self.center_0 + (self.center_1 - self.center_0) * ((time - self.time_0) / (self.time_1 - self.time_0))
     }
 }
 

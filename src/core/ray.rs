@@ -15,7 +15,7 @@ impl Ray {
 
     #[inline]
     pub fn at(&self, t:f32) -> Vector3 {
-        self.origin + t * self.direction
+        self.origin + self.direction * t
     }
 
 }

@@ -20,7 +20,7 @@ impl OrthoNormalBase {
     }
 
     pub fn local_vector(&self, a: &Vector3) -> Vector3 {
-        a.x * self.u + a.y * self.v + a.z * self.w
+        self.u * a.x + self.v * a.y + self.w * a.z
     }
 }
 

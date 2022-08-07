@@ -2,13 +2,10 @@ use std::f32::consts::PI;
 use std::iter::Sum;
 use std::{fmt};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index, IndexMut};
-use minifb::clamp;
-use rand::rngs::mock::StepRng;
 use rand::{Rng, rngs::ThreadRng};
 use rand_chacha::ChaChaRng;
 
 pub type Point3 = Vector3;
-//pub type Color = Vector3;
 
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vector3 {
@@ -23,57 +20,13 @@ impl Vector3 {
     }
 
     pub fn zero() -> Vector3 {
-        Vector3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
-    }
-
-    pub fn one() -> Vector3 {
-        Vector3 {
-            x: 1.0,
-            y: 1.0,
-            z: 1.0,
-        }
-    }
-
-
-    #[inline]
-    pub fn random(rng: &mut ThreadRng) -> Self {
-        Vector3{x: rng.gen::<f32>(), y: rng.gen::<f32>(), z: rng.gen::<f32>() }
-    }
-
-    #[inline]
-    pub fn random_range(rng: &mut ThreadRng, minimum: f32, maximum: f32) -> Self {
-        Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
-    }
-
-    #[inline]
-    pub fn random_chacha(rng: &mut ChaChaRng) -> Self {
-        Vector3{x: rng.gen::<f32>(), y: rng.gen::<f32>(), z: rng.gen::<f32>() }
+        Vector3::new(0.0, 0.0, 0.0)
     }
 
     #[inline]
     pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f32, maximum: f32) -> Self {
-        Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
+        Vector3::new(rng.gen_range(minimum..maximum), rng.gen_range(minimum..maximum), rng.gen_range(minimum..maximum) )
     }
-
-    #[inline]
-    pub fn random_step(rng: &mut StepRng) -> Self {
-        Vector3{x: rng.gen::<f32>(), y: rng.gen::<f32>(), z: rng.gen::<f32>() }
-    }
-
-    #[inline]
-    pub fn random_range_step(rng: &mut StepRng, minimum: f32, maximum: f32) -> Self {
-        Vector3{x: rng.gen_range(minimum..maximum), y: rng.gen_range(minimum..maximum), z: rng.gen_range(minimum..maximum) }
-    }
-
-
-
-
-
-
 
     #[inline]
     pub fn length_squared(&self) -> f32 {
@@ -107,7 +60,7 @@ impl Vector3 {
 
     #[inline]
     pub fn reflect(v: &Vector3, normal: &Vector3, reflected_out: &mut Vector3) -> bool {
-        *reflected_out = (*v) - (2.0 * Vector3::dot(v, normal) * (*normal));
+        *reflected_out = (*v) - (*normal) * (2.0 * Vector3::dot(v, normal));
 
         true
     }
@@ -116,8 +69,8 @@ impl Vector3 {
     pub fn refract(v: &Vector3, n: &Vector3, etai_over_etat: f32, refracted_out: &mut Vector3) -> bool {
         let negative_uv = -*v;
         let cos_theta = Vector3::dot(&negative_uv,&n).min(1.0);
-        let ray_out_perp = etai_over_etat * (*v + cos_theta * (*n));
-        let ray_out_parallel = (1.0 - ray_out_perp.length_squared()).abs().sqrt() * (-(*n));    
+        let ray_out_perp = (*v + (*n) * cos_theta) * etai_over_etat;
+        let ray_out_parallel = (-(*n)) * (1.0 - ray_out_perp.length_squared()).abs().sqrt();    
         *refracted_out = ray_out_perp + ray_out_parallel;
         
         true
@@ -151,21 +104,6 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn random_unit_vector(rng: &mut ThreadRng) -> Self {
-        Vector3::random_in_unit_sphere(rng).normalized()
-    }
-
-    #[inline]
-    pub fn random_in_hemisphere(rng: &mut ThreadRng, normal: &Vector3) -> Self {
-        let in_unit_sphere = Vector3::random_in_unit_sphere(rng);
-        if 0.0 < Vector3::dot(&in_unit_sphere, normal) {
-            in_unit_sphere
-        } else {
-            -in_unit_sphere
-        }
-    }
-
-    #[inline]
     pub fn random_cosine_direction(rng: &mut ThreadRng) -> Self {
         let r1 = rng.gen::<f32>();
         let r2 = rng.gen::<f32>();
@@ -178,22 +116,6 @@ impl Vector3 {
         Vector3::new( x, y, z )
     }
 
-    #[inline]
-    pub fn color_to_output(self, image_buffer: &mut Vec<f32>, offset: usize, scale: f32) -> () {
-        let r = (scale * self.x).sqrt();
-        let g = (scale * self.y).sqrt();
-        let b = (scale * self.z).sqrt();
-
-        image_buffer[offset + 0] = (255.999 * clamp(0.0, r, 0.999)) as f32;
-        image_buffer[offset + 1] = (255.999 * clamp(0.0, g, 0.999)) as f32;
-        image_buffer[offset + 2] = (255.999 * clamp(0.0, b, 0.999)) as f32;
-    }
-
-    #[inline]
-    pub fn near_zero(&self) -> bool {
-        let s = 1e-8;
-        (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
-    }
 }
 
 impl Add for Vector3 {
@@ -212,11 +134,9 @@ impl Add for Vector3 {
 impl AddAssign for Vector3 {
     #[inline]
     fn add_assign(&mut self, other: Self) {
-        *self = Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        };
+        self.x = self.x + other.x;
+        self.y = self.y + other.y;
+        self.z = self.z + other.z;
     }
 }
 
@@ -234,18 +154,15 @@ impl Sub for Vector3 {
 }
 
 impl SubAssign for Vector3 {
-
     #[inline]
     fn sub_assign(&mut self, other: Self) {
-        *self = Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        };
+            self.x = self.x - other.x;
+            self.y = self.y - other.y;
+            self.z = self.z - other.z;
     }
 }
 
-impl Mul for Vector3 {
+impl Mul<Vector3> for Vector3 {
     type Output = Vector3;
 
     #[inline]
@@ -271,28 +188,21 @@ impl Mul<f32> for Vector3 {
     }
 }
 
-impl Mul<Vector3> for f32 {
-    type Output = Vector3;
-
+impl MulAssign<f32> for Vector3 {
     #[inline]
-    fn mul(self, other: Vector3) -> Vector3 {
-        Vector3 {
-            x: self * other.x,
-            y: self * other.y,
-            z: self * other.z,
-        }
+    fn mul_assign(&mut self, factor: f32) {
+        self.x = self.x * factor;
+        self.y = self.y * factor;
+        self.z = self.z * factor;
     }
 }
 
-impl MulAssign<f32> for Vector3 {
-
+impl MulAssign<Vector3> for Vector3 {
     #[inline]
-    fn mul_assign(&mut self, factor: f32) {
-        *self = Self {
-            x: self.x * factor,
-            y: self.y * factor,
-            z: self.z * factor,
-        };
+    fn mul_assign(&mut self, other: Vector3) {
+        self.x = self.x * other.x;
+        self.y = self.y * other.y;
+        self.z = self.z * other.z;
     }
 }
 
@@ -313,11 +223,32 @@ impl DivAssign<f32> for Vector3 {
 
     #[inline]
     fn div_assign(&mut self, factor: f32) {
-        *self = Vector3 {
-            x: self.x / factor,
-            y: self.y / factor,
-            z: self.z / factor,
-        };
+        self.x = self.x / factor;
+        self.y = self.y / factor;
+        self.z = self.z / factor;
+    }
+}
+
+impl Div<Vector3> for Vector3 {
+    type Output = Vector3;
+
+    #[inline]
+    fn div(self, other: Vector3) -> Vector3 {
+        Vector3 {
+            x: self.x / other.x,
+            y: self.y / other.y,
+            z: self.z / other.z,
+        }
+    }
+}
+
+impl DivAssign<Vector3> for Vector3 {
+
+    #[inline]
+    fn div_assign(&mut self, other: Vector3) {
+        self.x = self.x / other.x;
+        self.y = self.y / other.y;
+        self.z = self.z / other.z;
     }
 }
 
@@ -374,5 +305,159 @@ impl IndexMut<usize> for Vector3 {
 impl fmt::Display for Vector3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use crate::math::vector3::Vector3;
+
+    const F32_TEST_LIMIT: f32 = 0.00000000000000000000001;
+
+    #[inline]
+    fn sum(vec: Vector3) -> f32 {
+        vec.x + vec.y + vec.z
+    }
+
+    #[test]
+    fn test_vector3_zero() {
+        let a: Vector3 = Vector3::zero();
+
+        assert!(f32::abs(sum(a)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_new() {
+        let correct: f32 = 0.6;
+        let a: Vector3 = Vector3::new(0.1, 0.2, 0.3);
+        let result: f32 = sum(a) - correct;
+
+        assert!(f32::abs(result) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_add() {
+        let correct: Vector3 = Vector3::new(3.3, 6.7, 4.4);
+
+        let a: Vector3 = Vector3::new(1.0, 2.5, 3.2);
+        let b: Vector3 = Vector3::new(2.3, 4.2, 1.2);
+        let result: Vector3 = a + b - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_div() {
+        let correct: Vector3 = Vector3::new(1.0 / 2.3, 2.5 / 4.2, 3.2 / 1.2);
+
+        let a: Vector3 = Vector3::new(1.0, 2.5, 3.2);
+        let b: Vector3 = Vector3::new(2.3, 4.2, 1.2);
+        let result: Vector3 = a / b - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_length() {
+        let a: Vector3 = Vector3::new(2.0, 0.0, 0.0);
+        let a_correct: f32 = 2.0;
+        assert!(f32::abs(a.length() - a_correct) < F32_TEST_LIMIT);
+
+        let b: Vector3 = Vector3::new(0.0, 4.0, 0.0);
+        let b_correct: f32 = 4.0;
+        assert!(f32::abs(b.length() - b_correct) < F32_TEST_LIMIT);
+
+        let c: Vector3 = Vector3::new(0.0, 0.0, 3.0);
+        let c_correct: f32 = 3.0;
+        assert!(f32::abs(c.length() - c_correct) < F32_TEST_LIMIT);
+
+        let d: Vector3 = Vector3::new(1.0, 1.0, 1.0);
+        let d_correct: f32 = 1.73205080757;
+        assert!(f32::abs(d.length() - d_correct) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_length_squared() {
+        let a: Vector3 = Vector3::new(2.0, 0.0, 0.0);
+        let a_correct: f32 = 4.0;
+        assert!(f32::abs(a.length_squared() - a_correct) < F32_TEST_LIMIT);
+
+        let b: Vector3 = Vector3::new(0.0, 3.0, 0.0);
+        let b_correct: f32 = 9.0;
+        assert!(f32::abs(b.length_squared() - b_correct) < F32_TEST_LIMIT);
+
+        let c: Vector3 = Vector3::new(0.0, 0.0, 4.0);
+        let c_correct: f32 = 16.0;
+        assert!(f32::abs(c.length_squared() - c_correct) < F32_TEST_LIMIT);
+
+        let d: Vector3 = Vector3::new(1.1, 1.2, 1.3);
+        let d_correct: f32 = 4.34000000000014222336;
+        assert!(f32::abs(d.length_squared() - d_correct) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_dot() {
+        let correct: f32 = 12.0;
+
+        let a: Vector3 = Vector3::new(1.0, 2.0, 3.0);
+        let b: Vector3 = Vector3::new(4.0, -5.0, 6.0);
+        let result: f32 = Vector3::dot(&a, &b) - correct;
+
+        assert!(f32::abs(result) < F32_TEST_LIMIT);
+    }
+    
+    #[test]
+    fn test_vector3_cross() {
+        let correct: Vector3 = Vector3::new(-1.0, -38.0, -16.0);
+
+        let a: Vector3 = Vector3::new(4.0, 2.0, -5.0);
+        let b: Vector3 = Vector3::new(2.0, -3.0, 7.0);
+        let result: Vector3 = Vector3::cross(&a, &b) - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+    
+    #[test]
+    fn test_vector3_normalized() {
+        let correct_scalar: f32 = 0.57735026918925152901829780358145;
+        let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
+        let a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
+        let result: Vector3 = a.normalized() - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_reflect() {
+        let correct: Vector3 = Vector3::new(-2925.56, -5118.34, -465.76);
+
+        let v: Vector3 = Vector3::new(1.0, 3.14, 22.0);
+        let normal: Vector3 = Vector3::new(12.0, 21.0, 2.0);
+        let mut reflected_out: Vector3 = Vector3::zero();
+
+        Vector3::reflect(&v, &normal, &mut reflected_out);
+
+        let result: Vector3 = reflected_out - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_refract() {
+        let correct: Vector3 = Vector3::new(-115915.484, -202847.72, -19250.69);
+        
+        let v: Vector3 = Vector3::new(1.0, 3.14, 22.0);
+        let n: Vector3 = Vector3::new(12.0, 21.0, 2.0);
+        let etai_over_etat: f32 = 3.14;
+        let mut refracted_out: Vector3 = Vector3::zero();
+
+        Vector3::refract(&v, &n, etai_over_etat, &mut refracted_out);
+        
+        let result: Vector3 = refracted_out - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
     }
 }

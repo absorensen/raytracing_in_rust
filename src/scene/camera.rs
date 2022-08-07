@@ -31,9 +31,9 @@ impl Camera {
         let v = Vector3::cross(&w, &u);
 
         let origin = look_from;
-        let horizontal = focus_dist * viewport_width * u;
-        let vertical = focus_dist * viewport_height * v;
-        let lower_left_corner = origin - horizontal * 0.5 - vertical * 0.5 - focus_dist * w;
+        let horizontal = u * focus_dist * viewport_width;
+        let vertical = v * focus_dist * viewport_height;
+        let lower_left_corner = origin - horizontal * 0.5 - vertical * 0.5 - w * focus_dist;
 
         let lens_radius = aperture * 0.5;
 
@@ -50,12 +50,12 @@ impl Camera {
 
     #[inline]
     pub fn get_ray(&self, rng: &mut ThreadRng, s: f32, t: f32) -> Ray {
-        let rd = self.lens_radius * Vector3::random_in_unit_disk(rng);
+        let rd = Vector3::random_in_unit_disk(rng) * self.lens_radius;
         let offset = self.u * rd.x + self.v * rd.y;
 
         Ray{
             origin: self.origin + offset, 
-            direction: self.lower_left_corner + s*self.horizontal + t*self.vertical - self.origin - offset, 
+            direction: self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin - offset, 
             time:(self.time_1 - self.time_0) * rng.gen::<f32>() + self.time_0
         }
     }
