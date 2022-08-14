@@ -4,7 +4,7 @@ use materials::scatter_record::ScatterRecord;
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use pdfs::hittable_pdf::HittablePDF;
 use pdfs::mixture_pdf::MixturePDF;
-use pdfs::pdf::PDF;
+use pdfs::pdf::{PDF, PDFEnum};
 // Look into performance optimization of the RNG
 use rand::prelude::*;
 use services::hittable_service::HittableService;
@@ -84,15 +84,13 @@ fn ray_color_recursive(
     
     // Maybe put the non-recursive loop after this if statement and move the above in there
     if has_lights {
-        let light_pdf: Box<dyn PDF> = Box::new(HittablePDF::new(&rec.position, lights_root_index));
-        let other_pdf: Box<dyn PDF> = 
-            if scatter_record.pdf.is_some() {  // Get rid of this whole option<Arc> thing
-                scatter_record.pdf.expect("Failed to unwrap pdf")
-            } else {
-                Box::new(HittablePDF::new(&rec.position, lights_root_index))
+        let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
+        let other_pdf: PDFEnum =
+            match scatter_record.pdf {
+                PDFEnum::None() => PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index)),
+                _ => scatter_record.pdf,
             };
-        let pdfs = vec![light_pdf, other_pdf]; 
-        let mixture_pdf: MixturePDF = MixturePDF::new( pdfs ); 
+        let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, other_pdf ); 
     
         let scattered = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = mixture_pdf.value(rng, hittable_service, &scattered.direction);
@@ -116,7 +114,7 @@ fn ray_color_recursive(
             ) /
             pdf_val;
     } else {
-        let pdf: Box<dyn PDF> = scatter_record.pdf.expect("Failed to unwrap pdf");
+        let pdf: PDFEnum = scatter_record.pdf;
         let scattered = Ray::new_normalized(rec.position, pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
 

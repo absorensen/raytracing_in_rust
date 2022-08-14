@@ -2,18 +2,20 @@ use rand::{rngs::ThreadRng, Rng};
 
 use crate::{services::hittable_service::HittableService, math::vector3::Vector3};
 
-use super::pdf::PDF;
+use super::pdf::{PDF, PDFEnum};
+
+const PDF_COUNT: usize = 2;
 
 pub struct MixturePDF {
     // Get these removed into an array of pdf enums
-    pdfs: Vec<Box<dyn PDF>>,
+    pdfs: [PDFEnum; PDF_COUNT],
     probability: f32,
 }
 
 impl MixturePDF {
-    pub fn new(pdfs: Vec<Box<dyn PDF>>) -> MixturePDF {
-        let probability = 1.0 / (pdfs.len() as f32);
-        MixturePDF{ pdfs, probability }
+    pub fn new(pdf_a: PDFEnum, pdf_b: PDFEnum) -> MixturePDF {
+        let probability = 1.0 / (PDF_COUNT as f32); // One over number of PDFs
+        MixturePDF{ pdfs: [pdf_a, pdf_b], probability }
     }
 }
 

@@ -1,6 +1,6 @@
 use rand::rngs::ThreadRng;
 
-use crate::{math::vector3::{Vector3}, services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord};
+use crate::{math::vector3::{Vector3}, services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, pdfs::pdf::PDFEnum};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 
@@ -22,7 +22,7 @@ impl Material for Metal {
         scatter_out.specular_ray = Ray::new_normalized(hit.position, reflected + Vector3::random_in_unit_sphere(rng) * self.fuzz, ray.time);
         scatter_out.attenuation = self.albedo;
         scatter_out.is_specular = true;
-        scatter_out.pdf = None;
+        scatter_out.pdf = PDFEnum::None();
         true
     }
 }
