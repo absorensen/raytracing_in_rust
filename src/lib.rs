@@ -1,10 +1,10 @@
-extern crate minifb;
 use hittables::hit_record::HitRecord;
 use materials::scatter_record::ScatterRecord;
 use minifb::{Key, ScaleMode, Window, WindowOptions, clamp};
 use pdfs::hittable_pdf::HittablePDF;
 use pdfs::mixture_pdf::MixturePDF;
-use pdfs::pdf::{PDF, PDFEnum};
+use pdfs::pdf::PDF;
+use pdfs::pdf_enum::PDFEnum;
 // Look into performance optimization of the RNG
 use rand::prelude::*;
 use services::hittable_service::HittableService;
@@ -59,7 +59,7 @@ fn ray_color_recursive(
 
 
     let mut scatter_record= ScatterRecord::default();
-    let emitted: ColorRGB = material_service.emission(texture_service, ray, &rec, rec.u, rec.v, &rec.position);
+    let emitted: ColorRGB = material_service.emitted(texture_service, ray, &rec, rec.u, rec.v, &rec.position);
     
     if !material_service.scatter(rng, texture_service, ray, &rec, &mut scatter_record) {
         return emitted;

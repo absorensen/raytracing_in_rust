@@ -1,40 +1,11 @@
 use rand::prelude::ThreadRng;
 
 use crate::geometry::aabb::AABB;
-use crate::hittables::box_hittable::BoxHittable;
-use crate::hittables::bvh_node::BVHNode;
-use crate::hittables::constant_medium::ConstantMedium;
 use crate::hittables::default_hittable::DefaultHittable;
-use crate::hittables::flip_face::FlipFace;
 use crate::hittables::hit_record::HitRecord;
-use crate::hittables::hittable::Hittable;
-use crate::hittables::hittable_list::HittableList;
-use crate::hittables::moving_sphere::MovingSphere;
-use crate::hittables::rotate_y::RotateY;
-use crate::hittables::translate::Translate;
-use crate::hittables::xy_rect::XYRect;
-use crate::hittables::xz_rect::XZRect;
-use crate::hittables::yz_rect::YZRect;
 use crate::core::ray::Ray;
-use crate::hittables::sphere::Sphere;
+use crate::hittables::hittable_enum::HittableEnum;
 use crate::math::vector3::{Vector3};
-
-pub enum HittableEnum {
-    DefaultHittable(DefaultHittable),
-    BVHNode(BVHNode),
-    Sphere(Sphere),
-    MovingSphere(MovingSphere),
-    HittableList(HittableList),
-    XYRect(XYRect),
-    XZRect(XZRect),
-    YZRect(YZRect),
-    BoxHittable(BoxHittable),
-    RotateY(RotateY),
-    Translate(Translate),
-    ConstantMedium(ConstantMedium),
-    FlipFace(FlipFace),
-}
-
 
 // Introduce a build step
 // All elements are added with add hittable
@@ -84,77 +55,21 @@ impl HittableService {
 
     #[inline] // Recursive to begin with, but make it a loop
     pub fn hit(&self, index: usize, rng: &mut ThreadRng, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
-        match &self.hittables[index] {
-            HittableEnum::DefaultHittable(default) => default.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::BVHNode(bvh_node) => bvh_node.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::Sphere(sphere) => sphere.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::MovingSphere(moving_sphere) => moving_sphere.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::HittableList(hittable_list) => hittable_list.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::XYRect(xy_rect) => xy_rect.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::XZRect(xz_rect) => xz_rect.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::YZRect(yz_rect) => yz_rect.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::BoxHittable(box_hittable) => box_hittable.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::RotateY(rotate_y) => rotate_y.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::Translate(translate) => translate.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::ConstantMedium(constant_medium) => constant_medium.hit(rng, &self, ray, t_min, t_max, hit_out),
-            HittableEnum::FlipFace(flip_face) => flip_face.hit(rng, &self, ray, t_min, t_max, hit_out),
-        }
+        self.hittables[index].hit(&self, rng, ray, t_min, t_max, hit_out)
     }
 
     #[inline] 
     pub fn bounding_box(&self, index:usize, time_0: f32, time_1: f32, box_out: &mut AABB) -> bool {
-        match &self.hittables[index] {
-            HittableEnum::DefaultHittable(default) => default.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::BVHNode(bvh_node) => bvh_node.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::Sphere(sphere) => sphere.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::MovingSphere(moving_sphere) => moving_sphere.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::HittableList(hittable_list) => hittable_list.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::XYRect(xy_rect) => xy_rect.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::XZRect(xz_rect) => xz_rect.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::YZRect(yz_rect) => yz_rect.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::BoxHittable(box_hittable) => box_hittable.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::RotateY(rotate_y) => rotate_y.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::Translate(translate) => translate.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::ConstantMedium(constant_medium) => constant_medium.bounding_box(&self, time_0, time_1, box_out),
-            HittableEnum::FlipFace(flip_face) => flip_face.bounding_box(&self, time_0, time_1, box_out),
-        }
+        self.hittables[index].bounding_box(&self, time_0, time_1, box_out)
     }
     
     #[inline] 
     pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3, vv: &Vector3) -> f32 { 
-        match &self.hittables[index] {
-            HittableEnum::DefaultHittable(default) => default.pdf_value(rng, &self, origin, vv),
-            HittableEnum::BVHNode(bvh_node) => bvh_node.pdf_value(rng, &self, origin, vv),
-            HittableEnum::Sphere(sphere) => sphere.pdf_value(rng, &self, origin, vv),
-            HittableEnum::MovingSphere(moving_sphere) => moving_sphere.pdf_value(rng, &self, origin, vv),
-            HittableEnum::HittableList(hittable_list) => hittable_list.pdf_value(rng, &self, origin, vv),
-            HittableEnum::XYRect(xy_rect) => xy_rect.pdf_value(rng, &self, origin, vv),
-            HittableEnum::XZRect(xz_rect) => xz_rect.pdf_value(rng, &self, origin, vv),
-            HittableEnum::YZRect(yz_rect) => yz_rect.pdf_value(rng, &self, origin, vv),
-            HittableEnum::BoxHittable(box_hittable) => box_hittable.pdf_value(rng, &self, origin, vv),
-            HittableEnum::RotateY(rotate_y) => rotate_y.pdf_value(rng, &self, origin, vv),
-            HittableEnum::Translate(translate) => translate.pdf_value(rng, &self, origin, vv),
-            HittableEnum::ConstantMedium(constant_medium) => constant_medium.pdf_value(rng, &self, origin, vv),
-            HittableEnum::FlipFace(flip_face) => flip_face.pdf_value(rng, &self, origin, vv),
-        }
+        self.hittables[index].pdf_value(&self, rng, origin, vv)
     }
     
     #[inline] 
     pub fn random(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
-        match &self.hittables[index] {
-            HittableEnum::DefaultHittable(default) => default.random(rng, &self, origin),
-            HittableEnum::BVHNode(bvh_node) => bvh_node.random(rng, &self, origin),
-            HittableEnum::Sphere(sphere) => sphere.random(rng, &self, origin),
-            HittableEnum::MovingSphere(moving_sphere) => moving_sphere.random(rng, &self, origin),
-            HittableEnum::HittableList(hittable_list) => hittable_list.random(rng, &self, origin),
-            HittableEnum::XYRect(xy_rect) => xy_rect.random(rng, &self, origin),
-            HittableEnum::XZRect(xz_rect) => xz_rect.random(rng, &self, origin),
-            HittableEnum::YZRect(yz_rect) => yz_rect.random(rng, &self, origin),
-            HittableEnum::BoxHittable(box_hittable) => box_hittable.random(rng, &self, origin),
-            HittableEnum::RotateY(rotate_y) => rotate_y.random(rng, &self, origin),
-            HittableEnum::Translate(translate) => translate.random(rng, &self, origin),
-            HittableEnum::ConstantMedium(constant_medium) => constant_medium.random(rng, &self, origin),
-            HittableEnum::FlipFace(flip_face) => flip_face.random(rng, &self, origin),
-        }
+        self.hittables[index].random(&self, rng, origin)
     }
 }

@@ -6,3 +6,4 @@ pub mod metal;
 pub mod dielectric;
 pub mod diffuse_light;
 pub mod isotropic;
+pub mod material_enum;

@@ -2,7 +2,7 @@ use rand::{rngs::ThreadRng, Rng};
 
 use crate::{services::hittable_service::HittableService, math::vector3::Vector3};
 
-use super::pdf::{PDF, PDFEnum};
+use super::{pdf::{PDF}, pdf_enum::PDFEnum};
 
 const PDF_COUNT: usize = 2;
 

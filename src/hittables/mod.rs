@@ -13,3 +13,4 @@ pub mod translate;
 pub mod rotate_y;
 pub mod constant_medium;
 pub mod flip_face;
+pub mod hittable_enum;

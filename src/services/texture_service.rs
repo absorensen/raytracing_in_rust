@@ -1,12 +1,5 @@
-use crate::{math::vector3::{Vector3}, textures::{default_texture::DefaultTexture, solid_color_texture::SolidColorTexture, checker_texture::CheckerTexture, noise_texture::NoiseTexture, image_texture::ImageTexture, texture::Texture}, core::color_rgb::ColorRGB};
+use crate::{textures::{texture_enum::TextureEnum, default_texture::DefaultTexture, texture::Texture}, math::vector3::Vector3, core::color_rgb::ColorRGB};
 
-pub enum TextureEnum {
-    DefaultTexture(DefaultTexture),
-    SolidColorTexture(SolidColorTexture),
-    CheckerTexture(CheckerTexture),
-    NoiseTexture(NoiseTexture),
-    ImageTexture(ImageTexture),
-}
 
 pub struct TextureService {
     textures: Vec<TextureEnum>,
@@ -34,13 +27,7 @@ impl TextureService {
 
     #[inline]
     pub fn value(&self, texture_index: usize, u: f32, v: f32, p: &Vector3, color_out: &mut ColorRGB) -> bool {
-        match &self.textures[texture_index] {
-            TextureEnum::DefaultTexture(default) => default.value(&self, u, v, p, color_out),
-            TextureEnum::SolidColorTexture(solid_color) => solid_color.value(&self, u, v, p, color_out),
-            TextureEnum::CheckerTexture(checker) => checker.value(&self, u, v, p, color_out),
-            TextureEnum::NoiseTexture(noise) => noise.value(&self, u, v, p, color_out),
-            TextureEnum::ImageTexture(image) => image.value(&self, u, v, p, color_out),
-        }
+        self.textures[texture_index].value(&self, u, v, p, color_out)
     }
 
 }

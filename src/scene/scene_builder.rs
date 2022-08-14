@@ -5,13 +5,12 @@ use rand::{SeedableRng, Rng};
 use rand_chacha::ChaCha20Rng;
 
 use crate::{
-    services::material_service::{MaterialEnum}, 
     scene::camera::Camera, 
     math::vector3::{Point3, Vector3}, 
     hittables::{sphere::Sphere, hittable_list::HittableList}, 
-    hittables::{moving_sphere::MovingSphere, yz_rect::YZRect, flip_face::FlipFace, xz_rect::XZRect, translate::Translate, constant_medium::ConstantMedium, box_hittable::BoxHittable, rotate_y::RotateY}, hittables::{bvh_node::BVHNode, xy_rect::XYRect}, 
+    hittables::{moving_sphere::MovingSphere, yz_rect::YZRect, flip_face::FlipFace, xz_rect::XZRect, translate::Translate, constant_medium::ConstantMedium, box_hittable::BoxHittable, rotate_y::RotateY}, hittables::{bvh_node::BVHNode, xy_rect::XYRect, hittable_enum::HittableEnum}, 
     services::scene_service::{SceneService},
-    services::service_locator::{ServiceLocator}, services::hittable_service::{HittableEnum}, services::texture_service::TextureEnum, materials::{lambertian::Lambertian, dielectric::Dielectric, metal::Metal, diffuse_light::DiffuseLight, isotropic::Isotropic}, textures::{solid_color_texture::SolidColorTexture, checker_texture::CheckerTexture, noise_texture::NoiseTexture, image_texture::ImageTexture}, core::color_rgb::ColorRGB
+    services::service_locator::{ServiceLocator}, materials::{lambertian::Lambertian, dielectric::Dielectric, metal::Metal, diffuse_light::DiffuseLight, isotropic::Isotropic, material_enum::MaterialEnum}, textures::{solid_color_texture::SolidColorTexture, checker_texture::CheckerTexture, noise_texture::NoiseTexture, image_texture::ImageTexture, texture_enum::TextureEnum}, core::color_rgb::ColorRGB
 };
 
 pub struct SceneBuilder {

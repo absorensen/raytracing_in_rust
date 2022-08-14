@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use rand::rngs::ThreadRng;
 
-use crate::{services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord, math::vector3::Vector3, pdfs::{pdf::PDFEnum, cosine_pdf::CosinePDF}};
+use crate::{services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord, math::vector3::Vector3, pdfs::{cosine_pdf::CosinePDF, pdf_enum::PDFEnum}};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 

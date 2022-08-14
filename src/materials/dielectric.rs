@@ -1,6 +1,6 @@
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, math::vector3::{Vector3}, pdfs::pdf::PDFEnum};
+use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, math::vector3::{Vector3}, pdfs::pdf_enum::PDFEnum};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 

@@ -3,25 +3,12 @@ use rand::prelude::ThreadRng;
 use crate::core::color_rgb::ColorRGB;
 use crate::hittables::hit_record::HitRecord;
 use crate::materials::default_material::DefaultMaterial;
-use crate::materials::dielectric::Dielectric;
-use crate::materials::diffuse_light::DiffuseLight;
-use crate::materials::isotropic::Isotropic;
-use crate::materials::lambertian::Lambertian;
 use crate::materials::material::Material;
-use crate::materials::metal::Metal;
+use crate::materials::material_enum::MaterialEnum;
 use crate::materials::scatter_record::ScatterRecord;
 use crate::core::ray::Ray;
 use crate::services::texture_service::TextureService;
 use crate::math::vector3::{Vector3};
-
-pub enum MaterialEnum {
-    DefaultMaterial(DefaultMaterial),
-    Lambertian(Lambertian),
-    Metal(Metal),
-    Dielectric(Dielectric),
-    DiffuseLight(DiffuseLight),
-    Isotropic(Isotropic),
-}
 
 pub struct MaterialService {
     materials: Vec<MaterialEnum>,
@@ -43,39 +30,18 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn emission(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> ColorRGB {
-        match &self.materials[hit.material] {
-            MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Metal(metal) => metal.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Dielectric(dielectric) => dielectric.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Isotropic(isotropic) => isotropic.emitted(texture_service, ray, hit, u, v, point),
-        }
+    pub fn emitted(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> ColorRGB {
+        self.materials[hit.material].emitted(texture_service, ray, hit, u, v, point)
     }
 
     #[inline]
     pub fn scatter(&self, rng: &mut ThreadRng, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, scatter_out: &mut ScatterRecord) -> bool {
-        match &self.materials[hit.material] {
-            MaterialEnum::DefaultMaterial(default) => default.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Lambertian(lambertian) => lambertian.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Metal(metal) => metal.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Dielectric(dielectric) => dielectric.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Isotropic(isotropic) => isotropic.scatter(rng, texture_service, ray, &hit, scatter_out),
-        }
+        self.materials[hit.material].scatter(rng, texture_service, ray, hit, scatter_out)
     }
 
     #[inline]
     pub fn scattering_pdf(&self, rng: &mut ThreadRng, ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f32 {
-        match &self.materials[hit.material] {
-            MaterialEnum::DefaultMaterial(default) => default.scattering_pdf(rng, ray, hit, scattered_ray),
-            MaterialEnum::Lambertian(lambertian) => lambertian.scattering_pdf(rng, ray, hit, scattered_ray),
-            MaterialEnum::Metal(metal) => metal.scattering_pdf(rng, ray, hit, scattered_ray),
-            MaterialEnum::Dielectric(dielectric) => dielectric.scattering_pdf(rng, ray, hit, scattered_ray),
-            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.scattering_pdf(rng, ray, hit, scattered_ray),
-            MaterialEnum::Isotropic(isotropic) => isotropic.scattering_pdf(rng, ray, hit, scattered_ray),
-        }
+        self.materials[hit.material].scattering_pdf(rng, ray, hit, scattered_ray)
     }
 
 }
