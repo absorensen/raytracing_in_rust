@@ -7,7 +7,6 @@ pub struct RenderConfig {
     pub output_path: String,
     pub samples_per_pixel: usize,
     pub max_depth: usize,
-    pub run_sample_parallel: bool,
     pub scene_index: usize,
 }
 
@@ -20,7 +19,6 @@ impl ::std::default::Default for RenderConfig {
                 output_path: "output.png".to_string(), 
                 samples_per_pixel: 5, 
                 max_depth: 10, 
-                run_sample_parallel: false, 
                 scene_index: 7
             } 
         }

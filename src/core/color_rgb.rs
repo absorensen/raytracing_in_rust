@@ -1,5 +1,6 @@
 use std::{ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg, Index, IndexMut}, iter::Sum, fmt};
 
+use minifb::clamp;
 use rand::{rngs::{ThreadRng, mock::StepRng}, Rng};
 use rand_chacha::ChaChaRng;
 
@@ -62,6 +63,17 @@ impl ColorRGB {
         ColorRGB { r: rng.gen_range(minimum..maximum), g: rng.gen_range(minimum..maximum), b: rng.gen_range(minimum..maximum) }
     }
 
+    #[inline]
+    pub fn scale_for_output(&mut self, scale: f32) {
+        if self.r != self.r { self.r = 0.0; }
+        if self.g != self.g { self.g = 0.0; }
+        if self.b != self.b { self.b = 0.0; }
+
+        // Try and apply this scaling to the colors before summation
+        self.r = 255.999 * clamp(0.0, (scale * self.r).sqrt(), 0.999);
+        self.g = 255.999 * clamp(0.0, (scale * self.g).sqrt(), 0.999);
+        self.b = 255.999 * clamp(0.0, (scale * self.b).sqrt(), 0.999);
+    }
 }
 
 impl Add for ColorRGB {

@@ -3,5 +3,4 @@ image_width = 500
 output_path = "output.png"
 samples_per_pixel = 100
 max_depth = 50
-run_sample_parallel = false
 scene_index = 11
