@@ -83,7 +83,7 @@ fn ray_color_recursive(
     }
     
     // Maybe put the non-recursive loop after this if statement and move the above in there
-    if has_lights {
+    let (pdf_val, scattered) = if has_lights {
         let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
         let other_pdf: PDFEnum =
             match scatter_record.pdf {
@@ -93,49 +93,31 @@ fn ray_color_recursive(
         let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, other_pdf ); 
     
         let scattered = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
-        let pdf_val = mixture_pdf.value(rng, hittable_service, &scattered.direction);
+        (mixture_pdf.value(rng, hittable_service, &scattered.direction), scattered)
     
-        return 
-            emitted + 
-            scatter_record.attenuation * 
-            material_service.scattering_pdf(rng, ray, &rec, &scattered) *
-            ray_color_recursive(
-                rng, 
-                service_locator, 
-                material_service, 
-                hittable_service, 
-                texture_service, 
-                bvh_root_index, 
-                lights_root_index, 
-                has_lights, 
-                background, 
-                &scattered, 
-                depth - 1
-            ) /
-            pdf_val;
     } else {
         let pdf: PDFEnum = scatter_record.pdf;
         let scattered = Ray::new_normalized(rec.position, pdf.generate(rng, hittable_service), ray.time);
-        let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
+        (pdf.value(rng, hittable_service, &scattered.direction), scattered) 
+    };
 
-        return 
-            emitted + 
-            scatter_record.attenuation * 
-            material_service.scattering_pdf(rng, ray, &rec, &scattered) *
-            ray_color_recursive(
-                rng, 
-                service_locator, 
-                material_service, 
-                hittable_service, 
-                texture_service, 
-                bvh_root_index, 
-                lights_root_index, 
-                has_lights, 
-                background, 
-                &scattered, 
-                depth - 1) /
-            pdf_val;
-    }
+    return 
+        emitted + 
+        scatter_record.attenuation * 
+        material_service.scattering_pdf(rng, ray, &rec, &scattered) *
+        ray_color_recursive(
+            rng, 
+            service_locator, 
+            material_service, 
+            hittable_service, 
+            texture_service, 
+            bvh_root_index, 
+            lights_root_index, 
+            has_lights, 
+            background, 
+            &scattered, 
+            depth - 1) /
+        pdf_val;
 
 }
 

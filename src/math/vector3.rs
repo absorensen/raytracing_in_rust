@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use std::iter::Sum;
-use std::{fmt};
+use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Index, IndexMut};
 use rand::{Rng, rngs::ThreadRng};
 use rand_chacha::ChaChaRng;

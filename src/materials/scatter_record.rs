@@ -1,4 +1,4 @@
-use crate::{core::{ray::Ray, color_rgb::ColorRGB}, pdfs::pdf::{PDF, PDFEnum}};
+use crate::{core::{ray::Ray, color_rgb::ColorRGB}, pdfs::pdf::PDFEnum};
 
 pub struct ScatterRecord {
     pub specular_ray: Ray,
