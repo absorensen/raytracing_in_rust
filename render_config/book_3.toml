@@ -1,4 +1,4 @@
-aspect_ratio = 1.77777777777777
+aspect_ratio = 1.0
 image_width = 500
 output_path = "output.png"
 samples_per_pixel = 100

@@ -460,4 +460,11 @@ mod tests {
 
         assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
     }
+
+    #[test]
+    fn test_vector3_index() {
+        let a: Vector3 = Vector3::new(1.0 / 2.3, 2.5 / 4.2, 3.2 / 1.2);
+
+        assert!(a.x == a[0] && a.y == a[1] && a.z == a[2]);
+    }
 }
