@@ -80,7 +80,7 @@ impl Hittable for Sphere{
 
     fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f32 {
         let hit_out = &mut HitRecord::default();
-        if self.hit(rng, hittable_service,  &Ray::new(*origin, *v, 0.5), 0.001, f32::INFINITY, hit_out) {
+        if self.hit(rng, hittable_service,  &Ray::new_normalized(*origin, *v, 0.5), 0.001, f32::INFINITY, hit_out) {
             let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).length_squared()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
 

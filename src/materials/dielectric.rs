@@ -29,7 +29,7 @@ impl Material for Dielectric {
             Vector3::refract(&unit_direction, &hit.normal, refraction_ratio, &mut direction);
         };
 
-        scatter_out.specular_ray = Ray::new(hit.position, direction, ray.time);
+        scatter_out.specular_ray = Ray::new_normalized(hit.position, direction, ray.time);
 
         true
     }

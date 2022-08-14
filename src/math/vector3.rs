@@ -57,6 +57,14 @@ impl Vector3 {
         return *self / self.length();
     }
 
+    #[inline]
+    pub fn normalized_in_place(&mut self) {
+        let length = self.length();
+        self.x /= length;
+        self.y /= length;
+        self.z /= length;
+    }
+
 
     #[inline]
     pub fn reflect(v: &Vector3, normal: &Vector3, reflected_out: &mut Vector3) -> bool {
@@ -426,6 +434,17 @@ mod tests {
         let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
         let a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
         let result: Vector3 = a.normalized() - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_normalized_in_place() {
+        let correct_scalar: f32 = 0.57735026918925152901829780358145;
+        let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
+        let mut a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
+        a.normalized_in_place();
+        let result: Vector3 = a - correct;
 
         assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
     }

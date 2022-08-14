@@ -94,7 +94,7 @@ fn ray_color_recursive(
         let pdfs = vec![light_pdf, other_pdf]; 
         let mixture_pdf: MixturePDF = MixturePDF::new( pdfs ); 
     
-        let scattered = Ray::new(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
+        let scattered = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = mixture_pdf.value(rng, hittable_service, &scattered.direction);
     
         return 
@@ -117,7 +117,7 @@ fn ray_color_recursive(
             pdf_val;
     } else {
         let pdf: Box<dyn PDF> = scatter_record.pdf.expect("Failed to unwrap pdf");
-        let scattered = Ray::new(rec.position, pdf.generate(rng, hittable_service), ray.time);
+        let scattered = Ray::new_normalized(rec.position, pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
 
         return 
