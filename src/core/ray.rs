@@ -10,14 +10,16 @@ pub struct Ray {
 impl Ray {
 
     #[allow(dead_code)]
+    #[inline]
     pub fn new (origin: Vector3, direction: Vector3, time: f32) -> Self {
         Ray { origin, direction, time }
     }
 
+    #[inline]
     pub fn new_normalized (origin: Vector3, direction: Vector3, time: f32) -> Self {
         let mut ray: Ray = Ray { origin, direction, time };
         
-        ray.direction.normalized_in_place();
+        ray.direction.normalize();
 
         ray
     }

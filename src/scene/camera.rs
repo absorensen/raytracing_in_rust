@@ -26,8 +26,8 @@ impl Camera {
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
-        let w = (look_from - look_at).normalized();
-        let u = (Vector3::cross(&v_up, &w)).normalized();
+        let w = (look_from - look_at).get_normalized();
+        let u = (Vector3::cross(&v_up, &w)).get_normalized();
         let v = Vector3::cross(&w, &u);
 
         let origin = look_from;

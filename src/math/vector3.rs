@@ -53,16 +53,75 @@ impl Vector3 {
     }
 
     #[inline]
-    pub fn normalized(&self) -> Vector3 {
+    pub fn cross_into(u: &Vector3, v: &Vector3, result_out: &mut Vector3) {
+        result_out.x = u.y.mul_add(v.z, - (u.z * v.y));
+        result_out.y = u.z.mul_add(v.x, - (u.x * v.z));
+        result_out.z = u.x.mul_add(v.y, - (u.y * v.x));
+    }
+
+    // Maybe optimize with the inverse multiplication or create alternate function
+    #[inline]
+    pub fn get_normalized(&self) -> Vector3 {
         return *self / self.length();
     }
 
+    // Maybe optimize with the inverse multiplication or create alternate function
     #[inline]
-    pub fn normalized_in_place(&mut self) {
+    pub fn get_normalized_into(&self, result_out: &mut Vector3) {
+        let length = self.length();
+        result_out.x = self.x / length;
+        result_out.y = self.y / length;
+        result_out.z = self.z / length;
+    }
+
+    // Maybe change this name to just normalize
+    #[inline]
+    pub fn normalize(&mut self) {
         let length = self.length();
         self.x /= length;
         self.y /= length;
         self.z /= length;
+    }
+
+
+    #[allow(dead_code)]
+    #[inline]
+    pub fn mul_add(u: &Vector3, a: &Vector3, b: &Vector3) -> Vector3 {
+        let x: f32 = f32::mul_add(u.x, a.x, b.x);
+        let y: f32 = f32::mul_add(u.y, a.y, b.y);
+        let z: f32 = f32::mul_add(u.z, a.z, b.z);
+
+        Vector3::new(x, y, z)
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    pub fn scalar_mul_add(u: &Vector3, a: f32, b: &Vector3) -> Vector3 {
+        let x: f32 = f32::mul_add(u.x, a, b.x);
+        let y: f32 = f32::mul_add(u.y, a, b.y);
+        let z: f32 = f32::mul_add(u.z, a, b.z);
+
+        Vector3::new(x, y, z)
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    pub fn mul_scalar_add(u: &Vector3, a: &Vector3, b: f32) -> Vector3 {
+        let x: f32 = f32::mul_add(u.x, a.x, b);
+        let y: f32 = f32::mul_add(u.y, a.y, b);
+        let z: f32 = f32::mul_add(u.z, a.z, b);
+
+        Vector3::new(x, y, z)
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    pub fn scalar_mul_scalar_add(u: &Vector3, a: f32, b: f32) -> Vector3 {
+        let x: f32 = f32::mul_add(u.x, a, b);
+        let y: f32 = f32::mul_add(u.y, a, b);
+        let z: f32 = f32::mul_add(u.z, a, b);
+
+        Vector3::new(x, y, z)
     }
 
 
@@ -429,21 +488,47 @@ mod tests {
     }
     
     #[test]
-    fn test_vector3_normalized() {
-        let correct_scalar: f32 = 0.57735026918925152901829780358145;
-        let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
-        let a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
-        let result: Vector3 = a.normalized() - correct;
+    fn test_vector3_cross_into() {
+        let correct: Vector3 = Vector3::new(-1.0, -38.0, -16.0);
+
+        let a: Vector3 = Vector3::new(4.0, 2.0, -5.0);
+        let b: Vector3 = Vector3::new(2.0, -3.0, 7.0);
+
+        let mut result: Vector3 = Vector3::zero();
+        Vector3::cross_into(&a, &b, &mut result);
+        let result: Vector3 = result - correct;
 
         assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
     }
 
     #[test]
-    fn test_vector3_normalized_in_place() {
+    fn test_vector3_normalized() {
+        let correct_scalar: f32 = 0.57735026918925152901829780358145;
+        let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
+        let a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
+        let result: Vector3 = a.get_normalized() - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_normalized_into() {
+        let correct_scalar: f32 = 0.57735026918925152901829780358145;
+        let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
+        let a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
+        let mut result: Vector3 = Vector3::zero();
+        a.get_normalized_into(&mut result);
+        let result: Vector3 = result - correct;
+
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_normalize() {
         let correct_scalar: f32 = 0.57735026918925152901829780358145;
         let correct: Vector3 = Vector3::new(correct_scalar, correct_scalar, correct_scalar);
         let mut a: Vector3 = Vector3::new(1.0, 1.0, 1.0);
-        a.normalized_in_place();
+        a.normalize();
         let result: Vector3 = a - correct;
 
         assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
@@ -486,4 +571,68 @@ mod tests {
 
         assert!(a.x == a[0] && a.y == a[1] && a.z == a[2]);
     }
+
+    #[test]
+    fn test_vector3_mul_add() {
+        let a: Vector3 = Vector3::new(13.0 / 2.3, 2.5 / 4.2, 3.2 / 1.2);
+        let b: Vector3 = Vector3::new(17.0 / 1.3, 2.5 / 4.2, 3.2 / 1.2);
+        let c: Vector3 = Vector3::new(11.0 / 6.3, 24.5 / 4.2, 32.2 / 1.2);
+        let d: Vector3 = Vector3::new(112.0 / 2.3, 245.5 / 4.2, 313.2 / 1.2);
+
+        let result: Vector3 = Vector3::mul_add(&a, &b, &Vector3::mul_add(&c, &d, &b));
+        let correct: Vector3 = Vector3::new(172.01411, 341.9218, 7013.278);
+
+        let result: Vector3 = result - correct;
+
+        assert!(f32::abs(result.x) < F32_TEST_LIMIT && f32::abs(result.y) < F32_TEST_LIMIT && f32::abs(result.z) < F32_TEST_LIMIT);
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_scalar_mul_add() {
+        let a: Vector3 = Vector3::new(13.0 / 2.3, 2.5 / 4.2, 3.2 / 1.2);
+        let b: f32 = 3.14;
+        let c: Vector3 = Vector3::new(11.0 / 6.3, 24.5 / 4.2, 32.2 / 1.2);
+        let d: f32 = -2.145;
+
+        let result: Vector3 = Vector3::scalar_mul_add(&a, b, &Vector3::scalar_mul_add(&c, d, &a));
+        let correct: Vector3 = Vector3::new(19.654762, -10.048214, -46.517498);
+
+        let result: Vector3 = result - correct;
+
+        assert!(f32::abs(result.x) < F32_TEST_LIMIT && f32::abs(result.y) < F32_TEST_LIMIT && f32::abs(result.z) < F32_TEST_LIMIT);
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_mul_scalar_add() {
+        let a: Vector3 = Vector3::new(-13.0 / 2.3, 2.5 / 4.2, -3.2 / 1.2);
+        let b: f32 = 3.14;
+        let c: Vector3 = Vector3::new(11.0 / 6.3, -24.5 / 4.2, 32.2 / 1.2);
+        let d: f32 = -2.145;
+
+        let result: Vector3 = Vector3::mul_scalar_add(&a, &Vector3::mul_scalar_add(&c, &a, d), b);
+        let correct: Vector3 = Vector3::new(71.04451, -0.2035852, 199.67477);
+
+        let result: Vector3 = result - correct;
+
+        assert!(f32::abs(result.x) < F32_TEST_LIMIT && f32::abs(result.y) < F32_TEST_LIMIT && f32::abs(result.z) < F32_TEST_LIMIT);
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
+    #[test]
+    fn test_vector3_scalar_mul_scalar_add() {
+        let a: Vector3 = Vector3::new(-13.0 / 2.3, 2.5 / 4.2, -3.2 / 1.2);
+        let b: f32 = 3.14;
+        let c: f32 = -2.145;
+
+        let result: Vector3 = Vector3::scalar_mul_scalar_add(&a, b, c);
+        let correct: Vector3 = Vector3::new(-19.892826, -0.27595213, -10.518333);
+
+        let result: Vector3 = result - correct;
+
+        assert!(f32::abs(result.x) < F32_TEST_LIMIT && f32::abs(result.y) < F32_TEST_LIMIT && f32::abs(result.z) < F32_TEST_LIMIT);
+        assert!(f32::abs(sum(result)) < F32_TEST_LIMIT);
+    }
+
 }

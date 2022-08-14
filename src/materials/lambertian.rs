@@ -26,7 +26,7 @@ impl Material for Lambertian {
     }
 
     fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f32 {
-        let cosine = Vector3::dot(&hit.normal, &(scattered_ray.direction.normalized()));
+        let cosine = Vector3::dot(&hit.normal, &(scattered_ray.direction.get_normalized()));
 
         if cosine < 0.0 { 0.0 } else { cosine / PI }
     }

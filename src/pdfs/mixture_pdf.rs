@@ -5,6 +5,7 @@ use crate::{services::hittable_service::HittableService, math::vector3::Vector3}
 use super::pdf::PDF;
 
 pub struct MixturePDF {
+    // Get these removed into an array of pdf enums
     pdfs: Vec<Box<dyn PDF>>,
     probability: f32,
 }

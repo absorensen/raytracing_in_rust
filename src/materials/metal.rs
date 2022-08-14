@@ -18,7 +18,7 @@ impl Metal {
 impl Material for Metal {
     fn scatter(&self, rng: &mut ThreadRng, _texture_service: &TextureService, ray:&Ray, hit: &HitRecord, scatter_out: &mut ScatterRecord) -> bool {
         let mut reflected = Vector3::default(); 
-        Vector3::reflect(&ray.direction.normalized(), &hit.normal, &mut reflected);
+        Vector3::reflect(&ray.direction.get_normalized(), &hit.normal, &mut reflected);
         scatter_out.specular_ray = Ray::new_normalized(hit.position, reflected + Vector3::random_in_unit_sphere(rng) * self.fuzz, ray.time);
         scatter_out.attenuation = self.albedo;
         scatter_out.is_specular = true;

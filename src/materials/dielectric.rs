@@ -17,7 +17,7 @@ impl Material for Dielectric {
         scatter_out.attenuation = ColorRGB::new(1.0, 1.0, 1.0);
 
         let refraction_ratio = if hit.is_front_face { self.inverse_index_of_refraction } else { self.index_of_refraction };
-        let unit_direction = Vector3::normalized(&ray.direction);
+        let unit_direction = Vector3::get_normalized(&ray.direction);
         let cos_theta = Vector3::dot(&-unit_direction, &hit.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
