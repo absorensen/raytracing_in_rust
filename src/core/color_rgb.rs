@@ -35,6 +35,10 @@ impl ColorRGB {
         }
     }
 
+    #[inline]
+    pub fn is_nan(&self) -> bool {
+        self.r.is_nan() || self.g.is_nan() || self.b.is_nan() 
+    }
 
     #[inline]
     pub fn random(rng: &mut ThreadRng) -> Self {
@@ -76,9 +80,9 @@ impl ColorRGB {
 
     #[inline]
     pub fn scale_for_output(&mut self, scale: f32) {
-        if self.r != self.r { self.r = 0.0; }
-        if self.g != self.g { self.g = 0.0; }
-        if self.b != self.b { self.b = 0.0; }
+        if self.r.is_nan() { self.r = 0.0; }
+        if self.g.is_nan() { self.g = 0.0; }
+        if self.b.is_nan() { self.b = 0.0; }
 
         // Try and apply this scaling to the colors before summation
         self.r = 255.999 * clamp(0.0, (scale * self.r).sqrt(), 0.999);

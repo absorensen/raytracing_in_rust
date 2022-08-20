@@ -618,10 +618,10 @@ impl SceneBuilder {
     
         // Volume sphere
         let boundary_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3::new(360.0, 150.0, 145.0), 70.0, glass_material_index)));
-
+        hittable_index_list.push(boundary_index);
         let blue_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.2, 0.4,  0.9))));
         let blue_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(blue_phase_texture_index)));
-        let volume_sphere= ConstantMedium::new(boundary_index, blue_phase_function_index, 0.2);
+        let volume_sphere: ConstantMedium= ConstantMedium::new(boundary_index, blue_phase_function_index, 0.2);
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::ConstantMedium(volume_sphere)));
     
         let global_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 1.0, 1.0, 1.0))));

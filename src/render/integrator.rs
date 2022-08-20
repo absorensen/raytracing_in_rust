@@ -4,73 +4,73 @@ use crate::{services::{service_locator::ServiceLocator, material_service::Materi
 
 fn ray_color_loop_no_lights(
     rng: &mut ThreadRng,
-    service_locator: &ServiceLocator,
     material_service: &MaterialService,
     hittable_service: &HittableService,
     texture_service: &TextureService,
     bvh_root_index: usize,
-    lights_root_index: usize,
     background: &ColorRGB,
-    ray: &Ray,
-    depth: usize) -> ColorRGB {
+    first_ray: &Ray,
+    max_depth: usize) -> ColorRGB {
 
-    if depth <= 0 {
-        return ColorRGB::new(0.0, 0.0, 0.0);
-    }
-
-    let mut rec:HitRecord = HitRecord::default();
-
-    if !hittable_service.hit(bvh_root_index, rng, ray, 0.001, f32::MAX, &mut rec) {
-        return *background;
-    }
-
-
-    let mut scatter_record= ScatterRecord::default();
-    let emitted: ColorRGB = material_service.emitted(texture_service, ray, &rec);
-
-    if !material_service.scatter(rng, texture_service, ray, &rec, &mut scatter_record) {
-        return emitted;
-    }
-
-    if scatter_record.is_specular {
-        return scatter_record.attenuation *
-            ray_color_recursive_no_lights(
-                rng,
-                service_locator,
-                material_service,
-                hittable_service,
-                texture_service,
-                bvh_root_index,
-                lights_root_index,
-                background,
-                &scatter_record.specular_ray,
-                depth - 1
-            );
-    }
-
-    // Maybe put the non-recursive loop after this if statement and move the above in there
-
-    let pdf: PDFEnum = scatter_record.pdf;
-    let scattered = Ray::new_normalized(rec.position, pdf.generate(rng, hittable_service), ray.time);
-    let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
-
-    return
-        emitted +
-        scatter_record.attenuation *
-        material_service.scattering_pdf(rng, ray, &rec, &scattered) *
-        ray_color_recursive_no_lights(
-            rng,
-            service_locator,
-            material_service,
-            hittable_service,
-            texture_service,
-            bvh_root_index,
-            lights_root_index,
-            background,
-            &scattered,
-            depth - 1) /
-        pdf_val;
-
+        let mut output_color: ColorRGB = ColorRGB::black();
+        let mut throughput: ColorRGB = ColorRGB::white();
+        let mut was_scattered: bool = false;
+    
+        let mut ray: Ray = first_ray.clone();
+        for depth in (0..max_depth+1).rev() {
+            if depth <= 0 {
+                break;
+            }
+    
+            let mut rec:HitRecord = HitRecord::default();
+    
+            if !hittable_service.hit(bvh_root_index, rng, &ray, 0.001, f32::MAX, &mut rec) {
+                throughput *= *background;
+                output_color += throughput;
+    
+                break;
+            }
+    
+            let mut scatter_record:ScatterRecord = ScatterRecord::default();
+            let emitted: ColorRGB = material_service.emitted(texture_service, &ray, &rec);
+    
+            if !material_service.scatter(rng, texture_service, &ray, &rec, &mut scatter_record) {
+                throughput *= emitted;
+                output_color += throughput;            
+                break;
+            }
+    
+            if scatter_record.is_specular {
+                ray = scatter_record.specular_ray;
+                throughput *= scatter_record.attenuation;
+                continue;
+            }
+    
+            if throughput.is_nan() || emitted.is_nan() { break }
+    
+            let pdf: PDFEnum = scatter_record.pdf;
+            let scattered = Ray::new_normalized(rec.position, pdf.generate(rng, hittable_service), ray.time);
+            let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
+    
+            let new_term: ColorRGB = 
+                scatter_record.attenuation 
+                * material_service.scattering_pdf(rng, &ray, &rec, &scattered) 
+                / pdf_val;
+    
+            if new_term.is_nan() { break }
+    
+            output_color += throughput * emitted;
+            throughput *= new_term;
+            was_scattered = true;
+    
+            ray = scattered;
+        }
+    
+        if was_scattered && !throughput.is_nan() {
+            output_color += throughput;
+        }
+    
+        output_color
 }
 
 
@@ -101,6 +101,7 @@ fn ray_color_loop_lights(
         if !hittable_service.hit(bvh_root_index, rng, &ray, 0.001, f32::MAX, &mut rec) {
             throughput *= *background;
             output_color += throughput;
+
             break;
         }
 
@@ -109,7 +110,7 @@ fn ray_color_loop_lights(
 
         if !material_service.scatter(rng, texture_service, &ray, &rec, &mut scatter_record) {
             throughput *= emitted;
-            output_color += throughput;
+            output_color += throughput;            
             break;
         }
 
@@ -118,6 +119,8 @@ fn ray_color_loop_lights(
             throughput *= scatter_record.attenuation;
             continue;
         }
+
+        if throughput.is_nan() || emitted.is_nan() { break }
 
         let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
         let other_pdf: PDFEnum =
@@ -135,6 +138,7 @@ fn ray_color_loop_lights(
             * material_service.scattering_pdf(rng, &ray, &rec, &scattered) 
             / pdf_val;
 
+        if new_term.is_nan() { break }
 
         output_color += throughput * emitted;
         throughput *= new_term;
@@ -143,7 +147,7 @@ fn ray_color_loop_lights(
         ray = scattered;
     }
 
-    if was_scattered {
+    if was_scattered && !throughput.is_nan() {
         output_color += throughput;
     }
 
@@ -352,12 +356,10 @@ pub fn render_pixel(
             } else {
                 ray_color_loop_no_lights(
                     &mut rng,
-                    service_locator,
                     material_service,
                     hittable_service,
                     texture_service,
                     bvh_root_index,
-                    lights_root_index,
                     background,
                     &ray,
                     max_depth
