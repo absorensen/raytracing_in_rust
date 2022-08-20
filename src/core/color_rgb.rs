@@ -12,10 +12,12 @@ pub struct ColorRGB {
 }
 
 impl ColorRGB {
+    #[inline]
     pub fn new(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b }
     }
 
+    #[inline]
     pub fn black() -> Self {
         Self {
             r: 0.0,
@@ -24,6 +26,7 @@ impl ColorRGB {
         }
     }
 
+    #[inline]
     pub fn white() -> Self {
         Self {
             r: 1.0,
@@ -46,6 +49,14 @@ impl ColorRGB {
     #[inline]
     pub fn random_chacha(rng: &mut ChaChaRng) -> Self {
         ColorRGB { r: rng.gen::<f32>(), g: rng.gen::<f32>(), b: rng.gen::<f32>() }
+    }
+
+    #[inline]
+    pub fn mul_add_inplace(&mut self, mul: &ColorRGB, add: &ColorRGB) {
+        self.r = f32::mul_add(self.r, mul.r, add.r);
+        self.g = f32::mul_add(self.g, mul.g, add.g);
+        self.b = f32::mul_add(self.b, mul.b, add.b);
+
     }
 
     #[inline]
@@ -160,6 +171,16 @@ impl Mul<ColorRGB> for f32 {
     }
 }
 
+impl MulAssign<ColorRGB> for ColorRGB {
+
+    #[inline]
+    fn mul_assign(&mut self, other: ColorRGB) {
+            self.r = self.r * other.r;
+            self.g = self.g * other.g;
+            self.b = self.b * other.b;
+    }
+}
+
 impl MulAssign<f32> for ColorRGB {
 
     #[inline]
@@ -243,7 +264,7 @@ impl Sum for ColorRGB {
 
 impl Index<usize> for ColorRGB {
     type Output = f32;
-
+    #[inline]
     fn index(&self, i: usize) -> &f32 {
         match i {
             0 => &self.r,
@@ -255,6 +276,7 @@ impl Index<usize> for ColorRGB {
 }
 
 impl IndexMut<usize> for ColorRGB {
+    #[inline]
     fn index_mut(&mut self, i: usize) -> &mut f32 {
         match i {
             0 => &mut self.r,

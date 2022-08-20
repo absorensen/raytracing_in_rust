@@ -1,6 +1,6 @@
 use minifb::{Key, ScaleMode, Window, WindowOptions};
 use crate::core::color_rgb::ColorRGB;
-use crate::render::renderer::render_pixel;
+use crate::render::integrator::render_pixel;
 use std::f32;
 use std::time::Instant;
 use rayon::prelude::*;
@@ -29,6 +29,7 @@ pub fn render(config_path: &str) {
     let (_aspect_ratio, image_height, service_locator) = SceneBuilder::build_scene(config.aspect_ratio, config.image_width, config.scene_index);
     
     let scale = 1.0 / (config.samples_per_pixel as f32);
+    let use_loop_rendering: bool = true;
 
     let now = Instant::now();
     let total_pixels = image_height * config.image_width;
@@ -36,6 +37,7 @@ pub fn render(config_path: &str) {
         (0..total_pixels).into_par_iter().map(|pixel_index:usize| {
             let mut rng = rand::thread_rng();
             render_pixel(
+                use_loop_rendering,
                 &mut rng, 
                 &service_locator,
                 pixel_index, 

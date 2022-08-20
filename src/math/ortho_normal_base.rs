@@ -40,7 +40,7 @@ impl OrthoNormalBase {
 
 impl Index<usize> for OrthoNormalBase {
     type Output = Vector3;
-
+    #[inline]
     fn index(&self, i: usize) -> &Vector3 {
         match i {
             0 => &self.u,
@@ -52,6 +52,7 @@ impl Index<usize> for OrthoNormalBase {
 }
 
 impl IndexMut<usize> for OrthoNormalBase {
+    #[inline]
     fn index_mut(&mut self, i: usize) -> &mut Vector3 {
         match i {
             0 => &mut self.u,

@@ -13,10 +13,10 @@ impl DiffuseLight {
 }
 
 impl Material for DiffuseLight {
-    fn emitted(&self, texture_service: &TextureService, _ray:&Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> ColorRGB {
+    fn emitted(&self, texture_service: &TextureService, _ray:&Ray, hit: &HitRecord) -> ColorRGB {
         if hit.is_front_face {
             let mut color_out = ColorRGB::black();
-            texture_service.value(self.emission_texture_index, u, v, point, &mut color_out);
+            texture_service.value(self.emission_texture_index, hit.u, hit.v, &hit.position, &mut color_out);
             return color_out;
         }
         ColorRGB::black()

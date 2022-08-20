@@ -15,14 +15,14 @@ pub enum MaterialEnum {
 
 impl Material for MaterialEnum {
     #[inline]
-    fn emitted(&self, texture_service: &TextureService, ray:&Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> ColorRGB {
+    fn emitted(&self, texture_service: &TextureService, ray:&Ray, hit: &HitRecord) -> ColorRGB {
         match self {
-            MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Metal(metal) => metal.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Dielectric(dielectric) => dielectric.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.emitted(texture_service, ray, hit, u, v, point),
-            MaterialEnum::Isotropic(isotropic) => isotropic.emitted(texture_service, ray, hit, u, v, point),
+            MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit),
+            MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit),
+            MaterialEnum::Metal(metal) => metal.emitted(texture_service, ray, hit),
+            MaterialEnum::Dielectric(dielectric) => dielectric.emitted(texture_service, ray, hit),
+            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.emitted(texture_service, ray, hit),
+            MaterialEnum::Isotropic(isotropic) => isotropic.emitted(texture_service, ray, hit),
         }
     }
 

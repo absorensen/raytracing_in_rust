@@ -601,8 +601,8 @@ impl SceneBuilder {
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(unflipped_light_index))));
         light_index_list.push(unflipped_light_index);
     
-        let center_0 = Vector3{x: 400.0, y: 400.0, z: 200.0};
-        let center_1 = center_0 + Vector3{x: 30.0, y: 0.0, z: 0.0};
+        let center_0 = Vector3::new(400.0, 400.0, 200.0);
+        let center_1 = center_0 + Vector3::new( 30.0, 0.0, 0.0);
         let moving_sphere_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.7, 0.3, 0.1))));
         let moving_sphere_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(moving_sphere_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::MovingSphere(MovingSphere{ radius: 50.0, center_0, center_1, material: moving_sphere_material_index, time_0: 0.0, time_1: 1.0 })));
@@ -617,8 +617,7 @@ impl SceneBuilder {
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 150.0, z: 145.0}, 50.0, metal_material_index))));
     
         // Volume sphere
-        let boundary_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3
-            {x: 360.0, y: 150.0, z: 145.0}, 70.0, glass_material_index)));
+        let boundary_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3::new(360.0, 150.0, 145.0), 70.0, glass_material_index)));
 
         let blue_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.2, 0.4,  0.9))));
         let blue_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(blue_phase_texture_index)));
@@ -627,7 +626,7 @@ impl SceneBuilder {
     
         let global_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 1.0, 1.0, 1.0))));
         let global_phase_function_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(global_phase_texture_index)));
-        let global_volume_sphere_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3{x: 0.0, y: 0.0, z: 0.0}, 5000.0, glass_material_index)));
+        let global_volume_sphere_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Point3::new(0.0, 0.0, 0.0), 5000.0, glass_material_index)));
         let global_volume = HittableEnum::ConstantMedium(ConstantMedium::new(global_volume_sphere_index, global_phase_function_index, 0.0001));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(global_volume));
     
@@ -654,7 +653,7 @@ impl SceneBuilder {
         let cube_spheres_bvh_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BVHNode(cube_spheres_bvh));
         let cube_spheres_rotation = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, cube_spheres_bvh_index);
         let cube_spheres_rotation_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(cube_spheres_rotation));
-        let cube_spheres_translated = service_locator.get_hittable_service_mut().add_hittable( HittableEnum::Translate(Translate::new(Vector3 { x: -100.0, y: 270.0, z: 395.0 }, cube_spheres_rotation_index)));
+        let cube_spheres_translated = service_locator.get_hittable_service_mut().add_hittable( HittableEnum::Translate(Translate::new(Vector3::new( -100.0, 270.0, 395.0 ), cube_spheres_rotation_index)));
         hittable_index_list.push(cube_spheres_translated);
         
 

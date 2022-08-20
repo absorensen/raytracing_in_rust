@@ -15,10 +15,12 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
+    #[inline]
     pub fn new(x: f32, y: f32, z: f32) -> Vector3 {
         Vector3 { x, y, z }
     }
 
+    #[inline]
     pub fn zero() -> Vector3 {
         Vector3::new(0.0, 0.0, 0.0)
     }
@@ -347,7 +349,7 @@ impl Sum for Vector3 {
 
 impl Index<usize> for Vector3 {
     type Output = f32;
-
+    #[inline]
     fn index(&self, i: usize) -> &f32 {
         match i {
             0 => &self.x,
@@ -359,6 +361,7 @@ impl Index<usize> for Vector3 {
 }
 
 impl IndexMut<usize> for Vector3 {
+    #[inline]
     fn index_mut(&mut self, i: usize) -> &mut f32 {
         match i {
             0 => &mut self.x,

@@ -11,10 +11,11 @@ path = "src/main.rs"
 name = "raytracing_in_rust"
 path = "src/lib.rs"
 
+
 [profile.release]
 opt-level = 3
-lto = true
-codegen-units = 1
+#lto = true
+#codegen-units = 1
 incremental = true
 #panic = "abort"
 

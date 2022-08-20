@@ -17,6 +17,7 @@ impl Translate {
 }
 
 impl Hittable for Translate {
+    #[inline]
     fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
         let moved_ray = Ray{ origin: ray.origin - self.offset, direction: ray.direction, time: ray.time };
         if !hittable_service.hit(self.model_index, rng, &moved_ray, t_min, t_max, hit_out) {
@@ -32,6 +33,7 @@ impl Hittable for Translate {
         true
     }
 
+    #[inline]
     fn bounding_box(&self, hittable_service: &HittableService, time_0: f32, time_1: f32, box_out: &mut AABB) -> bool {
         if !hittable_service.bounding_box(self.model_index, time_0, time_1, box_out) {
             return false;

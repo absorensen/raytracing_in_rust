@@ -8,7 +8,6 @@ use crate::materials::material_enum::MaterialEnum;
 use crate::materials::scatter_record::ScatterRecord;
 use crate::core::ray::Ray;
 use crate::services::texture_service::TextureService;
-use crate::math::vector3::{Vector3};
 
 pub struct MaterialService {
     materials: Vec<MaterialEnum>,
@@ -30,8 +29,8 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn emitted(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, u: f32, v: f32, point: &Vector3) -> ColorRGB {
-        self.materials[hit.material].emitted(texture_service, ray, hit, u, v, point)
+    pub fn emitted(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord) -> ColorRGB {
+        self.materials[hit.material].emitted(texture_service, ray, hit)
     }
 
     #[inline]
