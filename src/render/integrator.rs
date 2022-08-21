@@ -17,7 +17,7 @@ use crate::{
         hittable_pdf::HittablePDF, 
         mixture_pdf::MixturePDF, 
         pdf::PDF
-    }, utility::render_config::RenderConfig, scene::camera::Camera
+    }, utility::render_config::RenderConfig, scene::{camera::Camera, self}
 };
 
 // These functions aren't needed. The only one that should stay is ray_color_loop_lights. 
@@ -34,7 +34,8 @@ fn ray_color_recursive(
     lights_root_index: usize,
     background: &ColorRGB,
     ray: &Ray,
-    depth: usize) -> ColorRGB {
+    depth: usize,
+    has_lights: bool) -> ColorRGB {
 
     if depth <= 0 {
         return ColorRGB::new(0.0, 0.0, 0.0);
@@ -67,11 +68,12 @@ fn ray_color_recursive(
                 lights_root_index,
                 background,
                 &scatter_record.specular_ray,
-                depth - 1
+                depth - 1,
+                has_lights
             );
     }
 
-    if lights_root_index != 0 {
+    if has_lights {
         // Maybe put the non-recursive loop after this if statement and move the above in there
         let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
         let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, scatter_record.pdf );
@@ -92,7 +94,8 @@ fn ray_color_recursive(
                 lights_root_index,
                 background,
                 &scattered,
-                depth - 1) /
+                depth - 1,
+                has_lights) /
             pdf_val;
     } else {
         let pdf: PDFEnum = scatter_record.pdf;
@@ -113,7 +116,8 @@ fn ray_color_recursive(
                 lights_root_index,
                 background,
                 &scattered,
-                depth - 1) /
+                depth - 1,
+                has_lights) /
             pdf_val;
     }
 
@@ -128,7 +132,8 @@ fn ray_color_loop(
     lights_root_index: usize,
     background: &ColorRGB,
     first_ray: &Ray,
-    max_depth: usize) -> ColorRGB {
+    max_depth: usize,
+    has_lights: bool) -> ColorRGB {
 
     let mut output_color: ColorRGB = ColorRGB::black();
     let mut throughput: ColorRGB = ColorRGB::white();
@@ -164,7 +169,7 @@ fn ray_color_loop(
 
         if throughput.is_nan() || emitted.is_nan() { break }
 
-        if lights_root_index != 0 {
+        if has_lights {
             let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
             let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, scatter_record.pdf );
             let scattered: Ray = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
@@ -230,6 +235,8 @@ pub fn render_pixel(
     let bvh_root_index: usize = hittable_service.get_bvh_root_index();
     let lights_root_index: usize = hittable_service.get_lights_root_index();
 
+    let has_lights: bool = hittable_service.has_lights();
+
     let samples: Vec<(f32, f32)> = (0..config.samples_per_pixel).into_iter().map(|_| (rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
     let mut color_buffer: ColorRGB = samples.into_iter().map(|(seed0, seed1)| {
         let mut rng = rand::thread_rng();
@@ -246,7 +253,8 @@ pub fn render_pixel(
                 lights_root_index,
                 background,
                 &ray,
-                config.max_depth
+                config.max_depth,
+                has_lights
             )
         } else {
             ray_color_recursive(
@@ -259,7 +267,8 @@ pub fn render_pixel(
                 lights_root_index,
                 background,
                 &ray,
-                config.max_depth
+                config.max_depth,
+                has_lights
             )
         }
         
