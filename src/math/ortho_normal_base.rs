@@ -17,7 +17,8 @@ impl OrthoNormalBase {
     pub fn build_from_w(n: &Vector3<f32>) -> OrthoNormalBase {
         let w: Vector3<f32> = n.normalize();
         let a: Vector3<f32> = if 0.9 < w.x.abs() { Vector3::<f32>::new(0.0, 1.0, 0.0 ) } else { Vector3::<f32>::new(1.0, 0.0, 0.0 )};
-        let v: Vector3<f32> = Vector3::cross(&w, &a).normalize();
+        let mut v: Vector3<f32> = Vector3::cross(&w, &a);
+        v.normalize_mut();
         let u: Vector3<f32> = Vector3::cross(&w, &v);
 
         OrthoNormalBase { u, v, w }
@@ -28,10 +29,10 @@ impl OrthoNormalBase {
     #[inline]
     pub fn update(&mut self, n: Vector3<f32>) {
         self.w = n;
-        self.w.normalize();
+        self.w.normalize_mut();
         let a: &Vector3<f32> = if 0.9 < self.w.x.abs() { &Y_VECTOR } else { &X_VECTOR };
         self.v = Vector3::cross(&self.w, &a);
-        self.v.normalize();
+        self.v.normalize_mut();
         self.u = Vector3::cross(&self.w, &self.v);
     }
 

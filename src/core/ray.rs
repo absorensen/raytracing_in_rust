@@ -19,7 +19,7 @@ impl Ray {
     pub fn new_normalized (origin: Vector3<f32>, direction: Vector3<f32>, time: f32) -> Self {
         let mut ray: Ray = Ray { origin, direction, time };
         
-        ray.direction.normalize();
+        ray.direction.normalize_mut();
 
         ray
     }
