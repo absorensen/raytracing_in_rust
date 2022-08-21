@@ -7,4 +7,4 @@
 -- Convert some of the calls in the sample loop into a loop in the relevant service \
 Unit testing. Some has been done. \
 Performance optimization \
-Try to convert to SIMD \
+Try to convert to SIMD
