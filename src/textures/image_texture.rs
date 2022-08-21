@@ -1,4 +1,6 @@
-use crate::{services::texture_service::TextureService, math::vector3::{Vector3}, core::color_rgb::ColorRGB};
+use nalgebra::Vector3;
+
+use crate::{services::texture_service::TextureService, core::color_rgb::ColorRGB};
 
 use super::texture::Texture;
 pub struct ImageTexture {
@@ -22,7 +24,7 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, _texture_service: &TextureService, u: f32, v: f32, _point: &Vector3, color_out: &mut ColorRGB) -> bool {
+    fn value(&self, _texture_service: &TextureService, u: f32, v: f32, _point: &Vector3<f32>, color_out: &mut ColorRGB) -> bool {
         if self.data.len() < 1 {
             color_out.r = 0.0;
             color_out.g = 1.0;

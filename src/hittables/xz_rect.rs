@@ -1,6 +1,7 @@
+use nalgebra::Vector3;
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{services::hittable_service::HittableService, core::ray::Ray, math::vector3::Vector3, geometry::aabb::AABB};
+use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
 
 use super::{hittable::Hittable, hit_record::HitRecord};
 
@@ -36,7 +37,7 @@ impl Hittable for XZRect {
 
         let u = (x - self.x0) / (self.x1 - self.x0);
         let v = (z - self.z0) / (self.z1 - self.z0);
-        let outward_normal = Vector3{x: 0.0, y: 1.0, z: 0.0};
+        let outward_normal: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
         
         hit_out.t = t;
         hit_out.u = u;
@@ -63,7 +64,7 @@ impl Hittable for XZRect {
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3, v: &Vector3) -> f32 {
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
         let ray = Ray::new_normalized(origin.clone(), v.clone(), 0.0);
         let hit = &mut HitRecord::default();
         
@@ -72,15 +73,15 @@ impl Hittable for XZRect {
         }
 
         let area = (self.x1 - self.x0) * (self.z1 - self.z0);
-        let distance_squared = hit.t * hit.t * v.length_squared();
-        let cosine = (Vector3::dot(v, &hit.normal) / v.length()).abs();
+        let distance_squared = hit.t * hit.t * v.magnitude_squared();
+        let cosine = (Vector3::dot(v, &hit.normal) / v.magnitude()).abs();
 
         return distance_squared / (cosine * area);
 
     }
 
-    fn random(&self, rng: &mut ThreadRng, _hittable_service: &HittableService, origin: &Vector3) -> Vector3 {
-        let random_point = Vector3::new(rng.gen_range(self.x0..self.x1), self.k, rng.gen_range(self.z0..self.z1));
+    fn random(&self, rng: &mut ThreadRng, _hittable_service: &HittableService, origin: &Vector3<f32>) -> Vector3<f32> {
+        let random_point: Vector3<f32> = Vector3::new(rng.gen_range(self.x0..self.x1), self.k, rng.gen_range(self.z0..self.z1));
 
         random_point - *origin
     }

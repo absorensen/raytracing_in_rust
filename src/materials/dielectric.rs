@@ -1,6 +1,7 @@
+use nalgebra::Vector3;
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, math::vector3::{Vector3}, pdfs::pdf_enum::PDFEnum};
+use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, pdfs::pdf_enum::PDFEnum, math::utility::{reflect, refract}};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 
@@ -17,16 +18,16 @@ impl Material for Dielectric {
         scatter_out.attenuation = ColorRGB::new(1.0, 1.0, 1.0);
 
         let refraction_ratio = if hit.is_front_face { self.inverse_index_of_refraction } else { self.index_of_refraction };
-        let unit_direction = Vector3::get_normalized(&ray.direction);
-        let cos_theta = Vector3::dot(&-unit_direction, &hit.normal).min(1.0);
+        let unit_direction: Vector3<f32> = ray.direction.normalize();
+        let cos_theta = Vector3::<f32>::dot(&-unit_direction, &hit.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = 1.0 < refraction_ratio * sin_theta;
-        let mut direction = Vector3::zero();
+        let mut direction: Vector3<f32> = Vector3::<f32>::zeros();
         if cannot_refract || rng.gen::<f32>() < Dielectric::reflectance(cos_theta, refraction_ratio) {
-            Vector3::reflect(&unit_direction, &hit.normal, &mut direction);
+            reflect(&unit_direction, &hit.normal, &mut direction);
         } else {
-            Vector3::refract(&unit_direction, &hit.normal, refraction_ratio, &mut direction);
+            refract(&unit_direction, &hit.normal, refraction_ratio, &mut direction);
         };
 
         scatter_out.specular_ray = Ray::new_normalized(hit.position, direction, ray.time);

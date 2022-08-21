@@ -1,6 +1,7 @@
+use nalgebra::Vector3;
 use rand::rngs::ThreadRng;
 
-use crate::{math::vector3::{Vector3}, services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, pdfs::pdf_enum::PDFEnum};
+use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, pdfs::pdf_enum::PDFEnum, math::utility::{reflect, random_in_unit_sphere}};
 
 use super::{material::Material, scatter_record::ScatterRecord};
 
@@ -17,9 +18,9 @@ impl Metal {
 
 impl Material for Metal {
     fn scatter(&self, rng: &mut ThreadRng, _texture_service: &TextureService, ray:&Ray, hit: &HitRecord, scatter_out: &mut ScatterRecord) -> bool {
-        let mut reflected = Vector3::default(); 
-        Vector3::reflect(&ray.direction.get_normalized(), &hit.normal, &mut reflected);
-        scatter_out.specular_ray = Ray::new_normalized(hit.position, reflected + Vector3::random_in_unit_sphere(rng) * self.fuzz, ray.time);
+        let mut reflected: Vector3<f32> = Vector3::<f32>::default(); 
+        reflect(&ray.direction.normalize(), &hit.normal, &mut reflected);
+        scatter_out.specular_ray = Ray::new_normalized(hit.position, reflected + random_in_unit_sphere(rng) * self.fuzz, ray.time);
         scatter_out.attenuation = self.albedo;
         scatter_out.is_specular = true;
         scatter_out.pdf = PDFEnum::None();

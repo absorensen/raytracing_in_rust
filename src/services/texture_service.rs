@@ -1,5 +1,5 @@
-use crate::{textures::{texture_enum::TextureEnum, default_texture::DefaultTexture, texture::Texture}, math::vector3::Vector3, core::color_rgb::ColorRGB};
-
+use crate::{textures::{texture_enum::TextureEnum, default_texture::DefaultTexture, texture::Texture}, core::color_rgb::ColorRGB};
+use nalgebra::Vector3;
 
 pub struct TextureService {
     textures: Vec<TextureEnum>,
@@ -26,7 +26,7 @@ impl TextureService {
     }
 
     #[inline]
-    pub fn value(&self, texture_index: usize, u: f32, v: f32, p: &Vector3, color_out: &mut ColorRGB) -> bool {
+    pub fn value(&self, texture_index: usize, u: f32, v: f32, p: &Vector3<f32>, color_out: &mut ColorRGB) -> bool {
         self.textures[texture_index].value(&self, u, v, p, color_out)
     }
 

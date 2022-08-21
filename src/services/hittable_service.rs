@@ -1,3 +1,4 @@
+use nalgebra::Vector3;
 use rand::prelude::ThreadRng;
 
 use crate::geometry::aabb::AABB;
@@ -5,7 +6,6 @@ use crate::hittables::default_hittable::DefaultHittable;
 use crate::hittables::hit_record::HitRecord;
 use crate::core::ray::Ray;
 use crate::hittables::hittable_enum::HittableEnum;
-use crate::math::vector3::{Vector3};
 
 // Introduce a build step
 // All elements are added with add hittable
@@ -64,12 +64,12 @@ impl HittableService {
     }
     
     #[inline] 
-    pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3, vv: &Vector3) -> f32 { 
+    pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3<f32>, vv: &Vector3<f32>) -> f32 { 
         self.hittables[index].pdf_value(&self, rng, origin, vv)
     }
     
     #[inline] 
-    pub fn random(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+    pub fn random(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3<f32>) -> Vector3<f32> {
         self.hittables[index].random(&self, rng, origin)
     }
 }

@@ -1,6 +1,7 @@
+use nalgebra::Vector3;
 use rand::rngs::ThreadRng;
 
-use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB, math::vector3::Vector3};
+use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
 
 use super::{default_hittable::DefaultHittable, bvh_node::BVHNode, sphere::Sphere, moving_sphere::MovingSphere, hittable_list::HittableList, xy_rect::XYRect, xz_rect::XZRect, yz_rect::YZRect, box_hittable::BoxHittable, rotate_y::RotateY, translate::Translate, constant_medium::ConstantMedium, flip_face::FlipFace, hittable::Hittable, hit_record::HitRecord};
 
@@ -61,7 +62,7 @@ impl HittableEnum {
     }
     
     #[inline] 
-    pub fn pdf_value(&self, hittable_service: &HittableService, rng: &mut ThreadRng, origin: &Vector3, vv: &Vector3) -> f32 { 
+    pub fn pdf_value(&self, hittable_service: &HittableService, rng: &mut ThreadRng, origin: &Vector3<f32>, vv: &Vector3<f32>) -> f32 { 
         match self {
             HittableEnum::DefaultHittable(default) => default.pdf_value(rng, hittable_service, origin, vv),
             HittableEnum::BVHNode(bvh_node) => bvh_node.pdf_value(rng, hittable_service, origin, vv),
@@ -80,7 +81,7 @@ impl HittableEnum {
     }
     
     #[inline] 
-    pub fn random(&self, hittable_service: &HittableService, rng: &mut ThreadRng, origin: &Vector3) -> Vector3 {
+    pub fn random(&self, hittable_service: &HittableService, rng: &mut ThreadRng, origin: &Vector3<f32>) -> Vector3<f32> {
         match &self {
             HittableEnum::DefaultHittable(default) => default.random(rng, hittable_service, origin),
             HittableEnum::BVHNode(bvh_node) => bvh_node.random(rng, hittable_service, origin),

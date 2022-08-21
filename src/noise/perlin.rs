@@ -1,11 +1,10 @@
+use nalgebra::{Vector3, Point3};
 use rand::{rngs::ThreadRng, Rng};
-
-use crate::math::vector3::Vector3;
 
 
 pub struct Perlin {
     point_count: u32,
-    random_vectors: Vec<Vector3>,
+    random_vectors: Vec<Vector3<f32>>,
     permutation_x: Vec<i32>,
     permutation_y: Vec<i32>,
     permutation_z: Vec<i32>,
@@ -16,7 +15,7 @@ impl Perlin {
         let mut result = 
             Perlin{
                 point_count: point_count, 
-                random_vectors: Vec::<Vector3>::new(),
+                random_vectors: Vec::<Vector3<f32>>::new(),
                 permutation_x: Vec::<i32>::new(),
                 permutation_y: Vec::<i32>::new(),
                 permutation_z: Vec::<i32>::new(),
@@ -30,11 +29,11 @@ impl Perlin {
         result
     }
 
-    pub fn turbulence_default(&self, point: &Vector3) -> f32 {
+    pub fn turbulence_default(&self, point: &Point3<f32>) -> f32 {
         self.turbulence(point, 7)
     }
 
-    pub fn turbulence(&self, point: &Vector3, depth: i32) -> f32 {
+    pub fn turbulence(&self, point: &Point3<f32>, depth: i32) -> f32 {
         let mut accumulator = 0.0;
         let mut temp_point = point.clone();
         let mut weight = 1.0;
@@ -50,7 +49,7 @@ impl Perlin {
 
     // Check this out to see whether they could all just be usize
     // Also look at improving the triple loop
-    pub fn noise(&self, point: &Vector3) -> f32 {
+    pub fn noise(&self, point: &Point3<f32>) -> f32 {
         let u = point.x - point.x.floor();
         let v = point.y - point.y.floor();
         let w = point.z - point.z.floor();
@@ -59,7 +58,7 @@ impl Perlin {
         let j = point.y.floor() as i32;
         let k = point.z.floor() as i32;
 
-        let mut samples = [[[Vector3::zero(); 2]; 2]; 2];
+        let mut samples = [[[Vector3::<f32>::zeros(); 2]; 2]; 2];
 
         for di in 0..2i32 {
             for dj in 0..2i32 {
@@ -78,13 +77,13 @@ impl Perlin {
         Perlin::perlin_interpolation(&samples, u, v, w)
     }
 
-    fn perlin_interpolation(samples: &[[[Vector3; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
+    fn perlin_interpolation(samples: &[[[Vector3<f32>; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);
         let ww = w * w * (3.0 - 2.0 * w);
         let mut sum = 0.0;
 
-        let mut weight_v = Vector3::zero();
+        let mut weight_v = Vector3::<f32>::zeros();
 
         for i in 0..2usize {
             for j in 0..2usize {
@@ -131,13 +130,13 @@ impl Perlin {
         sum
     }
 
-    fn populate_random_vectors(rng: &mut ThreadRng, vector: &mut Vec<Vector3>, desired_element_count: u32) {
+    fn populate_random_vectors(rng: &mut ThreadRng, vector: &mut Vec<Vector3<f32>>, desired_element_count: u32) {
         *vector = (0..desired_element_count).into_iter()
-            .map(|_| Vector3 {
-                    x: rng.gen_range(-1.0..1.0), 
-                    y: rng.gen_range(-1.0..1.0),
-                    z: rng.gen_range(-1.0..1.0),
-                }
+            .map(|_| Vector3::<f32>::new(
+                    rng.gen_range(-1.0..1.0), 
+                    rng.gen_range(-1.0..1.0),
+                    rng.gen_range(-1.0..1.0),
+                )
             )
             .collect();
     }

@@ -1,34 +1,35 @@
 use std::f32;
 
+use nalgebra::Vector3;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
-use crate::math::vector3::{Point3, Vector3};
 use crate::core::ray::Ray;
+use crate::math::utility::random_in_unit_disk;
 
 pub struct Camera {
-    origin: Point3,
-    horizontal: Vector3,
-    vertical: Vector3,
-    lower_left_corner: Point3,
-    u: Vector3,
-    v: Vector3,
-    _w: Vector3,
+    origin: Vector3::<f32>,
+    horizontal: Vector3::<f32>,
+    vertical: Vector3::<f32>,
+    lower_left_corner: Vector3::<f32>,
+    u: Vector3::<f32>,
+    v: Vector3::<f32>,
+    _w: Vector3::<f32>,
     lens_radius: f32,
     time_0: f32,
     time_1: f32,
 }
 
 impl Camera {
-    pub fn new(look_from: Point3, look_at: Point3, v_up: Vector3, vfov: f32, aspect_ratio: f32, aperture: f32, focus_dist: f32, time_0: f32, time_1: f32) -> Self {
+    pub fn new(look_from: Vector3::<f32>, look_at: Vector3::<f32>, v_up: Vector3::<f32>, vfov: f32, aspect_ratio: f32, aperture: f32, focus_dist: f32, time_0: f32, time_1: f32) -> Self {
         let theta = f32::consts::PI / 180.0 * vfov;
         let h = f32::tan(theta * 0.5);
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
-        let w = (look_from - look_at).get_normalized();
-        let u = (Vector3::cross(&v_up, &w)).get_normalized();
-        let v = Vector3::cross(&w, &u);
+        let w = (look_from - look_at).normalize();
+        let u = (Vector3::<f32>::cross(&v_up, &w)).normalize();
+        let v = Vector3::<f32>::cross(&w, &u);
 
         let origin = look_from;
         let horizontal = u * focus_dist * viewport_width;
@@ -50,7 +51,7 @@ impl Camera {
 
     #[inline]
     pub fn get_ray(&self, rng: &mut ThreadRng, s: f32, t: f32) -> Ray {
-        let rd = Vector3::random_in_unit_disk(rng) * self.lens_radius;
+        let rd = random_in_unit_disk(rng) * self.lens_radius;
         let offset = self.u * rd.x + self.v * rd.y;
 
         Ray{

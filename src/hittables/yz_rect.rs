@@ -1,6 +1,7 @@
+use nalgebra::Vector3;
 use rand::rngs::ThreadRng;
 
-use crate::{services::hittable_service::HittableService, core::ray::Ray, math::vector3::Vector3, geometry::aabb::AABB};
+use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
 
 use super::{hittable::Hittable, hit_record::HitRecord};
 
@@ -37,7 +38,7 @@ impl Hittable for YZRect {
 
         let u = (y - self.y0) / (self.y1 - self.y0);
         let v = (z - self.z0) / (self.z1 - self.z0);
-        let outward_normal = Vector3{x: 1.0, y: 0.0, z: 0.0};
+        let outward_normal: Vector3<f32> = Vector3::<f32>::new(1.0, 0.0, 0.0);
         
         hit_out.t = t;
         hit_out.u = u;
