@@ -74,12 +74,7 @@ fn ray_color_recursive(
     if lights_root_index != 0 {
         // Maybe put the non-recursive loop after this if statement and move the above in there
         let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
-        let other_pdf: PDFEnum =
-            match scatter_record.pdf {
-                PDFEnum::None() => PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index)),
-                _ => scatter_record.pdf,
-            };
-        let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, other_pdf );
+        let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, scatter_record.pdf );
         let scattered = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = mixture_pdf.value(rng, hittable_service, &scattered.direction);
 
@@ -171,12 +166,7 @@ fn ray_color_loop(
 
         if lights_root_index != 0 {
             let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
-            let other_pdf: PDFEnum =
-                match &scatter_record.pdf {
-                    PDFEnum::None() => PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index)),
-                    _ => scatter_record.pdf,
-                };
-            let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, other_pdf );
+            let mixture_pdf: MixturePDF = MixturePDF::new( light_pdf, scatter_record.pdf );
             let scattered: Ray = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
             let pdf_val: f32 = mixture_pdf.value(rng, hittable_service, &scattered.direction);
 
@@ -272,7 +262,7 @@ pub fn render_pixel(
                 config.max_depth
             )
         }
-
+        
     }).sum();
 
     color_buffer.scale_for_output(config.image_scale);
