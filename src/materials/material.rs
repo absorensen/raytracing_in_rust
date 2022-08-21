@@ -10,8 +10,10 @@ use super::scatter_record::ScatterRecord;
 
 
 pub trait Material : Sync + Send {
-    fn emitted(&self, _texture_service: &TextureService, _ray:&Ray, _hit: &HitRecord) -> ColorRGB {
-        ColorRGB::black()
+    fn emitted(&self, _texture_service: &TextureService, _ray:&Ray, _hit: &HitRecord, emitted_out: &mut ColorRGB) {
+        emitted_out.r = 0.0;
+        emitted_out.g = 0.0;
+        emitted_out.b = 0.0;
     }
 
     fn scatter(&self, _rng: &mut ThreadRng, _texture_service: &TextureService, _ray:&Ray, _hit: &HitRecord, _scatter_out: &mut ScatterRecord) -> bool {

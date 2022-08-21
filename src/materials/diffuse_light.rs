@@ -1,4 +1,4 @@
-use crate::{math::vector3::{Vector3}, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, services::texture_service::TextureService};
+use crate::{core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, services::texture_service::TextureService};
 
 use super::material::Material;
 
@@ -13,12 +13,14 @@ impl DiffuseLight {
 }
 
 impl Material for DiffuseLight {
-    fn emitted(&self, texture_service: &TextureService, _ray:&Ray, hit: &HitRecord) -> ColorRGB {
+    fn emitted(&self, texture_service: &TextureService, _ray:&Ray, hit: &HitRecord, emitted_out: &mut ColorRGB) {
         if hit.is_front_face {
-            let mut color_out = ColorRGB::black();
-            texture_service.value(self.emission_texture_index, hit.u, hit.v, &hit.position, &mut color_out);
-            return color_out;
+            texture_service.value(self.emission_texture_index, hit.u, hit.v, &hit.position, emitted_out);
+            return;
         }
-        ColorRGB::black()
+
+        emitted_out.r = 0.0;
+        emitted_out.g = 0.0;
+        emitted_out.b = 0.0;
     }
 }

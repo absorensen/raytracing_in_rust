@@ -1,6 +1,6 @@
 use rand::rngs::ThreadRng;
 
-use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, math::vector3::Vector3};
+use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord};
 
 use super::{default_material::DefaultMaterial, lambertian::Lambertian, metal::Metal, dielectric::Dielectric, diffuse_light::DiffuseLight, isotropic::Isotropic, material::Material, scatter_record::ScatterRecord};
 
@@ -15,14 +15,14 @@ pub enum MaterialEnum {
 
 impl Material for MaterialEnum {
     #[inline]
-    fn emitted(&self, texture_service: &TextureService, ray:&Ray, hit: &HitRecord) -> ColorRGB {
+    fn emitted(&self, texture_service: &TextureService, ray:&Ray, hit: &HitRecord, emitted_out: &mut ColorRGB) {
         match self {
-            MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit),
-            MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit),
-            MaterialEnum::Metal(metal) => metal.emitted(texture_service, ray, hit),
-            MaterialEnum::Dielectric(dielectric) => dielectric.emitted(texture_service, ray, hit),
-            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.emitted(texture_service, ray, hit),
-            MaterialEnum::Isotropic(isotropic) => isotropic.emitted(texture_service, ray, hit),
+            MaterialEnum::DefaultMaterial(default) => default.emitted(texture_service, ray, hit, emitted_out),
+            MaterialEnum::Lambertian(lambertian) => lambertian.emitted(texture_service, ray, hit, emitted_out),
+            MaterialEnum::Metal(metal) => metal.emitted(texture_service, ray, hit, emitted_out),
+            MaterialEnum::Dielectric(dielectric) => dielectric.emitted(texture_service, ray, hit, emitted_out),
+            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.emitted(texture_service, ray, hit, emitted_out),
+            MaterialEnum::Isotropic(isotropic) => isotropic.emitted(texture_service, ray, hit, emitted_out),
         }
     }
 

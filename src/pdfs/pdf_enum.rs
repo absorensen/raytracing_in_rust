@@ -6,6 +6,7 @@ use super::{cosine_pdf::CosinePDF, pdf::PDF, hittable_pdf::HittablePDF};
 
 // Mixture PDF is not in here because it creates a potentially infinite size
 // Also a mixture PDF should at this point only every hold 2 PDFs
+#[derive(Clone, Copy)]
 pub enum PDFEnum {
     None(),
     CosinePDF(CosinePDF),

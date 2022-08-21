@@ -6,6 +6,7 @@ use crate::{math::{ortho_normal_base::OrthoNormalBase, vector3::Vector3}, servic
 
 use super::pdf::PDF;
 
+#[derive(Clone, Copy)]
 pub struct CosinePDF {
     pub uvw: OrthoNormalBase,
 }

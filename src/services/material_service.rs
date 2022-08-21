@@ -29,8 +29,8 @@ impl MaterialService {
     }
 
     #[inline]
-    pub fn emitted(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord) -> ColorRGB {
-        self.materials[hit.material].emitted(texture_service, ray, hit)
+    pub fn emitted(&self, texture_service: &TextureService, ray: &Ray, hit: &HitRecord, emitted_out: &mut ColorRGB) {
+        self.materials[hit.material].emitted(texture_service, ray, hit, emitted_out);
     }
 
     #[inline]

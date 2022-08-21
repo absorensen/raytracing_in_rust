@@ -4,6 +4,7 @@ use crate::{math::vector3::Vector3, services::hittable_service::HittableService}
 
 use super::pdf::PDF;
 
+#[derive(Clone, Copy)]
 pub struct HittablePDF {
     pub origin: Vector3,
     pub hittable_index: usize,

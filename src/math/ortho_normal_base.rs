@@ -5,6 +5,7 @@ use super::vector3::Vector3;
 const X_VECTOR : Vector3 = Vector3{x: 1.0, y: 0.0, z: 0.0};
 const Y_VECTOR : Vector3 = Vector3{x: 0.0, y: 1.0, z: 0.0};
 
+#[derive(Clone, Copy)]
 pub struct OrthoNormalBase {
     pub u: Vector3,
     pub v: Vector3,

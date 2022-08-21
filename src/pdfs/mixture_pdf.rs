@@ -17,6 +17,14 @@ impl MixturePDF {
         let probability = 1.0 / (PDF_COUNT as f32); // One over number of PDFs
         MixturePDF{ pdfs: [pdf_a, pdf_b], probability }
     }
+
+    pub fn replace_pdf(&mut self, pdf: PDFEnum, pdf_index: usize) {
+        self.pdfs[pdf_index] = pdf;
+    }
+
+    pub fn update_pdf(&mut self, ) {
+
+    }
 }
 
 impl PDF for MixturePDF {
