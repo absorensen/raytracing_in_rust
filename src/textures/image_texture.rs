@@ -33,17 +33,17 @@ impl Texture for ImageTexture {
             return false;
         }
 
-        let u = u.clamp(0.0, 1.0);
-        let v = v.clamp(0.0, 1.0);
+        let u: f32 = u.clamp(0.0, 1.0);
+        let v: f32 = v.clamp(0.0, 1.0);
 
-        let mut i = ( u * self.width as f32 ) as usize;
-        let mut j = ( v * self.height as f32 ) as usize;
+        let mut i: usize = ( u * self.width as f32 ) as usize;
+        let mut j: usize = ( v * self.height as f32 ) as usize;
 
         if self.width <= i { i = self.width - 1; }
         if self.height <= j { j = self.height - 1; } 
 
-        let color_scale = 1.0 / 255.0;
-        let pixel_index = j * self.bytes_per_scanline + i * self.bytes_per_pixel;
+        let color_scale: f32 = 1.0 / 255.0;
+        let pixel_index: usize = j * self.bytes_per_scanline + i * self.bytes_per_pixel;
 
         color_out.r = color_scale * self.data[pixel_index    ] as f32;
         color_out.g = color_scale * self.data[pixel_index + 1] as f32;

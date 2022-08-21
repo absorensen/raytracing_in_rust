@@ -4,7 +4,7 @@ use crate::{
         service_locator::ServiceLocator, 
         material_service::MaterialService, 
         hittable_service::HittableService, 
-        texture_service::TextureService
+        texture_service::TextureService, scene_service::SceneService
     }, 
     core::{
         color_rgb::ColorRGB, 
@@ -17,7 +17,7 @@ use crate::{
         hittable_pdf::HittablePDF, 
         mixture_pdf::MixturePDF, 
         pdf::PDF
-    }
+    }, utility::render_config::RenderConfig, scene::camera::Camera
 };
 
 // These functions aren't needed. The only one that should stay is ray_color_loop_lights. 
@@ -324,23 +324,18 @@ fn ray_color_loop_lights(
 }
 
 pub fn render_pixel(
-    use_loop: bool,
+    config: &RenderConfig,
     rng: &mut ThreadRng,
     service_locator: &ServiceLocator,
-    pixel_index: usize,
-    image_width: usize,
-    image_height: usize,
-    samples_per_pixel: usize,
-    max_depth: usize,
-    scale: f32)
+    pixel_index: usize)
     -> ColorRGB {
-    let column_index = pixel_index % image_width;
-    let row_index = pixel_index / image_width;
+    let column_index: usize = pixel_index % config.image_width;
+    let row_index: usize = pixel_index / config.image_width;
 
 
-    let scene_service = service_locator.get_scene_service();
-    let camera = scene_service.get_camera();
-    let background = scene_service.get_background();
+    let scene_service: &SceneService = service_locator.get_scene_service();
+    let camera: &Camera = scene_service.get_camera();
+    let background: &ColorRGB = scene_service.get_background();
 
     let material_service: &MaterialService = service_locator.get_material_service();
     let texture_service: &TextureService = service_locator.get_texture_service();
@@ -353,13 +348,13 @@ pub fn render_pixel(
 
 
 
-    let seeds: Vec<(f32, f32)> = (0..samples_per_pixel).into_iter().map(|_| (rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
+    let seeds: Vec<(f32, f32)> = (0..config.samples_per_pixel).into_iter().map(|_| (rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
     let mut color_buffer: ColorRGB = seeds.into_iter().map(|(seed0, seed1)| {
         let mut rng = rand::thread_rng();
-        let u = (column_index as f32 + seed0 ) / ((image_width - 1) as f32);
-        let v = (row_index as f32 + seed1 ) / ((image_height - 1) as f32);
+        let u = (column_index as f32 + seed0 ) / ((config.image_width - 1) as f32);
+        let v = (row_index as f32 + seed1 ) / ((config.image_height - 1) as f32);
         let ray = camera.get_ray(&mut rng, u, v);
-        if use_loop {
+        if config.use_loop_rendering {
             if has_lights {
                 ray_color_loop_lights(
                     &mut rng,
@@ -370,7 +365,7 @@ pub fn render_pixel(
                     lights_root_index,
                     background,
                     &ray,
-                    max_depth
+                    config.max_depth
                 )
             } else {
                 ray_color_loop_no_lights(
@@ -381,7 +376,7 @@ pub fn render_pixel(
                     bvh_root_index,
                     background,
                     &ray,
-                    max_depth
+                    config.max_depth
                 )
             }
         } else {
@@ -396,7 +391,7 @@ pub fn render_pixel(
                     lights_root_index,
                     background,
                     &ray,
-                    max_depth
+                    config.max_depth
                 )
             } else {
                 ray_color_recursive_no_lights(
@@ -409,14 +404,14 @@ pub fn render_pixel(
                     lights_root_index,
                     background,
                     &ray,
-                    max_depth
+                    config.max_depth
                 )
             }
         }
 
     }).sum();
 
-    color_buffer.scale_for_output(scale);
+    color_buffer.scale_for_output(config.image_scale);
 
     color_buffer
 }

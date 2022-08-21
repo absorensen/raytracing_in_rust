@@ -22,21 +22,21 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(look_from: Vector3::<f32>, look_at: Vector3::<f32>, v_up: Vector3::<f32>, vfov: f32, aspect_ratio: f32, aperture: f32, focus_dist: f32, time_0: f32, time_1: f32) -> Self {
-        let theta = f32::consts::PI / 180.0 * vfov;
-        let h = f32::tan(theta * 0.5);
-        let viewport_height = 2.0 * h;
-        let viewport_width = aspect_ratio * viewport_height;
+        let theta: f32 = f32::consts::PI / 180.0 * vfov;
+        let h: f32 = f32::tan(theta * 0.5);
+        let viewport_height: f32 = 2.0 * h;
+        let viewport_width: f32 = aspect_ratio * viewport_height;
 
-        let w = (look_from - look_at).normalize();
-        let u = (Vector3::<f32>::cross(&v_up, &w)).normalize();
-        let v = Vector3::<f32>::cross(&w, &u);
+        let w: Vector3<f32> = (look_from - look_at).normalize();
+        let u: Vector3<f32> = Vector3::<f32>::cross(&v_up, &w).normalize();
+        let v: Vector3<f32> = Vector3::<f32>::cross(&w, &u).normalize();
 
-        let origin = look_from;
-        let horizontal = u * focus_dist * viewport_width;
-        let vertical = v * focus_dist * viewport_height;
-        let lower_left_corner = origin - horizontal * 0.5 - vertical * 0.5 - w * focus_dist;
+        let origin: Vector3<f32> = look_from;
+        let horizontal: Vector3<f32> = u * focus_dist * viewport_width;
+        let vertical: Vector3<f32> = v * focus_dist * viewport_height;
+        let lower_left_corner: Vector3<f32> = origin - horizontal * 0.5 - vertical * 0.5 - w * focus_dist;
 
-        let lens_radius = aperture * 0.5;
+        let lens_radius: f32 = aperture * 0.5;
 
         Camera{
             origin, 
@@ -51,8 +51,8 @@ impl Camera {
 
     #[inline]
     pub fn get_ray(&self, rng: &mut ThreadRng, s: f32, t: f32) -> Ray {
-        let rd = random_in_unit_disk(rng) * self.lens_radius;
-        let offset = self.u * rd.x + self.v * rd.y;
+        let rd: Vector3<f32> = random_in_unit_disk(rng) * self.lens_radius;
+        let offset: Vector3<f32> = self.u * rd.x + self.v * rd.y;
 
         Ray{
             origin: self.origin + offset, 

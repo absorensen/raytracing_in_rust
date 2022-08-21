@@ -11,7 +11,7 @@ pub fn random_range_chacha(rng: &mut ChaChaRng, minimum: f32, maximum: f32) -> V
 
 #[inline]
 pub fn reflect(v: &Vector3<f32>, normal: &Vector3<f32>, reflected_out: &mut Vector3<f32>) -> bool {
-    *reflected_out = (*v) - (*normal) * (2.0 * Vector3::dot(v, normal));
+    *reflected_out = (*v) - (*normal) * (2.0 * Vector3::<f32>::dot(v, normal));
 
     true
 }

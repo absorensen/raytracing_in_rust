@@ -1,6 +1,13 @@
-aspect_ratio = 1.77777777777777
 image_width = 500
+image_height = 500
 output_path = "output.png"
 samples_per_pixel = 50
 max_depth = 50
 scene_index = 10
+use_loop_rendering = true
+seed = 9873651359645
+
+#Let config.init figure it out
+aspect_ratio = 1.0 
+image_scale = 1.0
+is_initialized = false
