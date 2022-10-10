@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{services::hittable_service::HittableService};
@@ -17,7 +17,7 @@ pub enum PDFEnum {
 impl PDF for PDFEnum {
 
     #[inline]
-    fn value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, direction: &Vector3::<f32>) -> f32 {
+    fn value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, direction: &Vec3) -> f32 {
         match self {
             PDFEnum::None() => 0.0,
             PDFEnum::CosinePDF (cosine_pdf ) => cosine_pdf.value(rng, hittable_service, direction),
@@ -26,9 +26,9 @@ impl PDF for PDFEnum {
     }
 
     #[inline]
-    fn generate(&self, rng: &mut ThreadRng, hittable_service: &HittableService) -> Vector3::<f32> {
+    fn generate(&self, rng: &mut ThreadRng, hittable_service: &HittableService) -> Vec3 {
         match self {
-            PDFEnum::None() => Vector3::<f32>::zeros(),
+            PDFEnum::None() => Vec3::zero(),
             PDFEnum::CosinePDF (cosine_pdf ) => cosine_pdf.generate(rng, hittable_service),
             PDFEnum::HittablePDF(hittable_pdf) => hittable_pdf.generate(rng, hittable_service),
         }

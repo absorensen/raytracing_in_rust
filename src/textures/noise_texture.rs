@@ -1,4 +1,4 @@
-use nalgebra::{Vector3, Point3};
+use ultraviolet::{Vec3};
 use rand::rngs::ThreadRng;
 
 use crate::{services::texture_service::TextureService, noise::perlin::Perlin, core::color_rgb::ColorRGB};
@@ -17,11 +17,11 @@ impl NoiseTexture {
 }
 
 impl Texture for NoiseTexture {
-    fn value(&self, _texture_service: &TextureService, _u: f32, _v: f32, point: &Vector3<f32>, color_out: &mut ColorRGB) -> bool {
+    fn value(&self, _texture_service: &TextureService, _u: f32, _v: f32, point: &Vec3, color_out: &mut ColorRGB) -> bool {
         color_out.r = 1.0;
         color_out.g = 1.0;
         color_out.b = 1.0;
-        let point: Point3<f32> = Point3::<f32>::new(point.x, point.y, point.z);
+        let point: Vec3 = Vec3::new(point.x, point.y, point.z);
         *color_out = *color_out * 0.5 * (1.0 + (self.scale * point.z + 10.0 * self.perlin.turbulence_default(&point)).sin());
         true
     }

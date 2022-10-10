@@ -1,7 +1,7 @@
 // REFACTOR THIS LIKE THERE IS NO TOMORROW.
 // IT IS AN ABSOLUTE PAIN TO CHANGE ANYTHING.
 
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::{SeedableRng, Rng, rngs::ThreadRng};
 use rand_chacha::ChaCha20Rng;
 
@@ -97,9 +97,9 @@ impl SceneBuilder {
 
     fn random_spheres_scene(config: &RenderConfig, number_of_balls: i32) -> ServiceLocator {
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new(13.0, 2.0, 3.0 );
-        let look_at: Vector3::<f32> = Vector3::<f32>::new(0.0, 0.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new(13.0, 2.0, 3.0 );
+        let look_at: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus = 15.0;
         let aperture = 0.05;
         let time_0: f32 = 0.0;
@@ -115,7 +115,7 @@ impl SceneBuilder {
         let ground_even_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new(0.9, 0.9, 0.9))));
         let ground_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::CheckerTexture(CheckerTexture::new(ground_odd_texture_index, ground_even_texture_index)));
         let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(ground_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, -1000.0, 0.0), 1000.0, ground_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, -1000.0, 0.0), 1000.0, ground_material_index))));
     
         let index_of_refraction = 1.5;
         let glass_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
@@ -123,9 +123,9 @@ impl SceneBuilder {
         for a in -number_of_balls..number_of_balls {
             for b in -number_of_balls..number_of_balls {
                 let choose_mat = rng.gen::<f32>();
-                let center: Vector3<f32> = Vector3::<f32>::new( a as f32 + 0.9 * rng.gen::<f32>(), 0.2, b as f32 + 0.9 * rng.gen::<f32>());
+                let center: Vec3 = Vec3::new( a as f32 + 0.9 * rng.gen::<f32>(), 0.2, b as f32 + 0.9 * rng.gen::<f32>());
     
-                if 0.9 < (center - Vector3::<f32>::new(4.0, 0.2, 0.0)).magnitude() {
+                if 0.9 < (center - Vec3::new(4.0, 0.2, 0.0)).mag() {
                     if choose_mat < 0.8 {
                         let chosen_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&(ColorRGB::random_chacha(&mut rng) * ColorRGB::random_chacha(&mut rng)))));
                         let chosen_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(chosen_texture_index)));
@@ -140,14 +140,14 @@ impl SceneBuilder {
             }
         }
         
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 1.0, 0.0), 1.0, glass_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 1.0, 0.0), 1.0, glass_material_index))));
     
         let lambertian_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new(0.4, 0.2, 0.1))));
         let lambertian_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(lambertian_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(-4.0, 1.0, 0.0), 1.0, lambertian_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(-4.0, 1.0, 0.0), 1.0, lambertian_material_index))));
     
         let metal_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: ColorRGB::new(0.7, 0.6, 0.5), fuzz: 0.0}));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(4.0, 1.0, 0.0), 1.0, metal_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(4.0, 1.0, 0.0), 1.0, metal_material_index))));
 
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
 
@@ -156,9 +156,9 @@ impl SceneBuilder {
     
     fn random_moving_spheres_scene(config: &RenderConfig, number_of_balls: i32) -> ServiceLocator {
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new(13.0, 2.0, 3.0);
-        let look_at: Vector3<f32> = Vector3::<f32>::new( 0.0, 0.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new(13.0, 2.0, 3.0);
+        let look_at: Vec3 = Vec3::new( 0.0, 0.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus = 15.0;
         let aperture = 0.1;
         let time_0: f32 = 0.0;
@@ -174,7 +174,7 @@ impl SceneBuilder {
         let ground_even_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new(0.9, 0.9, 0.9))));
         let ground_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::CheckerTexture(CheckerTexture::new(ground_odd_texture_index, ground_even_texture_index)));
         let ground_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(ground_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(0.0, -1000.0, 0.0), 1000.0, ground_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, ground_material_index))));
     
         let index_of_refraction = 1.5;
         let glass_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
@@ -182,11 +182,11 @@ impl SceneBuilder {
         for a in -number_of_balls..number_of_balls {
             for b in -number_of_balls..number_of_balls {
                 let choose_mat = rng.gen::<f32>();
-                let center: Vector3<f32> = Vector3::<f32>::new( a as f32 + 0.9 * rng.gen::<f32>(), 0.2, b as f32 + 0.9 * rng.gen::<f32>());
+                let center: Vec3 = Vec3::new( a as f32 + 0.9 * rng.gen::<f32>(), 0.2, b as f32 + 0.9 * rng.gen::<f32>());
     
-                if (center - Vector3::<f32>::new(4.0, 0.2, 0.0)).magnitude() > 0.9 {
+                if (center - Vec3::new(4.0, 0.2, 0.0)).mag() > 0.9 {
                     if choose_mat < 0.8 {
-                        let mut movement = Vector3::<f32>::zeros();
+                        let mut movement = Vec3::zero();
                         movement.y = rng.gen::<f32>() * 0.5;
     
                         let chosen_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&(ColorRGB::random_chacha(&mut rng) * ColorRGB::random_chacha(&mut rng)))));
@@ -202,14 +202,14 @@ impl SceneBuilder {
             }
         }
     
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 1.0, 0.0), 1.0, glass_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 1.0, 0.0), 1.0, glass_material_index))));
     
         let lambertian_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.4, 0.2, 0.1))));
         let lambertian_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(lambertian_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( -4.0, 1.0, 0.0), 1.0, lambertian_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( -4.0, 1.0, 0.0), 1.0, lambertian_material_index))));
     
         let metal_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: ColorRGB::new( 0.7, 0.6, 0.5), fuzz: 0.0}));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 4.0, 1.0, 0.0), 1.0, metal_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 4.0, 1.0, 0.0), 1.0, metal_material_index))));
 
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
 
@@ -218,9 +218,9 @@ impl SceneBuilder {
     
     fn two_spheres_scene(config: &RenderConfig) -> ServiceLocator {
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new(13.0, 2.0, 3.0);
-        let look_at: Vector3<f32> = Vector3::<f32>::new( 0.0, 0.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new(13.0, 2.0, 3.0);
+        let look_at: Vec3 = Vec3::new( 0.0, 0.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.05;
         let time_0: f32 = 0.0;
@@ -236,8 +236,8 @@ impl SceneBuilder {
         let checker_even_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new(0.9, 0.9, 0.9))));
         let checker_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::CheckerTexture(CheckerTexture::new(checker_odd_texture_index, checker_even_texture_index)));
         let checker_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(checker_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, -10.0, 0.0), 10.0, checker_material_index))));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 10.0, 0.0), 10.0, checker_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, -10.0, 0.0), 10.0, checker_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 10.0, 0.0), 10.0, checker_material_index))));
     
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, _light_index_list);
     
@@ -246,9 +246,9 @@ impl SceneBuilder {
     
     fn two_perlin_spheres_scene(config: &RenderConfig, element_count: u32) -> ServiceLocator {    
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new(13.0, 2.0, 3.0);
-        let look_at: Vector3<f32> = Vector3::<f32>::new( 0.0, 0.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new(13.0, 2.0, 3.0);
+        let look_at: Vec3 = Vec3::new( 0.0, 0.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.05;
         let time_0: f32 = 0.0;
@@ -266,8 +266,8 @@ impl SceneBuilder {
         let perlin_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::NoiseTexture(NoiseTexture::new(&mut thread_rng, element_count, 4.0)));
         let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(perlin_texture_index)));
 
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, -1000.0, 0.0), 1000.0, perlin_material_index))));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 2.0, 0.0), 2.0, perlin_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, -1000.0, 0.0), 1000.0, perlin_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 2.0, 0.0), 2.0, perlin_material_index))));
         
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, _light_index_list);
         
@@ -276,9 +276,9 @@ impl SceneBuilder {
     
     fn earth_scene(config: &RenderConfig) -> ServiceLocator {
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new(13.0, 2.0, 3.0);
-        let look_at: Vector3<f32> = Vector3::<f32>::new( 0.0, 0.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new(13.0, 2.0, 3.0);
+        let look_at: Vec3 = Vec3::new( 0.0, 0.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.05;
         let time_0: f32 = 0.0;
@@ -291,7 +291,7 @@ impl SceneBuilder {
     
         let texture_index:usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::ImageTexture(ImageTexture::new("earthmap.png")));
         let material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(0.0, 0.0, 0.0), 2.0, material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(0.0, 0.0, 0.0), 2.0, material_index))));
     
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, _light_index_list);
 
@@ -300,9 +300,9 @@ impl SceneBuilder {
     
     fn simple_light_scene(config: &RenderConfig, element_count: u32) -> ServiceLocator {    
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new( 26.0, 3.0, 6.0 );
-        let look_at: Vector3<f32> = Vector3::<f32>::new( 0.0, 2.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new( 0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new( 26.0, 3.0, 6.0 );
+        let look_at: Vec3 = Vec3::new( 0.0, 2.0, 0.0);
+        let v_up: Vec3 = Vec3::new( 0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.05;
         let time_0: f32 = 0.0;
@@ -318,15 +318,15 @@ impl SceneBuilder {
         let mut thread_rng = rand::thread_rng();
         let perlin_texture_index: usize =  service_locator.get_texture_service_mut().add_texture(TextureEnum::NoiseTexture(NoiseTexture::new(&mut thread_rng, element_count, 4.0)));
         let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(perlin_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(0.0, -1000.0, 0.0), 1000.0, perlin_material_index))));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 2.0, 0.0), 2.0, perlin_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, perlin_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 2.0, 0.0), 2.0, perlin_material_index))));
     
         let diffuse_ligt_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 4.0, 4.0, 4.0 ))));
         let diffuse_light_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::DiffuseLight(DiffuseLight::new(diffuse_ligt_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XYRect(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, diffuse_light_material_index))));
         light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::XYRect(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, diffuse_light_material_index))));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 7.0, 0.0), 2.0, diffuse_light_material_index))));
-        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 0.0, 7.0, 0.0), 2.0, diffuse_light_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 7.0, 0.0), 2.0, diffuse_light_material_index))));
+        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 0.0, 7.0, 0.0), 2.0, diffuse_light_material_index))));
         
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
 
@@ -335,9 +335,9 @@ impl SceneBuilder {
     
     fn empty_cornell_box_scene_prebuild(config: &RenderConfig) -> (ChaCha20Rng, ServiceLocator, Vec<usize>, Vec<usize>) {
         // Camera
-        let look_from: Vector3::<f32> = Vector3::<f32>::new( 278.0, 278.0, -800.0);
-        let look_at: Vector3::<f32> = Vector3::<f32>::new(278.0, 278.0, 0.0);
-        let v_up: Vector3::<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new( 278.0, 278.0, -800.0);
+        let look_at: Vec3 = Vec3::new(278.0, 278.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.0;
         let time_0: f32 = 0.0;
@@ -398,18 +398,18 @@ impl SceneBuilder {
         let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new(0.73, 0.73, 0.73))));
         let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
 
-        let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::new( 0.0, 0.0, 0.0), Vector3::<f32>::new( 165.0, 330.0, 165.0), white_material_index);
+        let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::new( 0.0, 0.0, 0.0), Vec3::new( 165.0, 330.0, 165.0), white_material_index);
         let box_1_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
         let box_1_rotation = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, box_1_index);
         let box_1_rotation_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_1_rotation));
-        let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new( 265.0, 0.0, 295.0 ), box_1_rotation_index)));
+        let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new( 265.0, 0.0, 295.0 ), box_1_rotation_index)));
         hittable_index_list.push(box_1_translated_index);
     
-        let box_2 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::zeros(), Vector3::<f32>::new(165.0, 165.0, 165.0), white_material_index);
+        let box_2 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::zero(), Vec3::new(165.0, 165.0, 165.0), white_material_index);
         let box_2_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_2));
         let box_2_rotation = RotateY::new(service_locator.get_hittable_service_mut(), -18.0, box_2_index);
         let box_2_rotation_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_2_rotation));
-        let box_2_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new( 130.0, 0.0, 65.0 ), box_2_rotation_index)));
+        let box_2_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new( 130.0, 0.0, 65.0 ), box_2_rotation_index)));
         hittable_index_list.push(box_2_translated_index);
 
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
@@ -425,18 +425,18 @@ impl SceneBuilder {
         let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.73, 0.73, 0.73))));
         let white_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
     
-        let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::zeros(), Vector3::<f32>::new( 165.0, 330.0, 165.0), metal_material_index);
+        let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::zero(), Vec3::new( 165.0, 330.0, 165.0), metal_material_index);
         let box_1_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
         let box_1_rotation = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, box_1_index);
         let box_1_rotation_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_1_rotation));
-        let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new( 265.0, 0.0, 295.0 ), box_1_rotation_index)));
+        let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new( 265.0, 0.0, 295.0 ), box_1_rotation_index)));
         hittable_index_list.push(box_1_translated_index);
     
-        let box_2 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::zeros(), Vector3::<f32>::new(165.0, 165.0, 165.0), white_material_index);
+        let box_2 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::zero(), Vec3::new(165.0, 165.0, 165.0), white_material_index);
         let box_2_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_2));
         let box_2_rotation = RotateY::new(service_locator.get_hittable_service_mut(), -18.0, box_2_index);
         let box_2_rotation_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_2_rotation));
-        let box_2_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new( 130.0, 0.0, 65.0 ), box_2_rotation_index)));
+        let box_2_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new( 130.0, 0.0, 65.0 ), box_2_rotation_index)));
         hittable_index_list.push(box_2_translated_index);
         
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
@@ -446,9 +446,9 @@ impl SceneBuilder {
     
     fn cornell_box_two_smoke_boxes_scene(config: &RenderConfig) -> ServiceLocator {    
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new( 278.0, 278.0, -800.0);
-        let look_at: Vector3<f32> = Vector3::<f32>::new( 278.0, 278.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new( 278.0, 278.0, -800.0);
+        let look_at: Vec3 = Vec3::new( 278.0, 278.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.0;
         let time_0: f32 = 0.0;
@@ -501,18 +501,18 @@ impl SceneBuilder {
         light_index_list.push(unflipped_light_index);
 
 
-        let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::zeros(), Vector3::<f32>::new(165.0, 330.0, 165.0), white_material_index);
+        let box_1 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::zero(), Vec3::new(165.0, 330.0, 165.0), white_material_index);
         let box_1_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
         let box_1_rotation = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, box_1_index);
         let box_1_rotation_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_1_rotation));
-        let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new(265.0, 0.0, 295.0), box_1_rotation_index)));
+        let box_1_translated_index =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new(265.0, 0.0, 295.0), box_1_rotation_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::ConstantMedium(ConstantMedium::new(box_1_translated_index, dark_phase_function_index, 0.01))));
     
-        let box_2 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::zeros(), Vector3::<f32>::new(165.0, 165.0, 165.0), white_material_index);
+        let box_2 = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::zero(), Vec3::new(165.0, 165.0, 165.0), white_material_index);
         let box_2_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_2));
         let box_2_rotation = RotateY::new(service_locator.get_hittable_service_mut(), -18.0, box_2_index);
         let box_2_rotation_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_2_rotation));
-        let box_2_translated_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new( 130.0, 0.0, 65.0 ), box_2_rotation_index)));
+        let box_2_translated_index = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new( 130.0, 0.0, 65.0 ), box_2_rotation_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::ConstantMedium(ConstantMedium::new(box_2_translated_index, light_phase_function_index, 0.01))));
     
         build_acceleration_structures(&mut rng, &mut service_locator, hittable_index_list, light_index_list);
@@ -523,9 +523,9 @@ impl SceneBuilder {
     
     fn final_scene_book_2(config: &RenderConfig,  perlin_element_count: u32, cube_sphere_count: u32) -> ServiceLocator {
         // Camera
-        let look_from: Vector3<f32> = Vector3::<f32>::new( 478.0, 278.0, -600.0);
-        let look_at: Vector3<f32> = Vector3::<f32>::new(278.0, 278.0, 0.0);
-        let v_up: Vector3<f32> = Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let look_from: Vec3 = Vec3::new( 478.0, 278.0, -600.0);
+        let look_at: Vec3 = Vec3::new(278.0, 278.0, 0.0);
+        let v_up: Vec3 = Vec3::new(0.0, 1.0, 0.0);
         let dist_to_focus: f32 = 15.0;
         let aperture: f32 = 0.0;
         let time_0: f32 = 0.0;
@@ -563,8 +563,8 @@ impl SceneBuilder {
                     BoxHittable::new(
                             &mut rng,
             service_locator.get_hittable_service_mut(),
-                    Vector3::<f32>::new( x0, y0, z0), 
-                    Vector3::<f32>::new( x1, y1, z1), 
+                    Vec3::new( x0, y0, z0), 
+                    Vec3::new( x1, y1, z1), 
                     ground_material_index
                     )
                 );
@@ -583,8 +583,8 @@ impl SceneBuilder {
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::FlipFace(FlipFace::new(unflipped_light_index))));
         light_index_list.push(unflipped_light_index);
     
-        let center_0: Vector3<f32> = Vector3::new(400.0, 400.0, 200.0);
-        let center_1: Vector3<f32> = center_0 + Vector3::new( 30.0, 0.0, 0.0);
+        let center_0: Vec3 = Vec3::new(400.0, 400.0, 200.0);
+        let center_1: Vec3 = center_0 + Vec3::new( 30.0, 0.0, 0.0);
         let moving_sphere_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.7, 0.3, 0.1))));
         let moving_sphere_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(moving_sphere_texture_index)));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::MovingSphere(MovingSphere{ radius: 50.0, center_0, center_1, material: moving_sphere_material_index, time_0: 0.0, time_1: 1.0 })));
@@ -592,17 +592,17 @@ impl SceneBuilder {
     
         let index_of_refraction: f32 = 1.5;
         let glass_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 260.0, 150.0, 45.0), 50.0, glass_material_index))));
-        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(260.0, 150.0, 45.0), 50.0, diffuse_light_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 260.0, 150.0, 45.0), 50.0, glass_material_index))));
+        light_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(260.0, 150.0, 45.0), 50.0, diffuse_light_material_index))));
     
         let metal_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Metal(Metal{albedo: ColorRGB::new(0.8, 0.8, 0.9), fuzz: 1.0}));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(0.0, 150.0, 145.0), 50.0, metal_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(0.0, 150.0, 145.0), 50.0, metal_material_index))));
     
         // Volume sphere
         let white_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.73, 0.73, 0.73))));
         let white_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(white_texture_index)));
 
-        let boundary_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new(360.0, 150.0, 145.0), 70.0, glass_material_index)));
+        let boundary_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(360.0, 150.0, 145.0), 70.0, glass_material_index)));
         hittable_index_list.push(boundary_index);
         let blue_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 0.2, 0.4,  0.9))));
         let blue_phase_function_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(blue_phase_texture_index)));
@@ -611,13 +611,13 @@ impl SceneBuilder {
     
         let global_phase_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::SolidColorTexture(SolidColorTexture::from_color(&ColorRGB::new( 1.0, 1.0, 1.0))));
         let global_phase_function_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Isotropic(Isotropic::new(global_phase_texture_index)));
-        let global_volume_sphere_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::zeros(), 5000.0, white_material_index)));
+        let global_volume_sphere_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::zero(), 5000.0, white_material_index)));
         let global_volume: HittableEnum = HittableEnum::ConstantMedium(ConstantMedium::new(global_volume_sphere_index, global_phase_function_index, 0.0001));
         hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(global_volume));
     
         let earth_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::ImageTexture(ImageTexture::new("earthmap.png")));
         let earth_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(earth_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::new(400.0, 200.0, 400.0), 100.0, earth_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new(400.0, 200.0, 400.0), 100.0, earth_material_index))));
     
         
         // The Noise Texture runs pretty deep
@@ -625,7 +625,7 @@ impl SceneBuilder {
         let mut thread_rng: ThreadRng = rand::thread_rng();
         let perlin_texture_index: usize = service_locator.get_texture_service_mut().add_texture(TextureEnum::NoiseTexture(NoiseTexture::new(&mut thread_rng, perlin_element_count, 0.1)));
         let perlin_material_index = service_locator.get_material_service_mut().add_material(MaterialEnum::Lambertian(Lambertian::new(perlin_texture_index)));
-        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 220.0, 280.0, 300.0), 80.0, perlin_material_index))));
+        hittable_index_list.push(service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 220.0, 280.0, 300.0), 80.0, perlin_material_index))));
     
     
 
@@ -637,7 +637,7 @@ impl SceneBuilder {
         let cube_spheres_bvh_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BVHNode(cube_spheres_bvh));
         let cube_spheres_rotation: RotateY = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, cube_spheres_bvh_index);
         let cube_spheres_rotation_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(cube_spheres_rotation));
-        let cube_spheres_translated: usize = service_locator.get_hittable_service_mut().add_hittable( HittableEnum::Translate(Translate::new(Vector3::new( -100.0, 270.0, 395.0 ), cube_spheres_rotation_index)));
+        let cube_spheres_translated: usize = service_locator.get_hittable_service_mut().add_hittable( HittableEnum::Translate(Translate::new(Vec3::new( -100.0, 270.0, 395.0 ), cube_spheres_rotation_index)));
         hittable_index_list.push(cube_spheres_translated);
         
 
@@ -655,14 +655,14 @@ impl SceneBuilder {
         let index_of_refraction: f32 = 1.5;
         let glass_material_index: usize = service_locator.get_material_service_mut().add_material(MaterialEnum::Dielectric(Dielectric{index_of_refraction, inverse_index_of_refraction: 1.0 / index_of_refraction}));
     
-        let box_1: BoxHittable = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vector3::<f32>::zeros(), Vector3::<f32>::new(165.0, 330.0, 165.0), white_material_index);
+        let box_1: BoxHittable = BoxHittable::new(&mut rng, service_locator.get_hittable_service_mut(), Vec3::zero(), Vec3::new(165.0, 330.0, 165.0), white_material_index);
         let box_1_index: usize =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::BoxHittable(box_1));
         let box_1_rotation: RotateY = RotateY::new(service_locator.get_hittable_service_mut(), 15.0, box_1_index);
         let box_1_rotation_index: usize =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::RotateY(box_1_rotation));
-        let box_1_translated_index: usize =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vector3::<f32>::new( 265.0, 0.0, 295.0 ), box_1_rotation_index)));
+        let box_1_translated_index: usize =  service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Translate(Translate::new(Vec3::new( 265.0, 0.0, 295.0 ), box_1_rotation_index)));
         hittable_index_list.push(box_1_translated_index);
     
-        let sphere_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vector3::<f32>::new( 190.0, 90.0, 190.0), 90.0, glass_material_index)));
+        let sphere_index: usize = service_locator.get_hittable_service_mut().add_hittable(HittableEnum::Sphere(Sphere::new(Vec3::new( 190.0, 90.0, 190.0), 90.0, glass_material_index)));
         hittable_index_list.push(sphere_index);
         light_index_list.push(sphere_index);
     

@@ -1,14 +1,14 @@
 use crate::{ core::ray::Ray};
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 
 #[derive(Default, Copy, Clone, PartialEq)]
 pub struct AABB {
-    pub minimum: Vector3<f32>,
-    pub maximum: Vector3<f32>,
+    pub minimum: Vec3,
+    pub maximum: Vec3,
 }
 
 impl AABB {
-    pub fn expand_by_point(&mut self, expansion_point: &Vector3<f32>) -> () {
+    pub fn expand_by_point(&mut self, expansion_point: &Vec3) -> () {
         self.minimum.x = if self.minimum.x < expansion_point.x { self.minimum.x } else { expansion_point.x };
         self.minimum.y = if self.minimum.y < expansion_point.y { self.minimum.y } else { expansion_point.y };
         self.minimum.z = if self.minimum.z < expansion_point.z { self.minimum.z } else { expansion_point.z };

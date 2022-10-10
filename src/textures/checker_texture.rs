@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 
 use crate::{services::texture_service::TextureService, core::color_rgb::ColorRGB};
 
@@ -17,7 +17,7 @@ impl CheckerTexture {
 }
 
 impl Texture for CheckerTexture {
-    fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vector3<f32>, color_out: &mut ColorRGB) -> bool {
+    fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vec3, color_out: &mut ColorRGB) -> bool {
         let sines = (10.0 * p.x).sin() * (10.0 * p.y).sin() * (10.0 * p.z).sin();
         if sines < 0.0 {
             return texture_service.value(self.odd, u, v, p, color_out);

@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::prelude::ThreadRng;
 
 use crate::geometry::aabb::AABB;
@@ -64,12 +64,12 @@ impl HittableService {
     }
     
     #[inline] 
-    pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3<f32>, vv: &Vector3<f32>) -> f32 { 
+    pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vec3, vv: &Vec3) -> f32 { 
         self.hittables[index].pdf_value(&self, rng, origin, vv)
     }
     
     #[inline] 
-    pub fn random(&self, index:usize, rng: &mut ThreadRng, origin: &Vector3<f32>) -> Vector3<f32> {
+    pub fn random(&self, index:usize, rng: &mut ThreadRng, origin: &Vec3) -> Vec3 {
         self.hittables[index].random(&self, rng, origin)
     }
 }

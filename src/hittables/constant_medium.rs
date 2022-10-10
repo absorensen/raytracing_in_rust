@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::{rngs::ThreadRng, Rng};
 
 use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
@@ -25,7 +25,7 @@ impl Hittable for ConstantMedium {
     fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
 
         // TODO: Try using hit_out in both hits
-        let zero_vector = Vector3::<f32>::zeros();
+        let zero_vector = Vec3::zero();
         let mut hit_1 = HitRecord::new(ray, 0.0, 0.0, 0.0, &zero_vector, &zero_vector, 0);
         if !hittable_service.hit(self.boundary_index, rng, ray, f32::NEG_INFINITY, f32::INFINITY, &mut hit_1) {
             return false;
@@ -44,7 +44,7 @@ impl Hittable for ConstantMedium {
 
         if hit_1.t < 0.0 { hit_1.t = 0.0; }
 
-        let ray_length = ray.direction.magnitude();
+        let ray_length = ray.direction.mag();
         let distance_inside_boundary = (hit_2.t - hit_1.t) * ray_length;
         let hit_distance = self.negative_inverse_density * rng.gen::<f32>().ln();
 
@@ -56,7 +56,7 @@ impl Hittable for ConstantMedium {
         hit_out.u = 0.0;
         hit_out.v = 0.0;
         hit_out.position = ray.at(t);
-        hit_out.normal = Vector3::<f32>::new(1.0, 0.0, 0.0 );
+        hit_out.normal = Vec3::new(1.0, 0.0, 0.0 );
         hit_out.is_front_face = true;
         hit_out.material = self.phase_function;
 
@@ -68,8 +68,8 @@ impl Hittable for ConstantMedium {
         //self.boundary.bounding_box(time_0, time_1, box_out)
     }
 
-    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3<f32>, _v: &Vector3<f32>) -> f32 { 0.0 }
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vec3, _v: &Vec3) -> f32 { 0.0 }
 
-    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3<f32>) -> Vector3<f32> { Vector3::<f32>::new(1.0, 0.0, 0.0) }
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vec3) -> Vec3 { Vec3::new(1.0, 0.0, 0.0) }
 
 }

@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{geometry::aabb::AABB, services::hittable_service::HittableService, core::ray::Ray};
@@ -23,8 +23,8 @@ impl RotateY {
         let mut bbox = AABB::default();
         let has_bbox = hittable_service.bounding_box(model_index, 0.0, 1.0, &mut bbox);
 
-        let mut min: Vector3<f32> = Vector3::<f32>::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
-        let mut max: Vector3<f32> = Vector3::<f32>::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+        let mut min: Vec3 = Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+        let mut max: Vec3 = Vec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
         
         for i in 0..2 {
             let i_f = i as f32;
@@ -40,7 +40,7 @@ impl RotateY {
                     let new_x = cos_theta * x + sin_theta * z;
                     let new_z = -sin_theta * x + cos_theta * z;
 
-                    let tester: Vector3<f32> = Vector3::<f32>::new(new_x, y, new_z);
+                    let tester: Vec3 = Vec3::new(new_x, y, new_z);
 
                     min[0] = min[0].min(tester[0]);
                     min[1] = min[1].min(tester[1]);

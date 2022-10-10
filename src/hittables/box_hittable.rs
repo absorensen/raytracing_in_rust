@@ -1,6 +1,6 @@
 use rand::rngs::ThreadRng;
 use rand_chacha::ChaCha20Rng;
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 
 use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
 
@@ -9,12 +9,12 @@ use super::{xy_rect::XYRect, xz_rect::XZRect, yz_rect::YZRect, bvh_node::BVHNode
 // Change this to BVH
 pub struct BoxHittable {
     sides_index: usize,
-    box_min: Vector3<f32>,
-    box_max: Vector3<f32>,
+    box_min: Vec3,
+    box_max: Vec3,
 }
 
 impl BoxHittable {
-    pub fn new(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, point_0: Vector3<f32>, point_1: Vector3<f32>, material: usize) -> BoxHittable {
+    pub fn new(rng: &mut ChaCha20Rng, hittable_service: &mut HittableService, point_0: Vec3, point_1: Vec3, material: usize) -> BoxHittable {
         let mut sides : Vec<usize> = Vec::new();
 
         let hittable_index = hittable_service.add_hittable(HittableEnum::XYRect(XYRect::new(point_0.x, point_1.x, point_0.y, point_1.y, point_1.z, material)));

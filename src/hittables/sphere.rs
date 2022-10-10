@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 
@@ -14,16 +14,16 @@ use super::hittable::{Hittable};
 
 pub struct Sphere {
     pub radius: f32,
-    pub center: Vector3<f32>,
+    pub center: Vec3,
     pub material: usize,
 }
 
 impl Sphere {
-    pub fn new(center: Vector3<f32>, radius: f32, material: usize) -> Self { 
+    pub fn new(center: Vec3, radius: f32, material: usize) -> Self { 
         Sphere {center, radius, material } 
     }
 
-    fn get_sphere_uv(p: &Vector3<f32>) -> (f32, f32) {
+    fn get_sphere_uv(p: &Vec3) -> (f32, f32) {
         let theta = (-(*p).y).acos();
         let phi = f32::atan2(-(*p).z,(*p).x) + PI;
 
@@ -34,9 +34,9 @@ impl Sphere {
 impl Hittable for Sphere{
     fn hit(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
         let oc = ray.origin - self.center;
-        let a = ray.direction.magnitude_squared();
-        let half_b = Vector3::dot(&ray.direction, &oc);
-        let c = oc.magnitude_squared() - (self.radius * self.radius);
+        let a = ray.direction.mag_sq();
+        let half_b = ray.direction.dot(oc);
+        let c = oc.mag_sq() - (self.radius * self.radius);
         
         let discriminant = (half_b * half_b) - (a * c);
         if discriminant < 0.0 {
@@ -79,10 +79,10 @@ impl Hittable for Sphere{
         true
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vec3, v: &Vec3) -> f32 {
         let hit_out = &mut HitRecord::default();
         if self.hit(rng, hittable_service,  &Ray::new_normalized(*origin, *v, 0.5), 0.001, f32::INFINITY, hit_out) {
-            let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).magnitude_squared()).sqrt();
+            let cos_theta_max = (1.0 - self.radius * self.radius / (self.center - *origin).mag_sq()).sqrt();
             let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
 
             return 1.0 / solid_angle;
@@ -91,9 +91,9 @@ impl Hittable for Sphere{
         0.0
     }
 
-    fn random(&self, rng: &mut ThreadRng, _hittable_service: &HittableService, origin: &Vector3<f32>) -> Vector3<f32> {
+    fn random(&self, rng: &mut ThreadRng, _hittable_service: &HittableService, origin: &Vec3) -> Vec3 {
         let direction = self.center - *origin;
-        let distance_squared = direction.magnitude_squared();
+        let distance_squared = direction.mag_sq();
         let uvw = OrthoNormalBase::build_from_w(&direction);
         uvw.local_vector(&random_to_sphere(rng, self.radius, distance_squared))
     }
@@ -102,7 +102,7 @@ impl Hittable for Sphere{
 }
 
 #[inline]
-fn random_to_sphere(rng: &mut ThreadRng, radius: f32, distance_squared: f32) -> Vector3<f32> {
+fn random_to_sphere(rng: &mut ThreadRng, radius: f32, distance_squared: f32) -> Vec3 {
     let r1 = rng.gen::<f32>();
     let r2 = rng.gen::<f32>();
     let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
@@ -111,5 +111,5 @@ fn random_to_sphere(rng: &mut ThreadRng, radius: f32, distance_squared: f32) -> 
     let x = phi.cos() * (1.0 - z * z).sqrt();
     let y = phi.sin() * (1.0 - z * z).sqrt();
 
-    Vector3::new(x, y, z)
+    Vec3::new(x, y, z)
 }

@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
@@ -37,7 +37,7 @@ impl Hittable for XYRect {
 
         let u = (x - self.x0) / (self.x1 - self.x0);
         let v = (y - self.y0) / (self.y1 - self.y0);
-        let outward_normal = Vector3::<f32>::new(0.0, 0.0, 1.0);
+        let outward_normal = Vec3::new(0.0, 0.0, 1.0);
 
         hit_out.t = t;
         hit_out.u = u;

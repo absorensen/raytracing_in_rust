@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::{rngs::ThreadRng, Rng};
 
 use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
@@ -68,7 +68,7 @@ impl Hittable for HittableList {
         !first_box
     }
 
-    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
+    fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vec3, v: &Vec3) -> f32 {
         let mut sum = 0.0;
 
         for object_index in 0..self.hittable_indices.len(){
@@ -78,7 +78,7 @@ impl Hittable for HittableList {
         sum / self.hittable_indices.len() as f32
     }
 
-    fn random(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vector3<f32>) -> Vector3<f32> {
+    fn random(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vec3) -> Vec3 {
         let random_object_index = rng.gen_range(0..self.hittable_indices.len());
         hittable_service.random(self.hittable_indices[random_object_index], rng, origin) / self.hittable_indices.len() as f32
     }

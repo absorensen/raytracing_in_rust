@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{services::hittable_service::HittableService, core::ray::Ray, geometry::aabb::AABB};
@@ -7,11 +7,11 @@ use super::{hittable::Hittable, hit_record::HitRecord};
 
 pub struct Translate {
     model_index: usize,
-    offset: Vector3<f32>,
+    offset: Vec3,
 }
 
 impl Translate {
-    pub fn new(displacement: Vector3<f32>, model_index: usize) -> Translate {
+    pub fn new(displacement: Vec3, model_index: usize) -> Translate {
         Translate{model_index, offset: displacement}
     }
 

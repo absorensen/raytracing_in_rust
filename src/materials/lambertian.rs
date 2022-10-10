@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord, pdfs::{cosine_pdf::CosinePDF, pdf_enum::PDFEnum}};
@@ -27,7 +27,7 @@ impl Material for Lambertian {
     }
 
     fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f32 {
-        let cosine = Vector3::dot(&hit.normal, &(scattered_ray.direction.normalize()));
+        let cosine = hit.normal.dot(scattered_ray.direction.normalized());
 
         if cosine < 0.0 { 0.0 } else { cosine / PI }
     }

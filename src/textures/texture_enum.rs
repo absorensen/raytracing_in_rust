@@ -1,5 +1,5 @@
 use crate::{services::texture_service::TextureService, core::color_rgb::ColorRGB};
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 
 use super::{default_texture::DefaultTexture, solid_color_texture::SolidColorTexture, checker_texture::CheckerTexture, noise_texture::NoiseTexture, image_texture::ImageTexture, texture::Texture};
 
@@ -13,7 +13,7 @@ pub enum TextureEnum {
 
 impl Texture for TextureEnum {
     #[inline]
-    fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vector3<f32>, color_out: &mut ColorRGB) -> bool {
+    fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vec3, color_out: &mut ColorRGB) -> bool {
         match self {
             TextureEnum::DefaultTexture(default) => default.value(texture_service, u, v, p, color_out),
             TextureEnum::SolidColorTexture(solid_color) => solid_color.value(texture_service, u, v, p, color_out),

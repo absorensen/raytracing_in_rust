@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{core::ray::Ray, services::hittable_service::HittableService, geometry::aabb::AABB};
@@ -9,15 +9,15 @@ use super::{hittable::{Hittable}, hit_record::HitRecord};
 
 pub struct MovingSphere {
     pub radius: f32,
-    pub center_0: Vector3<f32>,
-    pub center_1: Vector3<f32>,
+    pub center_0: Vec3,
+    pub center_1: Vec3,
     pub material: usize,
     pub time_0: f32,
     pub time_1: f32,
 }
 
 impl MovingSphere {
-    pub fn new(radius: f32, center_0: Vector3<f32>, center_1: Vector3<f32>, material: usize, time_0: f32, time_1: f32) -> Self { 
+    pub fn new(radius: f32, center_0: Vec3, center_1: Vec3, material: usize, time_0: f32, time_1: f32) -> Self { 
         MovingSphere {
             radius, 
             center_0,
@@ -28,7 +28,7 @@ impl MovingSphere {
         } 
     }
 
-    fn get_sphere_uv(p: &Vector3<f32>) -> (f32, f32) {
+    fn get_sphere_uv(p: &Vec3) -> (f32, f32) {
         let theta = (-(*p).y).acos();
         let phi = f32::atan2(-(*p).z,(*p).x) + PI;
 
@@ -37,7 +37,7 @@ impl MovingSphere {
 }
 
 impl MovingSphere {
-    pub fn center(&self, time: f32) -> Vector3<f32> {
+    pub fn center(&self, time: f32) -> Vec3 {
         self.center_0 + (self.center_1 - self.center_0) * ((time - self.time_0) / (self.time_1 - self.time_0))
     }
 }
@@ -47,9 +47,9 @@ impl Hittable for MovingSphere{
         let center = self.center(ray.time);
         
         let oc = ray.origin - center;
-        let a = ray.direction.magnitude_squared();
-        let half_b = Vector3::dot(&ray.direction, &oc);
-        let c = oc.magnitude_squared() - (self.radius * self.radius);
+        let a = ray.direction.mag_sq();
+        let half_b = &ray.direction.dot(oc);
+        let c = oc.mag_sq() - (self.radius * self.radius);
         let discriminant = (half_b * half_b) - (a * c);
         if discriminant < 0.0 {
             return false;
@@ -92,17 +92,17 @@ impl Hittable for MovingSphere{
         box_out.maximum.y = center_0.y + self.radius;
         box_out.maximum.z = center_0.z + self.radius;
 
-        box_out.expand_by_point(&(center_1 - Vector3::<f32>::new(self.radius, self.radius, self.radius)));
-        box_out.expand_by_point(&(center_1 + Vector3::<f32>::new(self.radius, self.radius, self.radius)));
+        box_out.expand_by_point(&(center_1 - Vec3::new(self.radius, self.radius, self.radius)));
+        box_out.expand_by_point(&(center_1 + Vec3::new(self.radius, self.radius, self.radius)));
 
         true
     }
 
-    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3<f32>, _v: &Vector3<f32>) -> f32 {
+    fn pdf_value(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vec3, _v: &Vec3) -> f32 {
         0.0
     }
 
-    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vector3<f32>) -> Vector3<f32> {
-        Vector3::new(1.0, 0.0, 0.0)
+    fn random(&self, _rng: &mut ThreadRng, _hittable_service: &HittableService, _origin: &Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
     }
 }

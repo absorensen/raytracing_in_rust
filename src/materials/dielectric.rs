@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use ultraviolet::Vec3;
 use rand::{rngs::ThreadRng, Rng};
 
 use crate::{services::texture_service::TextureService, core::{ray::Ray, color_rgb::ColorRGB}, hittables::hit_record::HitRecord, pdfs::pdf_enum::PDFEnum, math::utility::{reflect, refract}};
@@ -18,12 +18,12 @@ impl Material for Dielectric {
         scatter_out.attenuation = ColorRGB::new(1.0, 1.0, 1.0);
 
         let refraction_ratio = if hit.is_front_face { self.inverse_index_of_refraction } else { self.index_of_refraction };
-        let unit_direction: Vector3<f32> = ray.direction.normalize();
-        let cos_theta = Vector3::<f32>::dot(&-unit_direction, &hit.normal).min(1.0);
+        let unit_direction: Vec3 = ray.direction.normalized();
+        let cos_theta = (-unit_direction).dot(hit.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = 1.0 < refraction_ratio * sin_theta;
-        let mut direction: Vector3<f32> = Vector3::<f32>::zeros();
+        let mut direction: Vec3 = Vec3::zero();
         if cannot_refract || rng.gen::<f32>() < Dielectric::reflectance(cos_theta, refraction_ratio) {
             reflect(&unit_direction, &hit.normal, &mut direction);
         } else {
