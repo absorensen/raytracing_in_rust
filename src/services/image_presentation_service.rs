@@ -52,7 +52,7 @@ fn convert_image_for_presentation(config: &RenderConfig, image: &Vec<ColorRGB>) 
         .collect()
 }
 
-fn save_image(config: &RenderConfig, image: &Vec<ColorRGB>) {
+pub fn save_image(config: &RenderConfig, image: &Vec<ColorRGB>) {
     let black: ColorRGB = ColorRGB::black();
     let mut horizontally_flipped_image: Vec<ColorRGB> = vec![black; image.len()];
     for row_index in 0..(config.image_height / 2) {

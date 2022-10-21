@@ -41,6 +41,16 @@ impl ColorRGB {
     }
 
     #[inline]
+    pub fn is_black(&self) -> bool {
+        (self.r + self.g + self.b) < f32::EPSILON * 4.0 
+    }
+
+    #[inline]
+    pub fn cannot_contribute(&self) -> bool {
+        self.is_black() && self.is_nan() 
+    }
+
+    #[inline]
     pub fn random(rng: &mut ThreadRng) -> Self {
         ColorRGB { r: rng.gen::<f32>(), g: rng.gen::<f32>(), b: rng.gen::<f32>() }
     }

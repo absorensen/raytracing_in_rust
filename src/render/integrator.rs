@@ -135,39 +135,40 @@ fn ray_color_loop(
     max_depth: usize,
     has_lights: bool) -> ColorRGB {
 
-    let mut output_color: ColorRGB = ColorRGB::black();
-    let mut throughput: ColorRGB = ColorRGB::white();
-    let mut was_scattered: bool = false;
+    let mut l: ColorRGB = ColorRGB::black();
+    let mut beta: ColorRGB = ColorRGB::white();
     let mut rec:HitRecord = HitRecord::default();
     let mut scatter_record: ScatterRecord = ScatterRecord::default();
     let mut emitted: ColorRGB = ColorRGB::black();
     let mut ray: Ray = first_ray.clone();
-    for depth in (0..max_depth+1).rev() {
-        if depth <= 0 {
+    let mut depth: usize = 0;
+    loop {
+        if max_depth <= depth {
             break;
         }
 
+        // Hit nothing, add background color
         if !hittable_service.hit(bvh_root_index, rng, &ray, 0.001, f32::MAX, &mut rec) {
-            throughput *= *background;
-            output_color += throughput;
+            l += beta * *background;
             break;
         }
 
         material_service.emitted(texture_service, &ray, &rec, &mut emitted);
 
+        // We probably hit a lightning material and just have to add the emission
         if !material_service.scatter(rng, texture_service, &ray, &rec, &mut scatter_record) {
-            throughput *= emitted;
-            output_color += throughput;            
+            l += beta * emitted;            
             break;
         }
 
         if scatter_record.is_specular {
             ray = scatter_record.specular_ray;
-            throughput *= scatter_record.attenuation;
+            beta *= scatter_record.attenuation;
+            depth += 1;
             continue;
         }
 
-        if throughput.is_nan() || emitted.is_nan() { break }
+        if beta.is_nan() || emitted.is_nan() { break }
 
         if has_lights {
             let light_pdf: PDFEnum = PDFEnum::HittablePDF(HittablePDF::new(&rec.position, lights_root_index));
@@ -182,9 +183,8 @@ fn ray_color_loop(
 
             if l_i.is_nan() { break }
 
-            output_color += throughput * emitted;
-            throughput *= l_i;
-            was_scattered = true;
+            l += beta * emitted;
+            beta *= l_i;
 
             ray = scattered;
         } else {
@@ -199,19 +199,14 @@ fn ray_color_loop(
     
             if new_term.is_nan() { break }
     
-            output_color += throughput * emitted;
-            throughput *= new_term;
-            was_scattered = true;
+            l += beta * emitted;
+            beta *= new_term;
     
             ray = scattered;
         }
     }
 
-    if was_scattered && !throughput.is_nan() {
-        output_color += throughput;
-    }
-
-    output_color
+    l
 }
 
 pub fn render_pixel(

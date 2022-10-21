@@ -12,18 +12,12 @@ pub struct RenderConfig {
     pub scene_index: usize,
     pub seed: usize,
     pub use_loop_rendering: bool,
-    pub is_initialized: bool,
 }
 
 impl RenderConfig {
-    pub fn initialize(&mut self) {
-        // Display Image
+    pub fn update_derived_values(&mut self) {
         self.aspect_ratio = (self.image_height as f32) / (self.image_width as f32);
         self.image_scale = 1.0 / (self.samples_per_pixel as f32);
-        
-        
-        
-        self.is_initialized = true;
     }
 }
 
@@ -41,7 +35,6 @@ impl ::std::default::Default for RenderConfig {
                 scene_index: 7,
                 seed: 1337,
                 use_loop_rendering: true,
-                is_initialized: false,
             } 
         }
 }

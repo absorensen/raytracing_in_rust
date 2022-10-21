@@ -27,7 +27,9 @@ minifb = "0.23.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rayon = "1.5.3"
-image = "0.24.3"
 confy = "0.4.0"
 serde = { version = "1.0.142", features = ["derive"] }
 ultraviolet = { version = "0.9", features = [ "f64", "int" ] }
+eframe = "0.19.0"
+egui_extras = { version = "0.19.0", features = ["image"] }
+image = { version = "0.24.3", default-features = false, features = ["png"] }
