@@ -204,6 +204,16 @@ fn ray_color_loop(
     
             ray = scattered;
         }
+
+        // Monte Carlo
+        if 3 < depth {
+            let p: f32 = f32::max(beta.r, f32::max(beta.g, beta.b));
+            if p < rng.gen::<f32>() {
+                break;
+            }
+
+            beta *= 1.0 / p;
+        }
     }
 
     l
