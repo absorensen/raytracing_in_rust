@@ -60,8 +60,8 @@ impl RotateY {
 
 impl Hittable for RotateY {
     fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
-        let mut origin = ray.origin.clone();
-        let mut direction = ray.direction.clone();
+        let mut origin = ray.origin;
+        let mut direction = ray.direction;
 
         origin[0] = self.cos_theta * ray.origin[0] - self.sin_theta * ray.origin[2];
         origin[2] = self.sin_theta * ray.origin[0] + self.cos_theta * ray.origin[2];
@@ -75,8 +75,8 @@ impl Hittable for RotateY {
             return false;
         }
 
-        let mut position = hit_out.position.clone();
-        let mut normal = hit_out.normal.clone();
+        let mut position = hit_out.position;
+        let mut normal = hit_out.normal;
 
         position[0] = self.cos_theta * hit_out.position[0] + self.sin_theta * hit_out.position[2];
         position[2] = -self.sin_theta * hit_out.position[0] + self.cos_theta * hit_out.position[2];

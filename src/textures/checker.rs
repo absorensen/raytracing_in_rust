@@ -4,25 +4,25 @@ use crate::{services::texture_service::TextureService, core::color_rgb::ColorRGB
 
 use super::texture::Texture;
 
-pub struct CheckerTexture {
+pub struct Checker {
     odd: usize,
     even: usize,
 }
 
-impl CheckerTexture {
+impl Checker {
     pub fn new(odd: usize, even: usize) -> Self {
-        CheckerTexture{odd, even}
+        Checker{odd, even}
     }
 
 }
 
-impl Texture for CheckerTexture {
+impl Texture for Checker {
     fn value(&self, texture_service: &TextureService, u: f32, v: f32, p: &Vec3, color_out: &mut ColorRGB) -> bool {
         let sines = (10.0 * p.x).sin() * (10.0 * p.y).sin() * (10.0 * p.z).sin();
         if sines < 0.0 {
-            return texture_service.value(self.odd, u, v, p, color_out);
+            texture_service.value(self.odd, u, v, p, color_out)
         } else {
-            return texture_service.value(self.even, u, v, p, color_out);
+            texture_service.value(self.even, u, v, p, color_out)
         }
     }
 }

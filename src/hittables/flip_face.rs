@@ -18,7 +18,7 @@ impl FlipFace {
 impl Hittable for FlipFace {
     #[inline]
     fn hit(&self, rng: &mut ThreadRng, hittable_service: &HittableService, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
-        if !hittable_service.hit(self.model_index, rng, &ray, t_min, t_max, hit_out) {
+        if !hittable_service.hit(self.model_index, rng, ray, t_min, t_max, hit_out) {
             return false;            
         }
 

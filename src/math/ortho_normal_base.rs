@@ -2,10 +2,6 @@ use std::ops::{Index, IndexMut};
 
 use ultraviolet::{Vec3};
 
-
-const X_VECTOR : Vec3 = Vec3::new( 1.0, 0.0, 0.0);
-const Y_VECTOR : Vec3 = Vec3::new( 0.0, 1.0, 0.0);
-
 #[derive(Clone, Copy)]
 pub struct OrthoNormalBase {
     pub u: Vec3,
@@ -22,18 +18,6 @@ impl OrthoNormalBase {
         let u: Vec3 = w.cross(v);
 
         OrthoNormalBase { u, v, w }
-    }
-
-    // Update this to not require any more new structs. Maybe do a cross and normalized with a supplied result argument
-    // And make the two Vector3's static
-    #[inline]
-    pub fn update(&mut self, n: Vec3) {
-        self.w = n;
-        self.w.normalize();
-        let a: &Vec3 = if 0.9 < self.w.x.abs() { &Y_VECTOR } else { &X_VECTOR };
-        self.v = self.w.cross(*a);
-        self.v.normalize();
-        self.u = self.w.cross(self.v);
     }
 
     pub fn local_vector(&self, a: &Vec3) -> Vec3 {

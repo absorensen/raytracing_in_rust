@@ -65,7 +65,7 @@ impl Hittable for XZRect {
     }
 
     fn pdf_value(&self, rng: &mut ThreadRng, hittable_service: &HittableService, origin: &Vec3, v: &Vec3) -> f32 {
-        let ray = Ray::new_normalized(origin.clone(), v.clone(), 0.0);
+        let ray = Ray::new_normalized(*origin, *v, 0.0);
         let hit = &mut HitRecord::default();
         
         if !self.hit(rng, hittable_service, &ray, 0.001, f32::INFINITY, hit) {
@@ -76,7 +76,7 @@ impl Hittable for XZRect {
         let distance_squared = hit.t * hit.t * v.mag_sq();
         let cosine = (v.dot(hit.normal) / v.mag()).abs();
 
-        return distance_squared / (cosine * area);
+        distance_squared / (cosine * area)
 
     }
 

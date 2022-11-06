@@ -1,10 +1,7 @@
 use std::f32::consts::PI;
-
-use ultraviolet::Vec3;
 use rand::rngs::ThreadRng;
 
 use crate::{services::texture_service::TextureService, core::ray::Ray, hittables::hit_record::HitRecord, pdfs::{cosine_pdf::CosinePDF, pdf_enum::PDFEnum}};
-
 use super::{material::Material, scatter_record::ScatterRecord};
 
 pub struct Lambertian {
@@ -23,7 +20,7 @@ impl Material for Lambertian {
         texture_service.value(self.albedo_texture_index, hit.u, hit.v, &hit.position, &mut scatter_out.attenuation);
         scatter_out.pdf = PDFEnum::CosinePDF(CosinePDF::new(&hit.normal));
 
-        return true;
+        true
     }
 
     fn scattering_pdf(&self, _rng: &mut ThreadRng, _ray: &Ray, hit: &HitRecord, scattered_ray:&Ray) -> f32 {

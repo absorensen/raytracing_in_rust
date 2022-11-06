@@ -1,7 +1,8 @@
 image_width = 500
 image_height = 500
 output_path = "output.png"
-samples_per_pixel = 100
+subpixels_per_pixel = 4
+samples_per_pixel = 10
 max_depth = 50
 scene_index = 11
 use_loop_rendering = true

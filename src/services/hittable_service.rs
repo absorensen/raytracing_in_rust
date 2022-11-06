@@ -39,7 +39,7 @@ impl HittableService {
         self.bvh_root_index
     }
 
-    pub fn set_bvh_root_index(&mut self, index: usize) -> () {
+    pub fn set_bvh_root_index(&mut self, index: usize) {
         self.bvh_root_index = index;
     }
 
@@ -47,7 +47,7 @@ impl HittableService {
         self.lights_root_index
     }
 
-    pub fn set_lights_root_index(&mut self, index: usize) -> () {
+    pub fn set_lights_root_index(&mut self, index: usize) {
         self.lights_root_index = index;
     }
 
@@ -55,21 +55,21 @@ impl HittableService {
 
     #[inline] // Recursive to begin with, but make it a loop
     pub fn hit(&self, index: usize, rng: &mut ThreadRng, ray: &Ray, t_min: f32, t_max: f32, hit_out: &mut HitRecord) -> bool {
-        self.hittables[index].hit(&self, rng, ray, t_min, t_max, hit_out)
+        self.hittables[index].hit(self, rng, ray, t_min, t_max, hit_out)
     }
 
     #[inline] 
     pub fn bounding_box(&self, index:usize, time_0: f32, time_1: f32, box_out: &mut AABB) -> bool {
-        self.hittables[index].bounding_box(&self, time_0, time_1, box_out)
+        self.hittables[index].bounding_box(self, time_0, time_1, box_out)
     }
     
     #[inline] 
     pub fn pdf_value(&self, index:usize, rng: &mut ThreadRng, origin: &Vec3, vv: &Vec3) -> f32 { 
-        self.hittables[index].pdf_value(&self, rng, origin, vv)
+        self.hittables[index].pdf_value(self, rng, origin, vv)
     }
     
     #[inline] 
     pub fn random(&self, index:usize, rng: &mut ThreadRng, origin: &Vec3) -> Vec3 {
-        self.hittables[index].random(&self, rng, origin)
+        self.hittables[index].random(self, rng, origin)
     }
 }

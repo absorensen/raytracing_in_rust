@@ -17,9 +17,6 @@ impl CosinePDF {
         CosinePDF{ uvw: OrthoNormalBase::build_from_w(w) }
     }
 
-    pub fn update(&mut self, n: Vec3) {
-        self.uvw.update(n);
-    }
 }
 
 impl PDF for CosinePDF {

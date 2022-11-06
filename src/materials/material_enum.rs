@@ -29,12 +29,12 @@ impl Material for MaterialEnum {
     #[inline]
     fn scatter(&self, rng: &mut ThreadRng, texture_service: &TextureService, ray:&Ray, hit: &HitRecord, scatter_out: &mut ScatterRecord) -> bool {
         match self {
-            MaterialEnum::DefaultMaterial(default) => default.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Lambertian(lambertian) => lambertian.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Metal(metal) => metal.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Dielectric(dielectric) => dielectric.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.scatter(rng, texture_service, ray, &hit, scatter_out),
-            MaterialEnum::Isotropic(isotropic) => isotropic.scatter(rng, texture_service, ray, &hit, scatter_out),
+            MaterialEnum::DefaultMaterial(default) => default.scatter(rng, texture_service, ray, hit, scatter_out),
+            MaterialEnum::Lambertian(lambertian) => lambertian.scatter(rng, texture_service, ray, hit, scatter_out),
+            MaterialEnum::Metal(metal) => metal.scatter(rng, texture_service, ray, hit, scatter_out),
+            MaterialEnum::Dielectric(dielectric) => dielectric.scatter(rng, texture_service, ray, hit, scatter_out),
+            MaterialEnum::DiffuseLight(diffuse_light) => diffuse_light.scatter(rng, texture_service, ray, hit, scatter_out),
+            MaterialEnum::Isotropic(isotropic) => isotropic.scatter(rng, texture_service, ray, hit, scatter_out),
         }
     }
 

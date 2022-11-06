@@ -26,7 +26,7 @@ impl HitRecord{
         normal: &Vec3,
         material: usize
     ) -> Self {
-        let mut result = HitRecord{ t, u, v, position: position.clone(), normal: normal.clone(), is_front_face: false, material };
+        let mut result = HitRecord{ t, u, v, position: *position, normal: *normal, is_front_face: false, material };
         result.set_face_normal(ray, normal);
         result
     }

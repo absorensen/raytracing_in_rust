@@ -5,18 +5,18 @@ use crate::{services::texture_service::TextureService, noise::perlin::Perlin, co
 
 use super::texture::Texture;
 
-pub struct NoiseTexture {
+pub struct Noise {
     perlin: Perlin,
     scale: f32,
 }
 
-impl NoiseTexture {
+impl Noise {
     pub fn new(rng: &mut ThreadRng, point_count: u32, scale: f32) -> Self {
-        NoiseTexture{perlin: Perlin::new(rng, point_count), scale}
+        Noise{perlin: Perlin::new(rng, point_count), scale}
     }
 }
 
-impl Texture for NoiseTexture {
+impl Texture for Noise {
     fn value(&self, _texture_service: &TextureService, _u: f32, _v: f32, point: &Vec3, color_out: &mut ColorRGB) -> bool {
         color_out.r = 1.0;
         color_out.g = 1.0;

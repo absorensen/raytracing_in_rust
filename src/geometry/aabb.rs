@@ -8,7 +8,7 @@ pub struct AABB {
 }
 
 impl AABB {
-    pub fn expand_by_point(&mut self, expansion_point: &Vec3) -> () {
+    pub fn expand_by_point(&mut self, expansion_point: &Vec3) {
         self.minimum.x = if self.minimum.x < expansion_point.x { self.minimum.x } else { expansion_point.x };
         self.minimum.y = if self.minimum.y < expansion_point.y { self.minimum.y } else { expansion_point.y };
         self.minimum.z = if self.minimum.z < expansion_point.z { self.minimum.z } else { expansion_point.z };
@@ -18,7 +18,7 @@ impl AABB {
         self.maximum.z = if expansion_point.z < self.maximum.z { self.maximum.z } else { expansion_point.z };
     }
 
-    pub fn expand_by_box(&mut self, expansion_box: &AABB) -> () {
+    pub fn expand_by_box(&mut self, expansion_box: &AABB) {
         self.expand_by_point(&expansion_box.minimum);
         self.expand_by_point(&expansion_box.maximum);
     }

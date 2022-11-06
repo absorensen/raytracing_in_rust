@@ -13,7 +13,7 @@ pub struct HittablePDF {
 
 impl HittablePDF {
     pub fn new(origin: &Vec3, p: usize) -> HittablePDF {
-        HittablePDF{ origin: origin.clone(), hittable_index: p }
+        HittablePDF{ origin: *origin, hittable_index: p }
     }
 }
 

@@ -1,4 +1,5 @@
 use rand::{rngs::ThreadRng, Rng};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use crate::{
     services::{
         service_locator::ServiceLocator, 
@@ -17,7 +18,7 @@ use crate::{
         hittable_pdf::HittablePDF, 
         mixture_pdf::MixturePDF, 
         pdf::PDF
-    }, utility::render_config::RenderConfig, scene::{camera::Camera, self}
+    }, utility::render_config::RenderConfig, scene::{camera::Camera}
 };
 
 // These functions aren't needed. The only one that should stay is ray_color_loop_lights. 
@@ -37,7 +38,7 @@ fn ray_color_recursive(
     depth: usize,
     has_lights: bool) -> ColorRGB {
 
-    if depth <= 0 {
+    if depth == 0 {
         return ColorRGB::new(0.0, 0.0, 0.0);
     }
 
@@ -80,45 +81,43 @@ fn ray_color_recursive(
         let scattered = Ray::new_normalized(rec.position, mixture_pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = mixture_pdf.value(rng, hittable_service, &scattered.direction);
 
-        return
-            emitted +
-            scatter_record.attenuation *
-            material_service.scattering_pdf(rng, ray, &rec, &scattered) *
-            ray_color_recursive(
-                rng,
-                service_locator,
-                material_service,
-                hittable_service,
-                texture_service,
-                bvh_root_index,
-                lights_root_index,
-                background,
-                &scattered,
-                depth - 1,
-                has_lights) /
-            pdf_val;
+        emitted +
+        scatter_record.attenuation *
+        material_service.scattering_pdf(rng, ray, &rec, &scattered) *
+        ray_color_recursive(
+            rng,
+            service_locator,
+            material_service,
+            hittable_service,
+            texture_service,
+            bvh_root_index,
+            lights_root_index,
+            background,
+            &scattered,
+            depth - 1,
+            has_lights) /
+        pdf_val
     } else {
         let pdf: PDFEnum = scatter_record.pdf;
         let scattered = Ray::new_normalized(rec.position, pdf.generate(rng, hittable_service), ray.time);
         let pdf_val = pdf.value(rng, hittable_service, &scattered.direction);
     
-        return
-            emitted +
-            scatter_record.attenuation *
-            material_service.scattering_pdf(rng, ray, &rec, &scattered) *
-            ray_color_recursive(
-                rng,
-                service_locator,
-                material_service,
-                hittable_service,
-                texture_service,
-                bvh_root_index,
-                lights_root_index,
-                background,
-                &scattered,
-                depth - 1,
-                has_lights) /
-            pdf_val;
+        emitted +
+        scatter_record.attenuation *
+        material_service.scattering_pdf(rng, ray, &rec, &scattered) *
+        ray_color_recursive(
+            rng,
+            service_locator,
+            material_service,
+            hittable_service,
+            texture_service,
+            bvh_root_index,
+            lights_root_index,
+            background,
+            &scattered,
+            depth - 1,
+            has_lights) /
+        pdf_val
     }
 
 }
@@ -140,7 +139,7 @@ fn ray_color_loop(
     let mut rec:HitRecord = HitRecord::default();
     let mut scatter_record: ScatterRecord = ScatterRecord::default();
     let mut emitted: ColorRGB = ColorRGB::black();
-    let mut ray: Ray = first_ray.clone();
+    let mut ray: Ray = *first_ray;
     let mut depth: usize = 0;
     loop {
         if max_depth <= depth {
@@ -155,7 +154,7 @@ fn ray_color_loop(
 
         material_service.emitted(texture_service, &ray, &rec, &mut emitted);
 
-        // We probably hit a lightning material and just have to add the emission
+        // We probably hit a lighting material and just have to add the emission
         if !material_service.scatter(rng, texture_service, &ray, &rec, &mut scatter_record) {
             l += beta * emitted;            
             break;
@@ -242,12 +241,25 @@ pub fn render_pixel(
 
     let has_lights: bool = hittable_service.has_lights();
 
-    let samples: Vec<(f32, f32)> = (0..config.samples_per_pixel).into_iter().map(|_| (rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
-    let mut color_buffer: ColorRGB = samples.into_iter().map(|(seed0, seed1)| {
+    let sample_scale: f32 = 1.0 / (config.subpixels_per_pixel * config.subpixels_per_pixel * config.samples_per_pixel) as f32;
+    let subpixels_offset: f32 = 1.0 / config.subpixels_per_pixel as f32;
+    let mut accumulated_color: ColorRGB = ColorRGB::black();
+    let samples: Vec<(usize, f32, f32)> = (0..(config.samples_per_pixel * config.subpixels_per_pixel * config.subpixels_per_pixel)).into_iter().map(|index| (index, rng.gen::<f32>(), rng.gen::<f32>()) ).collect();
+    let color_buffer: ColorRGB = samples.into_par_iter().map(|(index, seed0, seed1)| {
         let mut rng = rand::thread_rng();
-        let u = (column_index as f32 + seed0 ) / ((config.image_width - 1) as f32);
-        let v = (row_index as f32 + seed1 ) / ((config.image_height - 1) as f32);
-        let ray = camera.get_ray(&mut rng, u, v);
+        let sx = (index % (config.subpixels_per_pixel * config.samples_per_pixel)) / config.samples_per_pixel;
+        let sy = index / (config.samples_per_pixel * config.subpixels_per_pixel);
+
+        let r1 = 2.0 * seed0;
+        let dx = if r1 < 1.0 { r1.sqrt() - 1.0 } else { 1.0 - (2.0 - r1).sqrt() };
+
+        let r2 = 2.0 * seed1;
+        let dy = if r2 < 1.0 { r2.sqrt() - 1.0 } else { 1.0 - (2.0 - r2).sqrt() };
+
+        let u = ( (sx as f32) + 0.5 + (dx as f32)) * subpixels_offset + (column_index as f32);
+        let v = ( (sy as f32) + 0.5 + (dy as f32)) * subpixels_offset + (row_index as f32);
+
+        let ray = camera.get_ray(&mut rng, u / (config.image_width - 1) as f32, v / (config.image_height - 1) as f32);
         if config.use_loop_rendering {
             ray_color_loop(
                 &mut rng,
@@ -260,7 +272,7 @@ pub fn render_pixel(
                 &ray,
                 config.max_depth,
                 has_lights
-            )
+            ) * sample_scale
         } else {
             ray_color_recursive(
                 &mut rng,
@@ -274,12 +286,14 @@ pub fn render_pixel(
                 &ray,
                 config.max_depth,
                 has_lights
-            )
+            ) * sample_scale
         }
         
     }).sum();
 
-    color_buffer.scale_for_output(config.image_scale);
+    accumulated_color += color_buffer;
 
-    color_buffer
+    accumulated_color.scale_for_output();
+
+    accumulated_color
 }

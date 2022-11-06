@@ -3,7 +3,7 @@ use ultraviolet::Vec3;
 use crate::{services::texture_service::TextureService, core::color_rgb::ColorRGB};
 
 use super::texture::Texture;
-pub struct ImageTexture {
+pub struct Image {
     data: Vec<u8>,
     width: usize,
     height: usize,
@@ -11,7 +11,7 @@ pub struct ImageTexture {
     bytes_per_scanline: usize,
 }
 
-impl ImageTexture {
+impl Image {
     pub fn new(path: &str) -> Self {
         let bytes_per_pixel: usize = 3;
 
@@ -19,13 +19,13 @@ impl ImageTexture {
         let (width, height) = image.dimensions();
         let data = image.into_raw();
 
-        ImageTexture{data, width: width as usize, height: height as usize, bytes_per_pixel, bytes_per_scanline: bytes_per_pixel * width as usize}
+        Image{data, width: width as usize, height: height as usize, bytes_per_pixel, bytes_per_scanline: bytes_per_pixel * width as usize}
     }
 }
 
-impl Texture for ImageTexture {
+impl Texture for Image {
     fn value(&self, _texture_service: &TextureService, u: f32, v: f32, _point: &Vec3, color_out: &mut ColorRGB) -> bool {
-        if self.data.len() < 1 {
+        if self.data.is_empty() {
             color_out.r = 0.0;
             color_out.g = 1.0;
             color_out.b = 1.0;

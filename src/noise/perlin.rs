@@ -14,7 +14,7 @@ impl Perlin {
     pub fn new (rng: &mut ThreadRng, point_count: u32) -> Perlin {
         let mut result = 
             Perlin{
-                point_count: point_count, 
+                point_count, 
                 random_vectors: Vec::<Vec3>::new(),
                 permutation_x: Vec::<i32>::new(),
                 permutation_y: Vec::<i32>::new(),
@@ -35,7 +35,7 @@ impl Perlin {
 
     pub fn turbulence(&self, point: &Vec3, depth: i32) -> f32 {
         let mut accumulator = 0.0;
-        let mut temp_point = point.clone();
+        let mut temp_point = *point;
         let mut weight = 1.0;
 
         for _level in 0..depth {
@@ -108,28 +108,6 @@ impl Perlin {
         sum
     }
 
-
-    fn _trilinear_interpolation(samples: &[[[f32; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
-        let mut sum = 0.0;
-
-        for i in 0..2usize {
-            for j in 0..2usize {
-                for k in 0..2usize {
-                    let i_f = i as f32;
-                    let j_f = j as f32;
-                    let k_f = k as f32;
-                    sum += 
-                        (i_f * u + (1.0 - i_f) * (1.0 - u)) *
-                        (j_f * v + (1.0 - j_f) * (1.0 - v)) *
-                        (k_f * w + (1.0 - k_f) * (1.0 - w)) *
-                        samples[i][j][k];
-                }
-            }
-        }
-
-        sum
-    }
-
     fn populate_random_vectors(rng: &mut ThreadRng, vector: &mut Vec<Vec3>, desired_element_count: u32) {
         *vector = (0..desired_element_count).into_iter()
             .map(|_| Vec3::new(
@@ -142,13 +120,11 @@ impl Perlin {
     }
 
     fn generate_permutation(rng: &mut ThreadRng, vector: &mut Vec<i32>, desired_element_count: u32) {
-        *vector = (0..(desired_element_count as i32)).into_iter().map(|x| x).collect();
+        *vector = (0..(desired_element_count as i32)).into_iter().collect();
 
-        for index in (0..desired_element_count).rev().into_iter() {
+        for index in (0..(desired_element_count as usize)).rev() {
             let target = if 0 < index { rng.gen_range(0..index) } else { 0 };
-            let temp = vector[index as usize];
-            vector[index as usize] = vector[target as usize];
-            vector[target as usize] = temp;
+            vector.swap(index, target);
         }
     }
 

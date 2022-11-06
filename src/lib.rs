@@ -1,7 +1,6 @@
 use crate::{core::color_rgb::ColorRGB, services::image_presentation_service::save_image};
 use crate::render::integrator::render_pixel;
 use crate::services::service_locator::ServiceLocator;
-use ::core::panic;
 use std::f32;
 use std::time::Instant;
 use confy::ConfyError;
@@ -76,7 +75,7 @@ impl RenderApp {
             let service_locator: ServiceLocator = SceneBuilder::build_scene(&self.config);
             
             let now: Instant = Instant::now();
-            let total_pixels: usize = &self.config.image_height * &self.config.image_width;
+            let total_pixels: usize = self.config.image_height * self.config.image_width;
 
             let image: Vec<ColorRGB> = 
                 (0..total_pixels).into_par_iter().map(|pixel_index:usize| {
@@ -116,18 +115,6 @@ impl RenderApp {
     }
 }
 
-
-fn load_image_from_path(path: &std::path::Path) -> Result<egui::ColorImage, image::ImageError> {
-    let image = image::io::Reader::open(path)?.decode()?;
-    let size: [usize; 2] = [image.width() as usize, image.height() as usize];
-    let image_buffer = image.to_rgba8();
-    let pixels = image_buffer.as_flat_samples();
-    Ok(egui::ColorImage::from_rgba_unmultiplied(
-        size,
-        pixels.as_slice(),
-    ))
-}
-
 impl eframe::App for RenderApp {
     fn clear_color(&self, _visuals: &egui::Visuals) -> egui::Rgba {
         egui::Rgba::TRANSPARENT
@@ -137,7 +124,6 @@ impl eframe::App for RenderApp {
         frame.set_fullscreen(self.fullscreen_state);
 
         custom_window_frame(context, frame, "raytracing_in_rust", |ui: &mut Ui| {
-            ui.label("This is just the contents of the window");
             ui.horizontal(|ui: &mut Ui| {
                 ui.label("egui theme:");
                 egui::widgets::global_dark_light_mode_buttons(ui);
@@ -163,7 +149,13 @@ impl eframe::App for RenderApp {
 
             // pub samples_per_pixel: usize,
             ui.horizontal(|ui: &mut Ui| {
-                ui.label("Samples Per Pixel:");
+                ui.label("Subpixels Per Pixel:");
+                ui.add(egui::widgets::DragValue::new(&mut self.config.subpixels_per_pixel));
+            });
+
+            // pub samples_per_pixel: usize,
+            ui.horizontal(|ui: &mut Ui| {
+                ui.label("Samples Per Subixel:");
                 ui.add(egui::widgets::DragValue::new(&mut self.config.samples_per_pixel));
             });
 

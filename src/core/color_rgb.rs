@@ -89,15 +89,15 @@ impl ColorRGB {
     }
 
     #[inline]
-    pub fn scale_for_output(&mut self, scale: f32) {
+    pub fn scale_for_output(&mut self) {
         if self.r.is_nan() { self.r = 0.0; }
         if self.g.is_nan() { self.g = 0.0; }
         if self.b.is_nan() { self.b = 0.0; }
 
         // Try and apply this scaling to the colors before summation
-        self.r = 255.999 * clamp(0.0, (scale * self.r).sqrt(), 0.999);
-        self.g = 255.999 * clamp(0.0, (scale * self.g).sqrt(), 0.999);
-        self.b = 255.999 * clamp(0.0, (scale * self.b).sqrt(), 0.999);
+        self.r = 255.999 * clamp(0.0, self.r.sqrt(), 0.999);
+        self.g = 255.999 * clamp(0.0, self.g.sqrt(), 0.999);
+        self.b = 255.999 * clamp(0.0, self.b.sqrt(), 0.999);
     }
 }
 

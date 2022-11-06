@@ -41,7 +41,7 @@ impl Hittable for HittableList {
     }
 
     fn bounding_box(&self, hittable_service: &HittableService, time_0: f32, time_1: f32, box_out: &mut AABB) -> bool {
-        if self.hittable_indices.len() < 1 { return false };
+        if self.hittable_indices.is_empty() { return false };
 
         let mut temp_box_option: AABB = AABB::default();
         let mut first_box: bool = true;
