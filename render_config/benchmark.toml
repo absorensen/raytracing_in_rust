@@ -1,10 +1,10 @@
 aspect_ratio = 1.0
 image_width = 500
 image_height = 500
-image_scale = 0.25
+image_scale = 0.1
 output_path = 'output.png'
 subpixels_per_pixel = 16
-samples_per_pixel = 4
+samples_per_pixel = 10
 max_depth = 50
 scene_index = 1
 seed = 9873651359645
